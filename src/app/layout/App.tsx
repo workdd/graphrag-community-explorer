@@ -123,6 +123,7 @@ const App: React.FC = () => {
             <Route path="/" element={<Navigate to="/upload" replace />} />{" "}
             <Route path="/upload" element={<GraphDataHandler />} />{" "}
             <Route path="/graph" element={<GraphDataHandler />} />{" "}
+            <Route path="/explore" element={<GraphDataHandler />} />{" "}
             <Route path="/data" element={<GraphDataHandler />} />{" "}
             <Route path="*" element={<Navigate to="/upload" replace />} />{" "}
           </Routes>

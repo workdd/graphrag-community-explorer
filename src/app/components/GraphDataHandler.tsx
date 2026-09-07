@@ -11,6 +11,8 @@ import DataTableContainer from "./DataTableContainer";
 import ReactGA from "react-ga4";
 import CommunityOverview from "./CommunityOverview";
 import { Community } from "../models/community";
+import CommunityMap from "./CommunityMap";
+import ProductDashboard from "./ProductDashboard";
 
 const GraphDataHandler: React.FC = () => {
   const location = useLocation();
@@ -40,6 +42,7 @@ const GraphDataHandler: React.FC = () => {
   const [maxEntities, setMaxEntities] = useState(150);
   const [showCommunityOverview, setShowCommunityOverview] = useState(true);
   const [requestedCommunity, setRequestedCommunity] = useState<Community | null>(null);
+  const [dashboardMode, setDashboardMode] = useState<"overview" | "map">("overview");
 
   const {
     entities,
@@ -179,7 +182,7 @@ const GraphDataHandler: React.FC = () => {
         </Container>
       )}
       {tabIndex === 1 && (
-        showCommunityOverview ? <Box><Box sx={{p:2,display:'flex',gap:1,justifyContent:'center',flexWrap:'wrap'}}><Button variant={communityMode==='operational'?'contained':'outlined'} onClick={()=>setCommunityMode('operational')}>운영 커뮤니티</Button><Button variant={communityMode==='leiden'?'contained':'outlined'} disabled={!leidenCommunities.length} onClick={()=>setCommunityMode('leiden')}>Leiden 구조 커뮤니티</Button></Box><CommunityOverview communities={activeCommunities} entities={entities} onOpenGraph={(community) => { setRequestedCommunity(community ?? null); setShowCommunityOverview(false); }} /></Box> :
+        showCommunityOverview ? <Box><Box sx={{p:2,display:'flex',gap:1,justifyContent:'center',flexWrap:'wrap'}}><Button variant={communityMode==='operational'?'contained':'outlined'} onClick={()=>setCommunityMode('operational')}>운영 커뮤니티</Button><Button variant={communityMode==='leiden'?'contained':'outlined'} disabled={!leidenCommunities.length} onClick={()=>setCommunityMode('leiden')}>Leiden 구조 커뮤니티</Button><Button variant={dashboardMode==='map'?'contained':'outlined'} onClick={()=>setDashboardMode(dashboardMode==='map'?'overview':'map')}>{dashboardMode==='map'?'대시보드':'Community Map 보기'}</Button></Box>{dashboardMode==='map' ? <CommunityMap communities={activeCommunities} entities={entities} /> : <ProductDashboard communities={activeCommunities} entities={entities} onOpen={(community)=>{setRequestedCommunity(community);setShowCommunityOverview(false);}} />}</Box> :
         <Box
           p={3}
           sx={{
