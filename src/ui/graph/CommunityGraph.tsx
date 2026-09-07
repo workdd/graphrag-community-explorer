@@ -2,6 +2,8 @@ import { useEffect, useMemo, useRef, useState } from "react";
 import cytoscape from "cytoscape";
 import fcose from "cytoscape-fcose";
 import { typeColors } from "../../core/graph/palette";
+import { communitiesOf, neighborhoodSubgraph } from "../../core/graph/neighborhood";
+import { displayTitle } from "../../core/graph/palette";
 import { communitySubgraph } from "../../core/graph/subgraph";
 import type { Dataset, Partition } from "../../core/model";
 import { exportCytoscapePng, safeName } from "../download";
@@ -14,6 +16,9 @@ cytoscape.use(fcose);
 
 export type GraphFocus = { kind: "entity"; id: string } | { kind: "relationship"; id: string } | null;
 
+/** What the graph is centred on: one or more communities, or everything within a few hops of an entity. */
+export type GraphMode = { kind: "communities" } | { kind: "neighborhood"; entityId: string; hops: number };
+
 interface Props {
   dataset: Dataset;
   partition: Partition;
@@ -21,13 +26,16 @@ interface Props {
   focus: GraphFocus;
   onFocus: (focus: GraphFocus) => void;
   onRemoveCommunity: (id: string) => void;
+  mode: GraphMode;
+  onHopsChange: (hops: number) => void;
+  onLeaveNeighborhood: () => void;
 }
 
 const NODE_LIMITS = [200, 500, 1000, 0];
 const GHOST_LIMIT = 40;
 const LABEL_AUTO_LIMIT = 150;
 
-export function CommunityGraph({ dataset, partition, communityIds, focus, onFocus, onRemoveCommunity }: Props) {
+export function CommunityGraph({ dataset, partition, communityIds: selectedIds, focus, onFocus, onRemoveCommunity, mode, onHopsChange, onLeaveNeighborhood }: Props) {
   const { t } = useT();
   const [maxNodes, setMaxNodes] = useState(500);
   const [showBoundary, setShowBoundary] = useState(true);
@@ -45,16 +53,26 @@ export function CommunityGraph({ dataset, partition, communityIds, focus, onFocu
   const onFocusRef = useRef(onFocus);
   onFocusRef.current = onFocus;
 
+  const neighborhood = mode.kind === "neighborhood" ? mode : null;
   const subgraph = useMemo(() => {
-    const allTypes = communitySubgraph(dataset, partition, communityIds, { maxNodes: maxNodes || Infinity, includeBoundary: showBoundary, maxBoundaryNodes: GHOST_LIMIT }).typeCounts;
+    const limit = maxNodes || Infinity;
+    if (neighborhood) {
+      const allTypes = neighborhoodSubgraph(dataset, partition, neighborhood.entityId, { hops: neighborhood.hops, maxNodes: limit }).typeCounts;
+      const visible = new Set([...allTypes.keys()].filter((t) => !hiddenTypes.has(t)));
+      return neighborhoodSubgraph(dataset, partition, neighborhood.entityId, { hops: neighborhood.hops, maxNodes: limit, relationshipTypes: hiddenTypes.size > 0 ? visible : undefined });
+    }
+    const allTypes = communitySubgraph(dataset, partition, selectedIds, { maxNodes: limit, includeBoundary: showBoundary, maxBoundaryNodes: GHOST_LIMIT }).typeCounts;
     const visible = new Set([...allTypes.keys()].filter((t) => !hiddenTypes.has(t)));
-    return communitySubgraph(dataset, partition, communityIds, {
-      maxNodes: maxNodes || Infinity,
+    return communitySubgraph(dataset, partition, selectedIds, {
+      maxNodes: limit,
       includeBoundary: showBoundary,
       maxBoundaryNodes: GHOST_LIMIT,
       relationshipTypes: hiddenTypes.size > 0 ? visible : undefined,
     });
-  }, [dataset, partition, communityIds, maxNodes, showBoundary, hiddenTypes]);
+  }, [dataset, partition, selectedIds, neighborhood, maxNodes, showBoundary, hiddenTypes]);
+  // Containers: the selected communities, or, around an entity, the primary communities of what was reached.
+  const communityIds = useMemo(() => (neighborhood ? communitiesOf(subgraph.nodes) : selectedIds), [neighborhood, subgraph, selectedIds]);
+  const seed = neighborhood ? dataset.entities.get(neighborhood.entityId) : undefined;
 
   const colors = useMemo(() => typeColors(subgraph.nodes.map((n) => n.entity.type)), [subgraph]);
 
@@ -62,7 +80,7 @@ export function CommunityGraph({ dataset, partition, communityIds, focus, onFocu
   useEffect(() => {
     setLabels(subgraph.stats.shownMembers > LABEL_AUTO_LIMIT ? "focus" : "all");
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [communityIds]);
+  }, [selectedIds, neighborhood?.entityId]);
 
   // Hub-and-spoke datasets: one relationship type can own most links; name it so it can be hidden in one click.
   const dominant = useMemo(() => {
@@ -80,7 +98,13 @@ export function CommunityGraph({ dataset, partition, communityIds, focus, onFocu
   }, [subgraph]);
 
   // A different edge set deserves a fresh layout, and a stale selection would hide the result.
+  // Not on mount: the caller may have just focused an entity on purpose.
+  const mounted = useRef(false);
   useEffect(() => {
+    if (!mounted.current) {
+      mounted.current = true;
+      return;
+    }
     positions.current.clear();
     onFocusRef.current(null);
   }, [hiddenTypes, maxNodes]);
@@ -103,6 +127,7 @@ export function CommunityGraph({ dataset, partition, communityIds, focus, onFocu
     const incremental = subgraph.nodes.length > 0 && known / subgraph.nodes.length >= 0.7;
     const elapsed = runSeededLayout(cy, layoutOptions(subgraph.nodes.length, incremental), subgraph.nodes.map((n) => n.entity.id).join("|"));
     fitToCommunities(cy);
+    if (neighborhood) cy.getElementById(nodeId(neighborhood.entityId)).addClass("seed");
     if (import.meta.env.DEV) console.info(`[graph] ${subgraph.nodes.length} nodes, ${subgraph.edges.length} edges, layout ${Math.round(elapsed)} ms${incremental ? " (incremental)" : ""}`);
 
     const remember = () => {
@@ -226,7 +251,17 @@ export function CommunityGraph({ dataset, partition, communityIds, focus, onFocu
     <section className="graph-view">
       <div className="graph-toolbar">
         <div className="graph-communities">
-          {included.map((c, i) => (
+          {neighborhood && seed ? (
+            <>
+              <span className="chip static">{t("Around {entity}", { entity: displayTitle(seed) })}</span>
+              <label className="control">{t("Hops")}
+                <select value={neighborhood.hops} onChange={(e) => onHopsChange(Number(e.target.value))}>
+                  {[1, 2, 3].map((h) => <option key={h} value={h}>{h}</option>)}
+                </select>
+              </label>
+              <button className="btn" onClick={onLeaveNeighborhood}>{t("Back to the community")}</button>
+            </>
+          ) : included.map((c, i) => (
             <span key={c.id} className="chip static">
               {c.title} ({fmt(c.entityIds.length)})
               {i > 0 && <button className="chip-x" aria-label={t("Remove {title} from the graph", { title: c.title })} onClick={() => onRemoveCommunity(c.id)}>×</button>}
@@ -247,11 +282,11 @@ export function CommunityGraph({ dataset, partition, communityIds, focus, onFocu
               {NODE_LIMITS.map((n) => <option key={n} value={n}>{n === 0 ? t("all") : t("top {n}", { n })}</option>)}
             </select>
           </label>
-          <label className="control"><input type="checkbox" checked={showBoundary} onChange={(e) => setShowBoundary(e.target.checked)} /> {t("Outside links")}</label>
+          {!neighborhood && <label className="control"><input type="checkbox" checked={showBoundary} onChange={(e) => setShowBoundary(e.target.checked)} /> {t("Outside links")}</label>}
           <button className="btn" onClick={() => cyRef.current && fitToCommunities(cyRef.current, true)} title={t("Frame the community")}>{t("Fit")}</button>
           <button className="btn" onClick={() => cyRef.current?.animate({ fit: { eles: cyRef.current.elements(), padding: 40 } }, { duration: 250 })} title={t("Frame everything, outside links included")}>{t("All")}</button>
           <button className="btn" onClick={relayout} title={t("Recompute the layout from scratch")}>{t("Re-layout")}</button>
-          <button className="btn" onClick={() => cyRef.current && exportCytoscapePng(cyRef.current, `community-${safeName(included[0]?.title ?? "graph")}`)} title={t("Download the picture as a PNG at 2x")}>PNG</button>
+          <button className="btn" onClick={() => cyRef.current && exportCytoscapePng(cyRef.current, neighborhood && seed ? `around-${safeName(displayTitle(seed))}` : `community-${safeName(included[0]?.title ?? "graph")}`)} title={t("Download the picture as a PNG at 2x")}>PNG</button>
         </div>
       </div>
 
@@ -297,8 +332,10 @@ export function CommunityGraph({ dataset, partition, communityIds, focus, onFocu
       </div>
 
       <p className="graph-stats">
-        {t("{shown} of {members} entities, {internal} internal relationships", { shown: fmt(stats.shownMembers), members: fmt(stats.members), internal: fmt(stats.internalEdges) })}
-        {showBoundary && t(", {boundary} outside links to {ghosts} entities drawn dashed", { boundary: fmt(stats.boundaryEdges), ghosts: fmt(stats.ghostNodes) })}
+        {neighborhood
+          ? t("{shown} of {members} entities within {hops} hops, {internal} relationships, in {communities} communities", { shown: fmt(stats.shownMembers), members: fmt(stats.members), hops: neighborhood.hops, internal: fmt(stats.internalEdges), communities: fmt(communityIds.length) })
+          : t("{shown} of {members} entities, {internal} internal relationships", { shown: fmt(stats.shownMembers), members: fmt(stats.members), internal: fmt(stats.internalEdges) })}
+        {!neighborhood && showBoundary && t(", {boundary} outside links to {ghosts} entities drawn dashed", { boundary: fmt(stats.boundaryEdges), ghosts: fmt(stats.ghostNodes) })}
         {stats.hiddenBoundaryEdges > 0 && t(" ({hidden} more outside links not drawn)", { hidden: fmt(stats.hiddenBoundaryEdges) })}.
         {stats.shownMembers < stats.members && ` ${t("Showing the most connected {shown}; raise the limit above to see all.", { shown: fmt(stats.shownMembers) })}`}
         {dominant && <> <b>{dominant.type}</b>{t(" makes up {share}% of the internal links; hide it in the relationship types above to see the rest of the structure.", { share: Math.round(dominant.share * 100) })}</>}

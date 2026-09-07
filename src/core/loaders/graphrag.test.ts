@@ -81,6 +81,18 @@ describe("buildDataset (older and other layouts)", () => {
     expect(notes).toEqual([]);
   });
 
+  it("resolves covariates to entity ids by title", () => {
+    const { dataset } = buildDataset({
+      entities: [entity("a", "Cart API"), entity("b", "Orders DB", "Database")],
+      relationships: [],
+      covariates: [{ id: "c1", type: "DEPENDENCY", description: "Cart API depends on Orders DB.", subject_id: "Cart API", object_id: "Orders DB", status: "TRUE", source_text: ["x", "y"] },
+                    { id: "c2", covariate_type: "claim", description: "?", subject_id: "Ghost" }],
+    }, []);
+    expect(dataset.covariates).toHaveLength(2);
+    expect(dataset.covariates[0]).toMatchObject({ subjectId: "a", objectId: "b", status: "TRUE", sourceText: "x y" });
+    expect(dataset.covariates[1]).toMatchObject({ type: "claim", subjectId: undefined, subjectTitle: "Ghost" });
+  });
+
   it("detects AGE exports, keeps high-numbered root levels and loads extra partitions", () => {
     const { dataset } = buildDataset({
       entities: [entity("1", "VM · web", "VirtualMachine", { age_properties_json: "{}" }), entity("2", "Vol", "BlockStorage")],

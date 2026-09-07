@@ -1,7 +1,7 @@
 import { buildDataset, type LoadResult, type Tables } from "./graphrag";
 import { readParquet, type Row } from "./parquet";
 
-export type TableName = "entities" | "relationships" | "communities" | "community_reports" | "text_units" | "documents";
+export type TableName = "entities" | "relationships" | "communities" | "community_reports" | "text_units" | "documents" | "covariates";
 
 /** GraphRAG >= 1.0 names first, then the create_final_* names of 0.3 to 0.5. */
 export const CANONICAL_FILES: Record<TableName, string[]> = {
@@ -11,6 +11,7 @@ export const CANONICAL_FILES: Record<TableName, string[]> = {
   community_reports: ["community_reports.parquet", "create_final_community_reports.parquet"],
   text_units: ["text_units.parquet", "create_final_text_units.parquet"],
   documents: ["documents.parquet", "create_final_documents.parquet"],
+  covariates: ["covariates.parquet", "create_final_covariates.parquet"],
 };
 
 export type FileRole = { table: TableName } | { partition: string } | null;
@@ -57,6 +58,7 @@ async function assemble(files: Loaded[]): Promise<LoadResult> {
     community_reports: tables.community_reports,
     text_units: tables.text_units,
     documents: tables.documents,
+    covariates: tables.covariates,
     extraPartitions,
   };
   return buildDataset(input, used);

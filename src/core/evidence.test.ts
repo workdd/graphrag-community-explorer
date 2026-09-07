@@ -16,6 +16,7 @@ const dataset: Dataset = {
     ["u3", { id: "u3", text: "Unrelated.", documentIds: ["missing"], entityIds: [], relationshipIds: [] }],
   ]),
   documents: new Map([["d1", { id: "d1", title: "Doc one" }]]),
+  covariates: [],
 };
 const community: Community = { id: "c", level: 0, parentId: null, childIds: [], title: "C", entityIds: ["a", "b"], relationshipIds: [], size: 2, membershipSource: "entity_ids", textUnitIds: [] };
 

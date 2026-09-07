@@ -18,6 +18,7 @@ const dataset: Dataset = {
   partitions: [],
   textUnits: new Map(),
   documents: new Map(),
+  covariates: [],
 };
 // Nested: root 0 ⊃ {1, 2}; 1 = {a, b}, 2 = {c, d}; root keeps e as its own extra member; f and z are unassigned.
 const nestedPartition = partitionOf([

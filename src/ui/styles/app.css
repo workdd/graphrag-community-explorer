@@ -223,3 +223,8 @@
 .view-loading { padding: 24px 0; color: var(--ink-2); }
 .load-top { display: flex; align-items: center; justify-content: space-between; }
 .btn.lang { font-size: var(--fs-0); padding: 4px 9px; }
+.claims li { padding: 6px 0; border-bottom: 1px solid var(--rule-2); display: grid; gap: 3px; }
+.claim-type { color: var(--ink-2); font-size: var(--fs-0); }
+.claim-text { line-height: 1.45; }
+.claims .chip { justify-self: start; }
+.inspector-body > .btn.primary + h3 { margin-top: 18px; }

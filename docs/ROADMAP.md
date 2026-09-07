@@ -21,9 +21,9 @@ are built. Apache AGE is one input adapter among several, not the center of the 
 | M3 Quality and evidence (done) | Per-community conductance and density, size distributions, comparison of two partitions (NMI, ARI, crosstab), text units and documents behind entities and relationships | Metrics match reference implementations on the sample; evidence opens for every GraphRAG 2.x index |
 | M4 Release (done) | README in English and Korean, GitHub Pages demo on the sample, CONTRIBUTING, issue templates, CHANGELOG, `npx` launcher | A newcomer follows the README and explores their own index without asking questions |
 
-| M5 Usability (current) | Korean/English interface, PNG and CSV export, shareable view URLs, lazy-loaded views, keyboard navigation for tree and tables | Every screen reads in both languages; smoke test covers the switch |
-| M6 Scale and compatibility | 10k-entity synthetic stress set with measured load, graph and map timings; GraphRAG 0.3 `create_final_*` sample tested end to end; covariates (claims) shown; n-hop neighbourhood exploration from any entity | 10k entities load under five seconds, collapsed map under two; 0.3 sample passes the smoke test |
-| M7 Distribution | npm package with a `bin` that serves a built copy next to your index; GitHub releases with notes; Dockerfile for static hosting | `npm pack` contains only dist and bin; a release page exists for each tag |
+| M5 Usability (done) | Korean/English interface, PNG and CSV export, shareable view URLs, lazy-loaded views, keyboard navigation for tree and tables | Every screen reads in both languages; smoke test covers the switch |
+| M6 Scale and compatibility (done) | 10k-entity synthetic stress set with measured load, graph and map timings; GraphRAG 0.3 `create_final_*` sample tested end to end; covariates (claims) shown; n-hop neighbourhood exploration from any entity | 10k entities load under five seconds, collapsed map under two; 0.3 sample passes the smoke test |
+| M7 Distribution (current) | npm package with a `bin` that serves a built copy next to your index; GitHub releases with notes; Dockerfile for static hosting | `npm pack` contains only dist and bin; a release page exists for each tag |
 
 ## Out of scope for now
 

@@ -12,6 +12,7 @@ Run:  uv run samples/generate_sample.py      (writes public/samples/demo/*.parqu
 """
 from __future__ import annotations
 
+import argparse
 import random
 import uuid
 from pathlib import Path
@@ -19,8 +20,14 @@ from pathlib import Path
 import pyarrow as pa
 import pyarrow.parquet as pq
 
+parser = argparse.ArgumentParser(description=__doc__)
+parser.add_argument("--out", type=Path, default=Path(__file__).resolve().parent.parent / "public" / "samples" / "demo")
+parser.add_argument("--scale", type=int, default=1, help="replicate the hierarchy this many times (stress sets)")
+parser.add_argument("--edge-factor", type=float, default=1.6, help="relationships per entity inside a topic")
+parser.add_argument("--legacy-names", action="store_true", help="write GraphRAG 0.3 create_final_* files without entity_ids or parents")
+args = parser.parse_args()
 random.seed(7)
-OUT = Path(__file__).resolve().parent.parent / "public" / "samples" / "demo"
+OUT = args.out
 
 # Three levels: domains (0) > areas (1) > topics (2).
 HIERARCHY = {
@@ -39,6 +46,12 @@ HIERARCHY = {
         "Compliance": ["Audit and retention"],
     },
 }
+if args.scale > 1:
+    HIERARCHY = {
+        f"{domain} {k + 1}": {f"{area} {k + 1}": [f"{topic} {k + 1}" for topic in topics] for area, topics in areas.items()}
+        for k in range(args.scale)
+        for domain, areas in HIERARCHY.items()
+    }
 TYPES = ["Service", "Service", "Service", "Database", "Queue", "Team", "Incident", "Vendor"]
 VENDORS = ["Acme", "Globex", "Initech", "Umbrella", "Hooli"]
 SERVICE_SUFFIX = ["API", "service", "worker", "gateway", "scheduler"]
@@ -151,7 +164,7 @@ def add_relationship(a: dict, b: dict) -> None:
 
 
 for topic, members in topic_members.items():  # dense inside topics
-    for _ in range(int(len(members) * 1.6)):
+    for _ in range(int(len(members) * args.edge_factor)):
         add_relationship(random.choice(members), random.choice(members))
 for area, members in area_members.items():  # a few across topics of the same area
     for _ in range(4):
@@ -305,6 +318,29 @@ for c in communities:  # a community's units are those of its members' topics
            if any(e["id"] in set(c["entity_ids"]) for e in topic_members[topic])}
     c["text_unit_ids"] = sorted(ids)
 
+# Claims (covariates): GraphRAG keys them by entity title in subject_id.
+covariates: list[dict] = []
+CLAIMS = [("OWNERSHIP", "{s} is owned by {o}.", "TRUE"), ("DEPENDENCY", "{s} depends on {o} in production.", "TRUE"),
+          ("INCIDENT", "{s} caused an outage affecting {o}.", "SUSPECTED"), ("DEPRECATION", "{s} is scheduled for retirement.", "FALSE")]
+for topic, members in topic_members.items():
+    for r in [r for r in relationships if by_title[r["source"]]["id"] in {e["id"] for e in members}][:2]:
+        kind, template, status = random.choice(CLAIMS)
+        text = template.format(s=r["source"], o=r["target"])
+        covariates.append({
+            "id": stable_id("covariate", f"{r['id']}/{kind}"),
+            "human_readable_id": len(covariates),
+            "covariate_type": "claim",
+            "type": kind,
+            "description": text,
+            "subject_id": r["source"],
+            "object_id": r["target"],
+            "status": status,
+            "start_date": "2026-01-01",
+            "end_date": "",
+            "source_text": [text],
+            "text_unit_id": r["text_unit_ids"][0] if r["text_unit_ids"] else "",
+        })
+
 S, I, D, L = pa.string(), pa.int64(), pa.float64(), pa.list_(pa.string())
 SCHEMAS = {
     "entities": pa.schema([("id", S), ("human_readable_id", I), ("title", S), ("type", S), ("description", S),
@@ -323,13 +359,41 @@ SCHEMAS = {
                              ("entity_ids", L), ("relationship_ids", L), ("covariate_ids", L)]),
     "documents": pa.schema([("id", S), ("human_readable_id", I), ("title", S), ("text", S), ("text_unit_ids", L),
                             ("creation_date", S), ("metadata", S)]),
+    "covariates": pa.schema([("id", S), ("human_readable_id", I), ("covariate_type", S), ("type", S), ("description", S),
+                             ("subject_id", S), ("object_id", S), ("status", S), ("start_date", S), ("end_date", S),
+                             ("source_text", L), ("text_unit_id", S)]),
+}
+LEGACY = {  # GraphRAG 0.3: create_final_* names, entity "name", no entity_ids, no parent, no relationship type
+    "create_final_entities": (pa.schema([("id", S), ("name", S), ("type", S), ("description", S), ("human_readable_id", I), ("text_unit_ids", L)]),
+                              lambda: [{"id": e["id"], "name": e["title"], "type": e["type"], "description": e["description"],
+                                        "human_readable_id": e["human_readable_id"], "text_unit_ids": e["text_unit_ids"]} for e in entities]),
+    "create_final_relationships": (pa.schema([("source", S), ("target", S), ("weight", D), ("description", S), ("text_unit_ids", L),
+                                              ("id", S), ("human_readable_id", I), ("source_degree", I), ("target_degree", I), ("rank", I)]),
+                                   lambda: [{"source": r["source"], "target": r["target"], "weight": r["weight"], "description": r["description"],
+                                             "text_unit_ids": r["text_unit_ids"], "id": r["id"], "human_readable_id": r["human_readable_id"],
+                                             "source_degree": by_title[r["source"]]["degree"], "target_degree": by_title[r["target"]]["degree"],
+                                             "rank": r["combined_degree"]} for r in relationships]),
+    "create_final_communities": (pa.schema([("id", S), ("title", S), ("level", I), ("raw_community", I), ("relationship_ids", L), ("text_unit_ids", L)]),
+                                 lambda: [{"id": str(c["community"]), "title": c["title"], "level": c["level"], "raw_community": c["community"],
+                                           "relationship_ids": c["relationship_ids"], "text_unit_ids": c["text_unit_ids"]} for c in communities]),
+    "create_final_community_reports": (pa.schema([("community", S), ("full_content", S), ("level", I), ("rank", D), ("title", S),
+                                                  ("rank_explanation", S), ("summary", S),
+                                                  ("findings", pa.list_(pa.struct([("summary", S), ("explanation", S)]))),
+                                                  ("full_content_json", S), ("id", S)]),
+                                       lambda: [{"community": str(r["community"]), "full_content": r["full_content"], "level": r["level"], "rank": r["rank"],
+                                                 "title": r["title"], "rank_explanation": r["rating_explanation"], "summary": r["summary"],
+                                                 "findings": r["findings"], "full_content_json": "", "id": r["id"]} for r in reports]),
 }
 OUT.mkdir(parents=True, exist_ok=True)
-for name, rows in (("entities", entities), ("relationships", relationships), ("communities", communities), ("community_reports", reports),
-                   ("text_units", text_units), ("documents", documents)):
-    pq.write_table(pa.Table.from_pylist(rows, schema=SCHEMAS[name]), OUT / f"{name}.parquet", compression="NONE")
+if args.legacy_names:
+    for name, (schema, rows) in LEGACY.items():
+        pq.write_table(pa.Table.from_pylist(rows(), schema=schema), OUT / f"{name}.parquet", compression="NONE")
+else:
+    for name, rows in (("entities", entities), ("relationships", relationships), ("communities", communities), ("community_reports", reports),
+                       ("text_units", text_units), ("documents", documents), ("covariates", covariates)):
+        pq.write_table(pa.Table.from_pylist(rows, schema=SCHEMAS[name]), OUT / f"{name}.parquet", compression="NONE")
 levels = sorted({c["level"] for c in communities})
 covered = {eid for c in communities for eid in c["entity_ids"]}
 isolated = sum(1 for e in entities if e["degree"] == 0)
-print(f"entities={len(entities)} relationships={len(relationships)} communities={len(communities)} levels={levels} text_units={len(text_units)} documents={len(documents)} "
+print(f"entities={len(entities)} relationships={len(relationships)} communities={len(communities)} levels={levels} text_units={len(text_units)} documents={len(documents)} covariates={len(covariates)} "
       f"covered={len(covered)} isolated={isolated} -> {OUT}")

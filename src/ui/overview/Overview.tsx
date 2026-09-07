@@ -2,7 +2,8 @@ import { Suspense, lazy, useEffect, useMemo, useState } from "react";
 import type { LoadResult } from "../../core/loaders/graphrag";
 import { checkIntegrity } from "../../core/metrics/integrity";
 import { datasetCounts, summarizePartition } from "../../core/metrics/summary";
-import type { GraphFocus } from "../graph/CommunityGraph";
+import type { GraphFocus, GraphMode } from "../graph/CommunityGraph";
+import { displayTitle } from "../../core/graph/palette";
 
 // Heavy views (Cytoscape) load on demand so the overview appears before the graph code downloads.
 const CommunityGraph = lazy(() => import("../graph/CommunityGraph").then((m) => ({ default: m.CommunityGraph })));
@@ -42,6 +43,7 @@ export function Overview({ result, label, onReset }: Props) {
   const [mapExpanded, setMapExpanded] = useState<Set<string>>(new Set());
   const [focus, setFocus] = useState<GraphFocus>(null);
   const [extraIds, setExtraIds] = useState<string[]>([]);
+  const [graphMode, setGraphMode] = useState<GraphMode>({ kind: "communities" });
   const partition = dataset.partitions.find((p) => p.id === partitionId) ?? dataset.partitions[0];
 
   const counts = useMemo(() => datasetCounts(dataset), [dataset]);
@@ -65,7 +67,14 @@ export function Overview({ result, label, onReset }: Props) {
     setSelectedId(id);
     setFocus(null);
     setExtraIds([]);
+    setGraphMode({ kind: "communities" });
   };
+  const explore = (entityId: string) => {
+    setGraphMode({ kind: "neighborhood", entityId, hops: 2 });
+    setFocus({ kind: "entity", id: entityId });
+    setView("graph");
+  };
+  const seedTitle = graphMode.kind === "neighborhood" ? dataset.entities.get(graphMode.entityId) : undefined;
   const changePartition = (id: string) => {
     setPartitionId(id);
     select(null);
@@ -130,11 +139,11 @@ export function Overview({ result, label, onReset }: Props) {
               role="tab"
               aria-selected={view === "graph"}
               className={view === "graph" ? "active" : ""}
-              disabled={!selected}
-              title={selected ? undefined : t("Select a community first")}
-              onClick={openGraph}
+              disabled={!selected && graphMode.kind !== "neighborhood"}
+              title={selected || graphMode.kind === "neighborhood" ? undefined : t("Select a community first")}
+              onClick={() => (selected || graphMode.kind === "neighborhood") && setView("graph")}
             >
-              {t("Graph")}{selected ? `: ${selected.title}` : ""}
+              {t("Graph")}{seedTitle ? `: ${displayTitle(seedTitle)}` : selected ? `: ${selected.title}` : ""}
             </button>
           </div>
         </div>
@@ -153,7 +162,7 @@ export function Overview({ result, label, onReset }: Props) {
             focus={focus}
             onFocus={setFocus}
           />
-        ) : view === "graph" && partition && selected ? (
+        ) : view === "graph" && partition && (selected || graphMode.kind === "neighborhood") ? (
           <CommunityGraph
             dataset={dataset}
             partition={partition}
@@ -161,6 +170,9 @@ export function Overview({ result, label, onReset }: Props) {
             focus={focus}
             onFocus={setFocus}
             onRemoveCommunity={(id) => setExtraIds((prev) => prev.filter((x) => x !== id))}
+            mode={graphMode}
+            onHopsChange={(hops) => setGraphMode((m) => (m.kind === "neighborhood" ? { ...m, hops } : m))}
+            onLeaveNeighborhood={() => { setGraphMode({ kind: "communities" }); if (!selectedId) setView("table"); }}
           />
         ) : (
           <>
@@ -208,6 +220,7 @@ export function Overview({ result, label, onReset }: Props) {
           inGraph={view === "graph"}
           graphIds={graphIds}
           onAddCommunity={addCommunity}
+          onExplore={explore}
           inMap={view === "map"}
           mapOpen={selectedId !== null && mapExpanded.has(selectedId)}
           onToggleMap={() => {

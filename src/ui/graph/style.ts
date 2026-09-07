@@ -78,6 +78,7 @@ export const GRAPH_STYLE = [
   { selector: ".faded", style: { opacity: 0.12, "text-opacity": 0 } },
   { selector: "node:parent.faded", style: { opacity: 0.45, "text-opacity": 0.6 } },
   { selector: "node.dim", style: { opacity: 0.18, "text-opacity": 0 } },
+  { selector: "node.seed", style: { "border-color": "#3d5afe", "border-width": 3, "font-weight": 600 } },
   { selector: "node.focus", style: { "border-color": "#3d5afe", "border-width": 3, "text-max-width": 320, "font-weight": 600, "z-index": 20 } },
   { selector: "node.neighbor", style: { "z-index": 10 } },
   { selector: "edge.out", style: { "line-color": "#3d5afe", "target-arrow-color": "#3d5afe", width: 1.8, label: "data(type)", "z-index": 9 } },

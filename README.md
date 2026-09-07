@@ -47,11 +47,17 @@ npm run serve -- --data ~/graphrag/output     # http://127.0.0.1:4180/?data=./da
 | `communities.parquet` | Levels, parents, members. Without it there is no hierarchy. |
 | `community_reports.parquet` | Summaries, findings and ranks. |
 | `text_units.parquet`, `documents.parquet` | Source chunks and documents; the inspector shows the text behind an entity, relationship or community. |
+| `covariates.parquet` | Claims about entities, listed on the entity panel. |
 | `<label>_communities.parquet` | Any additional community set (for example `leiden_communities.parquet`) becomes a switchable partition. |
 
 File names from GraphRAG 0.3 to 2.x are recognized, including the `create_final_` prefix. When an
 older output has no `entity_ids` column, members are inferred from `relationship_ids` and the
-integrity panel says so. Exports from Apache AGE that follow the same layout load as well.
+integrity panel says so (`public/samples/legacy` is such a set). Exports from Apache AGE that
+follow the same layout load as well.
+
+Size: a synthetic index with 9,211 entities, 23,810 relationships and 1,537 communities opens in
+under a second on a laptop; the collapsed map, the quality view and an 85-entity community graph
+each take about half a second (`samples/generate_sample.py --scale 53 --edge-factor 5`).
 
 ## What you see
 
@@ -73,7 +79,9 @@ remembered in the browser.
 - Quality: modularity and coverage per level, size distributions, density and conductance per
   community, and a side-by-side comparison of two community sets (NMI, ARI, overlap table).
 - Evidence: the text units and documents behind an entity, relationship or community, when the
-  index shipped them.
+  index shipped them; claims from `covariates.parquet` on the entity panel.
+- Neighbourhood exploration: from any entity, everything within 1, 2 or 3 hops across community
+  boundaries, drawn inside the communities it belongs to.
 - The community graph: members drawn inside the community container, colored by entity type and
   sized by degree, with labels that stay readable. Outside links reach dashed ghost nodes, and any
   neighbouring community can be added to the same picture. Click a node for its neighbourhood and

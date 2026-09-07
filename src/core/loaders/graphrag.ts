@@ -1,6 +1,7 @@
 import type {
   Community,
   CommunityReport,
+  Covariate,
   Dataset,
   Document,
   Entity,
@@ -20,6 +21,7 @@ export interface Tables {
   community_reports?: Row[];
   text_units?: Row[];
   documents?: Row[];
+  covariates?: Row[];
   /** Additional community sets keyed by label, e.g. "leiden" from leiden_communities.parquet. */
   extraPartitions?: Record<string, Row[]>;
 }
@@ -278,6 +280,26 @@ export function buildDataset(tables: Tables, files: string[]): LoadResult {
     documents.set(id, { id, title: str(row.title) ?? id, text: str(row.text) });
   });
 
+  const covariates: Covariate[] = (tables.covariates ?? []).map((row, index) => {
+    const subjectTitle = str(row.subject_id) ?? "";
+    const objectTitle = str(row.object_id);
+    const source = row.source_text;
+    return {
+      id: str(row.id) ?? `covariate-${index}`,
+      type: str(row.type) ?? str(row.covariate_type) ?? "claim",
+      description: str(row.description) ?? "",
+      subjectId: resolve(subjectTitle),
+      subjectTitle,
+      objectId: resolve(objectTitle),
+      objectTitle,
+      status: str(row.status),
+      startDate: str(row.start_date),
+      endDate: str(row.end_date),
+      sourceText: Array.isArray(source) ? list(source).join(" ") : str(source),
+      textUnitId: str(row.text_unit_id),
+    };
+  });
+
   const kind: SourceKind = tables.entities.some((row) => "age_properties_json" in row) ? "age-export" : "graphrag";
-  return { dataset: { source: { kind, files }, entities, relationships, partitions, textUnits, documents }, notes: notes.toArray() };
+  return { dataset: { source: { kind, files }, entities, relationships, partitions, textUnits, documents, covariates }, notes: notes.toArray() };
 }

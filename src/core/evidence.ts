@@ -1,4 +1,4 @@
-import type { Community, Dataset, TextUnit } from "./model";
+import type { Community, Covariate, Dataset, TextUnit } from "./model";
 
 export interface Evidence {
   unit: TextUnit;
@@ -64,6 +64,13 @@ export function evidenceForCommunity(dataset: Dataset, community: Community, lim
     .slice(0, limit)
     .map((x) => x.unit);
   return withDocuments(dataset, ranked);
+}
+
+/** Claims where the entity is the subject first, then those where it is the object. */
+export function claimsForEntity(dataset: Dataset, entityId: string): Covariate[] {
+  const asSubject = dataset.covariates.filter((c) => c.subjectId === entityId);
+  const asObject = dataset.covariates.filter((c) => c.objectId === entityId && c.subjectId !== entityId);
+  return [...asSubject, ...asObject];
 }
 
 /** First sentence-ish slice of a chunk for list views. */

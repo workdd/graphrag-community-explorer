@@ -68,6 +68,22 @@ export interface Document {
   text?: string;
 }
 
+/** GraphRAG covariate (claim) about an entity, resolved to entity ids when the titles match. */
+export interface Covariate {
+  id: string;
+  type: string;
+  description: string;
+  subjectId?: string;
+  subjectTitle: string;
+  objectId?: string;
+  objectTitle?: string;
+  status?: string;
+  startDate?: string;
+  endDate?: string;
+  sourceText?: string;
+  textUnitId?: string;
+}
+
 export interface Partition {
   id: string;
   label: string;
@@ -89,4 +105,5 @@ export interface Dataset {
   /** Source chunks and documents, when the index shipped them. */
   textUnits: Map<string, TextUnit>;
   documents: Map<string, Document>;
+  covariates: Covariate[];
 }

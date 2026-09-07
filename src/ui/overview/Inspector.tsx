@@ -1,5 +1,5 @@
 import { useMemo, useState } from "react";
-import { evidenceForCommunity, evidenceForEntity, evidenceForRelationship, snippet, type Evidence } from "../../core/evidence";
+import { claimsForEntity, evidenceForCommunity, evidenceForEntity, evidenceForRelationship, snippet, type Evidence } from "../../core/evidence";
 import { displayTitle } from "../../core/graph/palette";
 import { relationshipsOf } from "../../core/graph/subgraph";
 import { membershipIndex, pathTo } from "../../core/hierarchy";
@@ -21,6 +21,7 @@ interface Props {
   inGraph: boolean;
   graphIds: string[];
   onAddCommunity: (id: string) => void;
+  onExplore: (entityId: string) => void;
   inMap: boolean;
   mapOpen: boolean;
   onToggleMap: () => void;
@@ -126,7 +127,7 @@ function CommunityPanel({ dataset, partition, community, metrics, onFocus, onSel
   );
 }
 
-function EntityPanel({ dataset, partition, community, onFocus, onSelect, inGraph, graphIds, onAddCommunity, entityId }: Props & { entityId: string }) {
+function EntityPanel({ dataset, partition, community, onFocus, onSelect, inGraph, graphIds, onAddCommunity, onExplore, entityId }: Props & { entityId: string }) {
   const { t } = useT();
   const index = useMemo(() => (partition ? membershipIndex(partition) : new Map<string, Community[]>()), [partition]);
   const entity = dataset.entities.get(entityId);
@@ -149,6 +150,7 @@ function EntityPanel({ dataset, partition, community, onFocus, onSelect, inGraph
         {short !== entity.title && t(" Full title: {title}.", { title: entity.title })}
       </p>
       <Description text={entity.description} />
+      <button className="btn primary" onClick={() => onExplore(entity.id)} title={t("Everything within two hops, across communities")}>{t("Explore neighbourhood")}</button>
 
       <h3>{t("Communities")}</h3>
       {memberships.length === 0 ? (
@@ -184,8 +186,40 @@ function EntityPanel({ dataset, partition, community, onFocus, onSelect, inGraph
       </ul>
       {relationships.length > RELATIONSHIP_PREVIEW && <p className="muted">{t("{n} more.", { n: fmt(relationships.length - RELATIONSHIP_PREVIEW) })}</p>}
 
+      <Claims dataset={dataset} entityId={entity.id} onFocus={onFocus} />
       <EvidenceList title="Source text" items={evidenceForEntity(dataset, entity.id)} hasUnits={dataset.textUnits.size > 0} />
     </div>
+  );
+}
+
+/** GraphRAG claims about the entity, when the index shipped covariates. */
+function Claims({ dataset, entityId, onFocus }: { dataset: Dataset; entityId: string; onFocus: (focus: GraphFocus) => void }) {
+  const { t } = useT();
+  if (dataset.covariates.length === 0) return null;
+  const claims = claimsForEntity(dataset, entityId);
+  return (
+    <>
+      <h3>{t("Claims")} ({fmt(claims.length)})</h3>
+      {claims.length === 0 ? (
+        <p className="muted">{t("No claim involves this entity.")}</p>
+      ) : (
+        <ul className="claims">
+          {claims.map((c) => {
+            const other = c.subjectId === entityId ? c.objectId : c.subjectId;
+            const otherTitle = c.subjectId === entityId ? c.objectTitle : c.subjectTitle;
+            return (
+              <li key={c.id}>
+                <span className="claim-type">{c.type}{c.status ? ` · ${c.status}` : ""}{c.startDate ? ` · ${c.startDate}${c.endDate ? ` to ${c.endDate}` : ""}` : ""}</span>
+                <span className="claim-text">{c.description}</span>
+                {other && otherTitle && (
+                  <button className="chip" onClick={() => onFocus({ kind: "entity", id: other })}>{otherTitle}</button>
+                )}
+              </li>
+            );
+          })}
+        </ul>
+      )}
+    </>
   );
 }
 

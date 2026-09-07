@@ -13,6 +13,7 @@ describe("classifyFile", () => {
     expect(classifyFile("leiden_communities.parquet")).toEqual({ partition: "leiden" });
     expect(classifyFile("text_units.parquet")).toEqual({ table: "text_units" });
     expect(classifyFile("create_final_documents.parquet")).toEqual({ table: "documents" });
+    expect(classifyFile("covariates.parquet")).toEqual({ table: "covariates" });
     expect(classifyFile("notes.txt")).toBeNull();
   });
 });

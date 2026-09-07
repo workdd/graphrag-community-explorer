@@ -19,6 +19,7 @@ const dataset: Dataset = {
   partitions: [],
   textUnits: new Map(),
   documents: new Map(),
+  covariates: [],
 };
 const partition: Partition = {
   id: "p", label: "p", levels: [0, 1], rootLevel: 0,
