@@ -1,9 +1,15 @@
-# Local AGE/GraphRAG data (never commit to the public repository)
-public/artifacts/*.parquet
+node_modules/
+dist/
+coverage/
+.vite/
+.DS_Store
+
+# Local datasets never ship with the repository. Only the synthetic sample under
+# public/samples/ is tracked. Put your own files in public/data/ and open ?data=./data/<dir>.
+*.parquet
+!public/samples/**/*.parquet
+public/data/
 artifacts/
-*.age.json
-*.snapshot.json
 .env
 .env.*
-!*.env.example
-node_modules/
+!.env.example
