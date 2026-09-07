@@ -1,10 +1,12 @@
 #!/usr/bin/env node
-// Serves the built app from dist/ and, optionally, folders of Parquet files under /data/<name>/.
-//   node scripts/serve.mjs --data ~/graphrag/output --port 4180
+// Serves the built app and, optionally, folders of Parquet files under /data/<name>/.
+//   npx graphrag-community-explorer --data ~/graphrag/output --port 4180
+//   node scripts/serve.mjs --data ~/graphrag/output          (in a checkout, after npm run build)
 // Then open http://127.0.0.1:4180/?data=./data/output
 import http from "node:http";
 import { createReadStream, existsSync, statSync } from "node:fs";
-import { basename, extname, join, normalize, resolve } from "node:path";
+import { basename, dirname, extname, join, normalize, resolve } from "node:path";
+import { fileURLToPath } from "node:url";
 
 const args = process.argv.slice(2);
 const dataDirs = new Map();
@@ -17,9 +19,11 @@ for (let i = 0; i < args.length; i++) {
     port = Number(args[++i]);
   }
 }
-const dist = resolve(process.cwd(), "dist");
+// Installed as a package the build sits next to this script; in a checkout it is ./dist after `npm run build`.
+const packaged = resolve(dirname(fileURLToPath(import.meta.url)), "..", "dist");
+const dist = existsSync(join(packaged, "index.html")) ? packaged : resolve(process.cwd(), "dist");
 if (!existsSync(join(dist, "index.html"))) {
-  console.error("dist/index.html not found. Run `npm run build` first.");
+  console.error("No built app found. Run `npm run build` in a checkout, or install the package from npm.");
   process.exit(1);
 }
 

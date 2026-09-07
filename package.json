@@ -1,7 +1,6 @@
 {
   "name": "graphrag-community-explorer",
-  "version": "0.1.0",
-  "private": true,
+  "version": "0.2.0",
   "description": "Community-first explorer for Microsoft GraphRAG outputs and Apache AGE exports. Runs entirely in the browser.",
   "license": "MIT",
   "type": "module",
@@ -20,7 +19,8 @@
     "sample": "python3 samples/generate_sample.py",
     "e2e": "playwright test",
     "serve": "node scripts/serve.mjs",
-    "deploy:pages": "bash scripts/deploy-pages.sh"
+    "deploy:pages": "bash scripts/deploy-pages.sh",
+    "prepack": "npm run build"
   },
   "dependencies": {
     "cytoscape": "^3.34.2",
@@ -39,5 +39,33 @@
     "typescript": "^5.9.0",
     "vite": "^8.2.0",
     "vitest": "^5.0.0"
-  }
+  },
+  "bin": {
+    "graphrag-community-explorer": "scripts/serve.mjs"
+  },
+  "files": [
+    "dist",
+    "scripts/serve.mjs",
+    "README.md",
+    "LICENSE",
+    "THIRD_PARTY_NOTICES.md",
+    "CHANGELOG.md"
+  ],
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/workdd/graphrag-community-explorer.git"
+  },
+  "homepage": "https://workdd.github.io/graphrag-community-explorer/",
+  "bugs": {
+    "url": "https://github.com/workdd/graphrag-community-explorer/issues"
+  },
+  "keywords": [
+    "graphrag",
+    "knowledge-graph",
+    "community-detection",
+    "leiden",
+    "parquet",
+    "visualization",
+    "apache-age"
+  ]
 }

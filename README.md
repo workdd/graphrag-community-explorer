@@ -38,6 +38,16 @@ npm run build
 npm run serve -- --data ~/graphrag/output     # http://127.0.0.1:4180/?data=./data/output
 ```
 
+Once the package is on npm the same server runs without a checkout:
+
+```sh
+npx graphrag-community-explorer --data ~/graphrag/output
+```
+
+A `Dockerfile` builds a static image served by nginx; mount an index folder under
+`/usr/share/nginx/html/data/<name>` and open `?data=./data/<name>`. It has not been exercised on a
+machine with Docker yet.
+
 ## What it reads
 
 | File | Used for |

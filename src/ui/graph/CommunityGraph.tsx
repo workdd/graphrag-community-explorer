@@ -98,16 +98,16 @@ export function CommunityGraph({ dataset, partition, communityIds: selectedIds, 
   }, [subgraph]);
 
   // A different edge set deserves a fresh layout, and a stale selection would hide the result.
-  // Not on mount: the caller may have just focused an entity on purpose.
-  const mounted = useRef(false);
+  // Compared against the previous values rather than "first run", so a mount (or StrictMode's
+  // double mount) never clears an entity the caller focused on purpose.
+  const filterKey = `${[...hiddenTypes].sort().join(",")}|${maxNodes}`;
+  const previousFilter = useRef(filterKey);
   useEffect(() => {
-    if (!mounted.current) {
-      mounted.current = true;
-      return;
-    }
+    if (previousFilter.current === filterKey) return;
+    previousFilter.current = filterKey;
     positions.current.clear();
     onFocusRef.current(null);
-  }, [hiddenTypes, maxNodes]);
+  }, [filterKey]);
 
   // Build (or rebuild) the graph whenever the subgraph changes; keep positions of nodes that survive.
   useEffect(() => {

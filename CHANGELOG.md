@@ -1,5 +1,17 @@
 # Changelog
 
+## 0.2.0 (2026-09-08)
+
+- Korean interface with a switch in the top bar; the choice is remembered.
+- PNG export of graph and map at 2x, CSV export of the community and quality tables.
+- Shareable view state in the URL (`#view=map&set=leiden&community=11`).
+- Heavy views load on demand; the overview bundle is a third of the size.
+- Claims (`covariates.parquet`) on the entity panel.
+- Neighbourhood exploration: 1 to 3 hops around any entity, drawn inside its communities.
+- GraphRAG 0.3 `create_final_*` sample and smoke test; stress set generator (`--scale`).
+- Offline tools for Apache AGE export, Leiden runs and partition comparison.
+- npm `bin` (`npx graphrag-community-explorer --data <folder>`), Dockerfile, release notes.
+
 ## 0.1.0 (2026-09-08)
 
 First public release.
