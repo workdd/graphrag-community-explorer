@@ -2,6 +2,7 @@ import { useMemo, useState } from "react";
 import type { LoadResult } from "../../core/loaders/graphrag";
 import { checkIntegrity } from "../../core/metrics/integrity";
 import { datasetCounts, summarizePartition } from "../../core/metrics/summary";
+import { CommunityGraph, type GraphFocus } from "../graph/CommunityGraph";
 import { Mark } from "../Mark";
 import { fmt, pct } from "../format";
 import { CommunityTable } from "./CommunityTable";
@@ -19,6 +20,9 @@ export function Overview({ result, label, onReset }: Props) {
   const { dataset, notes } = result;
   const [partitionId, setPartitionId] = useState(dataset.partitions[0]?.id ?? "");
   const [selectedId, setSelectedId] = useState<string | null>(null);
+  const [view, setView] = useState<"table" | "graph">("table");
+  const [focus, setFocus] = useState<GraphFocus>(null);
+  const [extraIds, setExtraIds] = useState<string[]>([]);
   const partition = dataset.partitions.find((p) => p.id === partitionId) ?? dataset.partitions[0];
 
   const counts = useMemo(() => datasetCounts(dataset), [dataset]);
@@ -27,6 +31,25 @@ export function Overview({ result, label, onReset }: Props) {
 
   const levels = partition?.levels ?? [];
   const selected = selectedId && partition ? partition.communities.get(selectedId) ?? null : null;
+  const graphIds = useMemo(() => (selectedId ? [selectedId, ...extraIds.filter((id) => id !== selectedId)] : []), [selectedId, extraIds]);
+
+  const select = (id: string | null) => {
+    setSelectedId(id);
+    setFocus(null);
+    setExtraIds([]);
+  };
+  const changePartition = (id: string) => {
+    setPartitionId(id);
+    select(null);
+    setView("table");
+  };
+  const openGraph = () => {
+    if (selectedId) setView("graph");
+  };
+  const addCommunity = (id: string) => {
+    setExtraIds((prev) => (prev.includes(id) ? prev : [...prev, id]));
+    setView("graph");
+  };
 
   return (
     <div className="app">
@@ -37,14 +60,7 @@ export function Overview({ result, label, onReset }: Props) {
           {label}: {dataset.source.files.join(", ")}
         </span>
         {dataset.partitions.length > 1 && (
-          <select
-            aria-label="Community set"
-            value={partition?.id}
-            onChange={(e) => {
-              setPartitionId(e.target.value);
-              setSelectedId(null);
-            }}
-          >
+          <select aria-label="Community set" value={partition?.id} onChange={(e) => changePartition(e.target.value)}>
             {dataset.partitions.map((p) => (
               <option key={p.id} value={p.id}>
                 {p.label} ({p.communities.size})
@@ -68,44 +84,85 @@ export function Overview({ result, label, onReset }: Props) {
           </dl>
         </section>
         {partition ? (
-          <HierarchyTree partition={partition} selectedId={selectedId} onSelect={setSelectedId} />
+          <HierarchyTree partition={partition} selectedId={selectedId} onSelect={select} />
         ) : (
           <section className="rail-section muted">No communities.parquet was loaded, so there is no hierarchy to show.</section>
         )}
       </aside>
 
-      <main className="main">
-        <p className="summary">
-          <b>{fmt(counts.entities)}</b> entities and <b>{fmt(counts.relationships)}</b> relationships.{" "}
-          {partition && summary ? (
-            <>
-              <b>{fmt(partition.communities.size)}</b> communities on <b>{levels.length}</b> level{levels.length === 1 ? "" : "s"}
-              {levels.length > 0 && <> (L{levels[0]}{levels.length > 1 ? `–L${levels[levels.length - 1]}` : ""})</>};{" "}
-              <b>{fmt(summary.coveredEntities)}</b> entities ({pct(summary.coverage)}) belong to at least one
-              {summary.multiMembership > 0 && (
-                <>, <b>{fmt(summary.multiMembership)}</b> to more than one on the same level</>
+      <main className={`main${view === "graph" ? " graph-mode" : ""}`}>
+        <div className="main-head">
+          <div className="segmented" role="tablist">
+            <button role="tab" aria-selected={view === "table"} className={view === "table" ? "active" : ""} onClick={() => setView("table")}>Overview</button>
+            <button
+              role="tab"
+              aria-selected={view === "graph"}
+              className={view === "graph" ? "active" : ""}
+              disabled={!selected}
+              title={selected ? undefined : "Select a community first"}
+              onClick={openGraph}
+            >
+              Graph{selected ? `: ${selected.title}` : ""}
+            </button>
+          </div>
+        </div>
+
+        {view === "graph" && partition && selected ? (
+          <CommunityGraph
+            dataset={dataset}
+            partition={partition}
+            communityIds={graphIds}
+            focus={focus}
+            onFocus={setFocus}
+            onRemoveCommunity={(id) => setExtraIds((prev) => prev.filter((x) => x !== id))}
+          />
+        ) : (
+          <>
+            <p className="summary">
+              <b>{fmt(counts.entities)}</b> entities and <b>{fmt(counts.relationships)}</b> relationships.{" "}
+              {partition && summary ? (
+                <>
+                  <b>{fmt(partition.communities.size)}</b> communities on <b>{levels.length}</b> level{levels.length === 1 ? "" : "s"}
+                  {levels.length > 0 && <> (L{levels[0]}{levels.length > 1 ? `–L${levels[levels.length - 1]}` : ""})</>};{" "}
+                  <b>{fmt(summary.coveredEntities)}</b> entities ({pct(summary.coverage)}) belong to at least one
+                  {summary.multiMembership > 0 && (
+                    <>, <b>{fmt(summary.multiMembership)}</b> to more than one on the same level</>
+                  )}
+                  .
+                </>
+              ) : (
+                <>No community set loaded.</>
+              )}{" "}
+              {counts.isolatedEntities > 0 && (
+                <>
+                  <b>{fmt(counts.isolatedEntities)}</b> entities have no relationships.
+                </>
               )}
-              .
-            </>
-          ) : (
-            <>No community set loaded.</>
-          )}{" "}
-          {counts.isolatedEntities > 0 && (
-            <>
-              <b>{fmt(counts.isolatedEntities)}</b> entities have no relationships.
-            </>
-          )}
-        </p>
+            </p>
 
-        <IntegrityPanel notes={notes} findings={integrity} />
+            <IntegrityPanel notes={notes} findings={integrity} />
 
-        {partition && summary && (
-          <CommunityTable partition={partition} metrics={summary.metrics} selectedId={selectedId} onSelect={setSelectedId} />
+            {partition && summary && (
+              <CommunityTable partition={partition} metrics={summary.metrics} selectedId={selectedId} onSelect={select} />
+            )}
+          </>
         )}
       </main>
 
       <aside className="inspector">
-        <Inspector dataset={dataset} partition={partition ?? null} community={selected} metrics={summary?.metrics} onSelect={setSelectedId} />
+        <Inspector
+          dataset={dataset}
+          partition={partition ?? null}
+          community={selected}
+          metrics={summary?.metrics}
+          focus={focus}
+          onFocus={setFocus}
+          onSelect={select}
+          onOpenGraph={openGraph}
+          inGraph={view === "graph"}
+          graphIds={graphIds}
+          onAddCommunity={addCommunity}
+        />
       </aside>
     </div>
   );

@@ -10,6 +10,9 @@ export type LoadState =
   | { status: "error"; message: string }
   | { status: "ready"; result: LoadResult; label: string };
 
+// Local default for developers: VITE_DEFAULT_DATA=./data/my-index in .env.local (ignored by Git).
+const DEFAULT_DATA = (import.meta.env.VITE_DEFAULT_DATA as string | undefined)?.trim() || undefined;
+
 export function App() {
   const [state, setState] = useState<LoadState>({ status: "idle" });
 
@@ -23,9 +26,9 @@ export function App() {
     }
   }, []);
 
-  // ?data=./data/my-index opens a hosted folder without any clicks (used for demos and local exports).
+  // ?data=./data/my-index opens a hosted folder without any clicks; the configured default does the same.
   useEffect(() => {
-    const url = new URLSearchParams(window.location.search).get("data");
+    const url = new URLSearchParams(window.location.search).get("data") ?? DEFAULT_DATA;
     if (url) void run(url, () => loadFromUrl(url));
   }, [run]);
 
@@ -37,6 +40,8 @@ export function App() {
       state={state}
       onFiles={(files) => run(`${files.length} files`, () => loadFromFiles(files))}
       onSample={() => run("Sample dataset", () => loadFromUrl(`${import.meta.env.BASE_URL}samples/demo`))}
+      defaultData={DEFAULT_DATA}
+      onDefault={() => DEFAULT_DATA && run(DEFAULT_DATA, () => loadFromUrl(DEFAULT_DATA))}
     />
   );
 }

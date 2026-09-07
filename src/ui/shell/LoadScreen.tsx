@@ -6,6 +6,8 @@ interface Props {
   state: LoadState;
   onFiles: (files: File[]) => void;
   onSample: () => void;
+  defaultData?: string;
+  onDefault: () => void;
 }
 
 /** Folder drops arrive as directory entries; walk them so a whole GraphRAG output folder can be dropped. */
@@ -33,7 +35,7 @@ async function filesFromDrop(items: DataTransferItemList, fallback: FileList): P
   return out;
 }
 
-export function LoadScreen({ state, onFiles, onSample }: Props) {
+export function LoadScreen({ state, onFiles, onSample, defaultData, onDefault }: Props) {
   const input = useRef<HTMLInputElement>(null);
   const [active, setActive] = useState(false);
 
@@ -78,8 +80,16 @@ export function LoadScreen({ state, onFiles, onSample }: Props) {
           />
         </div>
 
+        {defaultData && (
+          <div className="load-actions">
+            <button className="btn primary" onClick={onDefault} disabled={state.status === "loading"}>
+              Open {defaultData}
+            </button>
+            <span className="note">Configured in .env.local as VITE_DEFAULT_DATA.</span>
+          </div>
+        )}
         <div className="load-actions">
-          <button className="btn primary" onClick={onSample} disabled={state.status === "loading"}>
+          <button className={`btn${defaultData ? "" : " primary"}`} onClick={onSample} disabled={state.status === "loading"}>
             Open the sample dataset
           </button>
           <span className="note">A synthetic e-commerce platform with three levels of communities.</span>

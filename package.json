@@ -20,11 +20,14 @@
     "sample": "python3 samples/generate_sample.py"
   },
   "dependencies": {
+    "cytoscape": "^3.34.2",
+    "cytoscape-fcose": "^2.2.0",
     "hyparquet": "^1.30.0",
     "react": "^19.2.0",
     "react-dom": "^19.2.0"
   },
   "devDependencies": {
+    "@types/cytoscape": "^3.31.0",
     "@types/react": "^19.2.0",
     "@types/react-dom": "^19.2.0",
     "@vitejs/plugin-react": "^6.1.0",

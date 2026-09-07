@@ -5,11 +5,13 @@ Open the Parquet files GraphRAG writes, read the community hierarchy and reports
 into the entities and relationships inside each community. Everything runs in your browser; no file
 is uploaded anywhere.
 
-Status: early alpha. The loader, overview, hierarchy tree, community table, report inspector and
-integrity checks are in place. The internal graph and the community map are next; see
+Status: early alpha. Loader, overview, hierarchy tree, community table, report inspector, integrity
+checks and the community graph are in place. The whole-dataset community map is next; see
 [docs/ROADMAP.md](docs/ROADMAP.md).
 
 ![Overview of the sample dataset: hierarchy tree, summary sentence, community table](docs/screenshots/overview-sample.png)
+
+![Graph of one community: entities colored by type inside the community container, a selected node with its incoming and outgoing links](docs/screenshots/graph-sample.png)
 
 ## Try it
 
@@ -21,6 +23,8 @@ npm run dev          # http://127.0.0.1:5173
 Click **Open the sample dataset**, or drop your GraphRAG `output/` folder onto the page.
 To open a folder that is served over HTTP, add `?data=<url>`; for local files put them under
 `public/data/<name>/` (ignored by Git) and open `http://127.0.0.1:5173/?data=./data/<name>`.
+To make that folder open by default on your machine, copy `.env.example` to `.env.local` and set
+`VITE_DEFAULT_DATA=./data/<name>` (restart `npm run dev` afterwards).
 
 ## What it reads
 
@@ -45,6 +49,11 @@ integrity panel says so. Exports from Apache AGE that follow the same layout loa
 - The community report (summary, findings, rank), parent path, child communities and members.
 - Integrity findings: duplicate ids, unresolved members or parents, children not nested in their
   parent, size mismatches, dangling relationships.
+- The community graph: members drawn inside the community container, colored by entity type and
+  sized by degree, with labels that stay readable. Outside links reach dashed ghost nodes, and any
+  neighbouring community can be added to the same picture. Click a node for its neighbourhood and
+  incoming/outgoing links, a link for its description; filter relationship types, search, and drag
+  nodes. Layouts are deterministic and survive filtering.
 
 ## Development
 
