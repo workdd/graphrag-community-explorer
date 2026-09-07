@@ -6,6 +6,7 @@ import type { Dataset, Partition } from "../../core/model";
 import { DEPTH_FILL } from "../graph/style";
 import { downloadText, toCsv } from "../download";
 import { fmt, pct } from "../format";
+import { Rich, useT } from "../i18n";
 
 interface Props {
   dataset: Dataset;
@@ -30,6 +31,7 @@ const columns: { key: SortKey; label: string; numeric: boolean; hint?: string }[
 const fix = (v: number, digits = 2) => (Number.isFinite(v) ? v.toFixed(digits) : "");
 
 export function QualityView({ dataset, partition, selectedId, onSelect }: Props) {
+  const { t } = useT();
   const quality = useMemo(() => communityQuality(dataset, partition), [dataset, partition]);
   const levels = useMemo(() => levelQuality(dataset, partition), [dataset, partition]);
   const [sort, setSort] = useState<{ key: SortKey; dir: 1 | -1 }>({ key: "conductance", dir: -1 });
@@ -69,14 +71,11 @@ export function QualityView({ dataset, partition, selectedId, onSelect }: Props)
   return (
     <div className="quality">
       <section>
-        <h2>Levels</h2>
-        <p className="muted">
-          Modularity compares relationships inside communities against a random rewiring; above 0.3 usually means the grouping
-          follows the graph. Coverage is the share of entities assigned at that level.
-        </p>
+        <h2>{t("Levels")}</h2>
+        <p className="muted">{t("Modularity compares relationships inside communities against a random rewiring; above 0.3 usually means the grouping follows the graph. Coverage is the share of entities assigned at that level.")}</p>
         <table className="ctable compact">
           <thead>
-            <tr><th>Level</th><th className="num">Communities</th><th className="num">Covered</th><th className="num">Coverage</th><th className="num">Modularity</th><th className="num">Median size</th><th className="num">Largest</th></tr>
+            <tr><th>{t("Level")}</th><th className="num">{t("Communities")}</th><th className="num">{t("Covered")}</th><th className="num">{t("Coverage")}</th><th className="num">{t("Modularity")}</th><th className="num">{t("Median size")}</th><th className="num">{t("Largest")}</th></tr>
           </thead>
           <tbody>
             {levels.map((l) => (
@@ -95,12 +94,12 @@ export function QualityView({ dataset, partition, selectedId, onSelect }: Props)
       </section>
 
       <section>
-        <h2>Community sizes</h2>
+        <h2>{t("Community sizes")}</h2>
         <div className="hist">
           {histograms.map((h) => (
             <div key={h.level} className="hist-row">
               <span className="level-tag" data-depth={Math.min(depthOfLevel(partition, h.level), 4)}>L{h.level}</span>
-              <svg viewBox={`0 0 ${SIZE_BUCKETS.length * 60} 70`} className="hist-svg" role="img" aria-label={`Community sizes at level ${h.level}`}>
+              <svg viewBox={`0 0 ${SIZE_BUCKETS.length * 60} 70`} className="hist-svg" role="img" aria-label={t("Community sizes at level {level}", { level: h.level })}>
                 {h.counts.map((count, i) => {
                   const height = (count / maxBucket) * 48;
                   return (
@@ -121,10 +120,10 @@ export function QualityView({ dataset, partition, selectedId, onSelect }: Props)
 
       <section>
         <div className="table-head">
-          <h2>Communities</h2>
+          <h2>{t("Communities")}</h2>
           <button
             className="btn"
-            title="Download all rows as CSV"
+            title={t("Download all rows as CSV")}
             onClick={() => downloadText("community-quality.csv", toCsv([
               ["id", "title", "level", "entities", "internal", "boundary", "internal_share", "density", "conductance", "average_degree"],
               ...rows.map((id) => { const c = partition.communities.get(id)!; const q = quality.get(id)!; return [c.id, c.title, c.level, q.size, q.internalEdges, q.boundaryEdges, q.internalRatio.toFixed(4), q.density.toFixed(4), q.conductance.toFixed(4), q.averageDegree.toFixed(3)]; }),
@@ -135,8 +134,8 @@ export function QualityView({ dataset, partition, selectedId, onSelect }: Props)
           <thead>
             <tr>
               {columns.map((c) => (
-                <th key={c.key} className={c.numeric ? "num" : undefined} title={c.hint} onClick={() => header(c.key)} aria-sort={sort.key === c.key ? (sort.dir === 1 ? "ascending" : "descending") : "none"}>
-                  {c.label}
+                <th key={c.key} className={c.numeric ? "num" : undefined} title={c.hint && t(c.hint)} onClick={() => header(c.key)} aria-sort={sort.key === c.key ? (sort.dir === 1 ? "ascending" : "descending") : "none"}>
+                  {t(c.label)}
                 </th>
               ))}
             </tr>
@@ -166,6 +165,7 @@ export function QualityView({ dataset, partition, selectedId, onSelect }: Props)
 }
 
 function ComparePanel({ dataset, current }: { dataset: Dataset; current: Partition }) {
+  const { t } = useT();
   const other = dataset.partitions.find((p) => p.id !== current.id) ?? current;
   const [aId, setAId] = useState(current.id);
   const [bId, setBId] = useState(other.id);
@@ -180,11 +180,8 @@ function ComparePanel({ dataset, current }: { dataset: Dataset; current: Partiti
 
   return (
     <section>
-      <h2>Two community sets side by side</h2>
-      <p className="muted">
-        Each entity is assigned to its smallest community at the chosen level of each set. NMI and ARI are 1 when the two sets
-        group the common entities the same way and near 0 when they are unrelated.
-      </p>
+      <h2>{t("Two community sets side by side")}</h2>
+      <p className="muted">{t("Each entity is assigned to its smallest community at the chosen level of each set. NMI and ARI are 1 when the two sets group the common entities the same way and near 0 when they are unrelated.")}</p>
       <div className="compare-controls">
         <label className="control">A
           <select value={a.id} onChange={(e) => setAId(e.target.value)}>{dataset.partitions.map((p) => <option key={p.id} value={p.id}>{p.label}</option>)}</select>
@@ -196,12 +193,12 @@ function ComparePanel({ dataset, current }: { dataset: Dataset; current: Partiti
         </label>
       </div>
       <p className="summary small">
-        <b>{fmt(comparison.common)}</b> entities are grouped by both. NMI <b>{fix(comparison.nmi, 3)}</b>, ARI <b>{fix(comparison.ari, 3)}</b>.
-        {comparison.onlyInA > 0 && <> {fmt(comparison.onlyInA)} entities only in A.</>}
-        {comparison.onlyInB > 0 && <> {fmt(comparison.onlyInB)} only in B.</>}
+        <Rich text="**{common}** entities are grouped by both. NMI **{nmi}**, ARI **{ari}**." vars={{ common: fmt(comparison.common), nmi: fix(comparison.nmi, 3), ari: fix(comparison.ari, 3) }} />
+        {comparison.onlyInA > 0 && t(" {n} entities only in A.", { n: fmt(comparison.onlyInA) })}
+        {comparison.onlyInB > 0 && t(" {n} only in B.", { n: fmt(comparison.onlyInB) })}
       </p>
       <table className="ctable compact">
-        <thead><tr><th>A</th><th>B</th><th className="num">Shared entities</th><th>Share of A</th></tr></thead>
+        <thead><tr><th>A</th><th>B</th><th className="num">{t("Shared entities")}</th><th>{t("Share of A")}</th></tr></thead>
         <tbody>
           {comparison.crosstab.slice(0, 15).map((cell) => {
             const sizeA = a.communities.get(cell.a)?.entityIds.length ?? cell.count;

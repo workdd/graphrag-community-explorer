@@ -19,6 +19,7 @@ function readHash(): { view?: View; set?: string; community?: string } {
   return { view: view && VIEWS.includes(view) ? view : undefined, set: params.get("set") ?? undefined, community: params.get("community") ?? undefined };
 }
 import { Mark } from "../Mark";
+import { LangToggle, Rich, useT } from "../i18n";
 import { fmt, pct } from "../format";
 import { CommunityTable } from "./CommunityTable";
 import { HierarchyTree } from "./HierarchyTree";
@@ -32,6 +33,7 @@ interface Props {
 }
 
 export function Overview({ result, label, onReset }: Props) {
+  const { t } = useT();
   const { dataset, notes } = result;
   const [initial] = useState(readHash);
   const [partitionId, setPartitionId] = useState(() => (initial.set && dataset.partitions.some((p) => p.id === initial.set) ? initial.set : dataset.partitions[0]?.id ?? ""));
@@ -87,7 +89,7 @@ export function Overview({ result, label, onReset }: Props) {
           {label}: {dataset.source.files.join(", ")}
         </span>
         {dataset.partitions.length > 1 && (
-          <select aria-label="Community set" value={partition?.id} onChange={(e) => changePartition(e.target.value)}>
+          <select aria-label={t("Community set")} value={partition?.id} onChange={(e) => changePartition(e.target.value)}>
             {dataset.partitions.map((p) => (
               <option key={p.id} value={p.id}>
                 {p.label} ({p.communities.size})
@@ -95,48 +97,49 @@ export function Overview({ result, label, onReset }: Props) {
             ))}
           </select>
         )}
-        <button className="btn" onClick={onReset}>Open another dataset</button>
+        <LangToggle />
+        <button className="btn" onClick={onReset}>{t("Open another dataset")}</button>
       </header>
 
       <aside className="rail">
         <section className="rail-section">
-          <h2>Dataset</h2>
+          <h2>{t("Dataset")}</h2>
           <dl>
-            <dt>Source</dt>
-            <dd>{dataset.source.kind === "age-export" ? "Apache AGE export" : "GraphRAG output"}</dd>
-            <dt>Entity types</dt>
+            <dt>{t("Source")}</dt>
+            <dd>{dataset.source.kind === "age-export" ? t("Apache AGE export") : t("GraphRAG output")}</dd>
+            <dt>{t("Entity types")}</dt>
             <dd>{counts.entityTypes.size}</dd>
-            <dt>Relationship types</dt>
+            <dt>{t("Relationship types")}</dt>
             <dd>{counts.relationshipTypes.size}</dd>
           </dl>
         </section>
         {partition ? (
           <HierarchyTree partition={partition} selectedId={selectedId} onSelect={select} />
         ) : (
-          <section className="rail-section muted">No communities.parquet was loaded, so there is no hierarchy to show.</section>
+          <section className="rail-section muted">{t("No communities.parquet was loaded, so there is no hierarchy to show.")}</section>
         )}
       </aside>
 
       <main className={`main${view === "map" || view === "graph" ? " graph-mode" : ""}`}>
         <div className="main-head">
           <div className="segmented" role="tablist">
-            <button role="tab" aria-selected={view === "table"} className={view === "table" ? "active" : ""} onClick={() => setView("table")}>Overview</button>
-            <button role="tab" aria-selected={view === "map"} className={view === "map" ? "active" : ""} disabled={!partition} onClick={() => setView("map")}>Map</button>
-            <button role="tab" aria-selected={view === "quality"} className={view === "quality" ? "active" : ""} disabled={!partition} onClick={() => setView("quality")}>Quality</button>
+            <button role="tab" aria-selected={view === "table"} className={view === "table" ? "active" : ""} onClick={() => setView("table")}>{t("Overview")}</button>
+            <button role="tab" aria-selected={view === "map"} className={view === "map" ? "active" : ""} disabled={!partition} onClick={() => setView("map")}>{t("Map")}</button>
+            <button role="tab" aria-selected={view === "quality"} className={view === "quality" ? "active" : ""} disabled={!partition} onClick={() => setView("quality")}>{t("Quality")}</button>
             <button
               role="tab"
               aria-selected={view === "graph"}
               className={view === "graph" ? "active" : ""}
               disabled={!selected}
-              title={selected ? undefined : "Select a community first"}
+              title={selected ? undefined : t("Select a community first")}
               onClick={openGraph}
             >
-              Graph{selected ? `: ${selected.title}` : ""}
+              {t("Graph")}{selected ? `: ${selected.title}` : ""}
             </button>
           </div>
         </div>
 
-        <Suspense fallback={<div className="view-loading">Loading view…</div>}>
+        <Suspense fallback={<div className="view-loading">{t("Loading view…")}</div>}>
         {view === "quality" && partition ? (
           <QualityView dataset={dataset} partition={partition} selectedId={selectedId} onSelect={select} />
         ) : view === "map" && partition ? (
@@ -162,25 +165,24 @@ export function Overview({ result, label, onReset }: Props) {
         ) : (
           <>
             <p className="summary">
-              <b>{fmt(counts.entities)}</b> entities and <b>{fmt(counts.relationships)}</b> relationships.{" "}
+              <Rich text="**{entities}** entities and **{relationships}** relationships." vars={{ entities: fmt(counts.entities), relationships: fmt(counts.relationships) }} />{" "}
               {partition && summary ? (
-                <>
-                  <b>{fmt(partition.communities.size)}</b> communities on <b>{levels.length}</b> level{levels.length === 1 ? "" : "s"}
-                  {levels.length > 0 && <> (L{levels[0]}{levels.length > 1 ? `–L${levels[levels.length - 1]}` : ""})</>};{" "}
-                  <b>{fmt(summary.coveredEntities)}</b> entities ({pct(summary.coverage)}) belong to at least one
-                  {summary.multiMembership > 0 && (
-                    <>, <b>{fmt(summary.multiMembership)}</b> to more than one on the same level</>
-                  )}
-                  .
-                </>
+                <Rich
+                  text="**{communities}** communities on **{levels}** level{s}{range}; **{covered}** entities ({coverage}) belong to at least one{multi}."
+                  vars={{
+                    communities: fmt(partition.communities.size),
+                    levels: levels.length,
+                    s: levels.length === 1 ? "" : "s",
+                    range: levels.length > 0 ? ` (L${levels[0]}${levels.length > 1 ? `\u2013L${levels[levels.length - 1]}` : ""})` : "",
+                    covered: fmt(summary.coveredEntities),
+                    coverage: pct(summary.coverage),
+                    multi: summary.multiMembership > 0 ? t(", **{n}** to more than one on the same level", { n: fmt(summary.multiMembership) }) : "",
+                  }}
+                />
               ) : (
-                <>No community set loaded.</>
-              )}{" "}
-              {counts.isolatedEntities > 0 && (
-                <>
-                  <b>{fmt(counts.isolatedEntities)}</b> entities have no relationships.
-                </>
+                t("No community set loaded.")
               )}
+              {counts.isolatedEntities > 0 && <Rich text=" **{isolated}** entities have no relationships." vars={{ isolated: fmt(counts.isolatedEntities) }} />}
             </p>
 
             <IntegrityPanel notes={notes} findings={integrity} />

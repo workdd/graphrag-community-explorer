@@ -2,6 +2,7 @@ import { useMemo, useState } from "react";
 import { buildTree, depthOfLevel, type TreeNode } from "../../core/hierarchy";
 import type { Partition } from "../../core/model";
 import { fmt } from "../format";
+import { useT } from "../i18n";
 
 interface Props {
   partition: Partition;
@@ -10,6 +11,7 @@ interface Props {
 }
 
 export function HierarchyTree({ partition, selectedId, onSelect }: Props) {
+  const { t } = useT();
   const tree = useMemo(() => buildTree(partition), [partition]);
   const [collapsed, setCollapsed] = useState<Set<string>>(new Set());
   const [query, setQuery] = useState("");
@@ -38,7 +40,7 @@ export function HierarchyTree({ partition, selectedId, onSelect }: Props) {
           style={{ paddingLeft: 6 + node.depth * 14 }}
         >
           {node.children.length > 0 ? (
-            <button className="caret" aria-label={open ? "Collapse" : "Expand"} aria-expanded={open} onClick={() => toggle(community.id)}>
+            <button className="caret" aria-label={open ? t("Collapse") : t("Expand")} aria-expanded={open} onClick={() => toggle(community.id)}>
               {open ? "▾" : "▸"}
             </button>
           ) : (
@@ -57,9 +59,9 @@ export function HierarchyTree({ partition, selectedId, onSelect }: Props) {
 
   return (
     <div className="tree">
-      <input className="field" placeholder="Find a community" value={query} onChange={(e) => setQuery(e.target.value)} aria-label="Find a community" />
+      <input className="field" placeholder={t("Find a community")} value={query} onChange={(e) => setQuery(e.target.value)} aria-label={t("Find a community")} />
       <div className="tree-meta">
-        {fmt(tree.length)} top-level, {fmt(partition.communities.size)} in total. Numbers are entity counts.
+        {t("{roots} top-level, {total} in total. Numbers are entity counts.", { roots: fmt(tree.length), total: fmt(partition.communities.size) })}
       </div>
       <ul className="tree-root">{tree.map(render)}</ul>
     </div>

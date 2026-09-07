@@ -19,7 +19,11 @@ are built. Apache AGE is one input adapter among several, not the center of the 
 | M1 Internal graph (done) | Community view with a Cytoscape fcose layout of the selected community: type colors, always-on labels without overlap, neighbour highlighting, relationship-type filter, boundary edges dimmed, "expand neighbouring community" | A 200-entity community renders in under two seconds with readable labels; smoke test in Playwright |
 | M2 Community map (done) | Whole dataset as nested compound containers (level 0 ⊃ level 1 ⊃ level 2) with expand/collapse, inter-community edges bundled by weight, layout in a worker and cached per dataset hash | 2,500 entities: collapsed map in one second, one expanded community in two; identical layout on reload |
 | M3 Quality and evidence (done) | Per-community conductance and density, size distributions, comparison of two partitions (NMI, ARI, crosstab), text units and documents behind entities and relationships | Metrics match reference implementations on the sample; evidence opens for every GraphRAG 2.x index |
-| M4 Release (current) | README in English and Korean, GitHub Pages demo on the sample, CONTRIBUTING, issue templates, CHANGELOG, `npx` launcher | A newcomer follows the README and explores their own index without asking questions |
+| M4 Release (done) | README in English and Korean, GitHub Pages demo on the sample, CONTRIBUTING, issue templates, CHANGELOG, `npx` launcher | A newcomer follows the README and explores their own index without asking questions |
+
+| M5 Usability (current) | Korean/English interface, PNG and CSV export, shareable view URLs, lazy-loaded views, keyboard navigation for tree and tables | Every screen reads in both languages; smoke test covers the switch |
+| M6 Scale and compatibility | 10k-entity synthetic stress set with measured load, graph and map timings; GraphRAG 0.3 `create_final_*` sample tested end to end; covariates (claims) shown; n-hop neighbourhood exploration from any entity | 10k entities load under five seconds, collapsed map under two; 0.3 sample passes the smoke test |
+| M7 Distribution | npm package with a `bin` that serves a built copy next to your index; GitHub releases with notes; Dockerfile for static hosting | `npm pack` contains only dist and bin; a release page exists for each tag |
 
 ## Out of scope for now
 

@@ -6,6 +6,7 @@ import { hashText } from "../../core/graph/seed";
 import type { Dataset, Partition } from "../../core/model";
 import { exportCytoscapePng } from "../download";
 import { fmt } from "../format";
+import { Rich, useT } from "../i18n";
 import type { GraphFocus } from "../graph/CommunityGraph";
 import { loadCachedLayout, requestLayout, saveCachedLayout } from "../graph/layoutClient";
 import { MAP_STYLE } from "../graph/style";
@@ -27,6 +28,9 @@ const ENTITY_BUDGETS = [300, 800, 1500];
 type LayoutStatus = { status: "idle" | "running" } | { status: "ready"; ms: number; where: "worker" | "main" | "cache" };
 
 export function CommunityMap(props: Props) {
+  const { t } = useT();
+  const tRef = useRef(t);
+  tRef.current = t;
   const { dataset, partition, expanded, onExpandedChange, selectedId, focus } = props;
   const [baseLevel, setBaseLevel] = useState<number | null>(null);
   const [showUnassigned, setShowUnassigned] = useState(true);
@@ -49,7 +53,8 @@ export function CommunityMap(props: Props) {
     [dataset, partition, baseLevel, expanded, showUnassigned, maxEntities],
   );
   const colors = useMemo(() => typeColors(model.entities.map((e) => e.entity.type)), [model]);
-  const elements = useMemo(() => buildMapElements(model, partition, colors, positionsRef.current), [model, partition, colors]);
+  const unassignedLabel = t("Not in any community");
+  const elements = useMemo(() => buildMapElements(model, partition, colors, positionsRef.current, { unassigned: unassignedLabel }), [model, partition, colors, unassignedLabel]);
   const elementsRef = useRef(elements);
   elementsRef.current = elements;
   const signature = useMemo(() => elements.map((e) => e.data.id).join(","), [elements]);
@@ -133,8 +138,9 @@ export function CommunityMap(props: Props) {
     cy.on("mouseover", "node", (event) => {
       const node = event.target;
       const p = node.renderedPosition();
+      const tt = tRef.current;
       const detail = node.data("kind") === "community"
-        ? `${node.data("level") !== undefined ? `Level ${node.data("level")}, ` : ""}${fmt(node.data("count") as number)} entities. Double-click to ${node.hasClass("container") ? "close" : "open"}.`
+        ? `${node.data("level") !== undefined ? tt("Level {level}, ", { level: node.data("level") as number }) : ""}${tt(node.hasClass("container") ? "{count} entities. Double-click to close." : "{count} entities. Double-click to open.", { count: fmt(node.data("count") as number) })}`
         : String(node.data("type"));
       setHover({ x: p.x, y: p.y - node.renderedHeight() / 2 - 8, title: node.data("title") as string, detail });
     });
@@ -189,30 +195,30 @@ export function CommunityMap(props: Props) {
     <section className="graph-view">
       <div className="graph-toolbar">
         <div className="graph-controls">
-          <label className="control">Show
+          <label className="control">{t("Show")}
             <select value={baseLevel === null ? "hierarchy" : String(baseLevel)} onChange={(e) => setBaseLevel(e.target.value === "hierarchy" ? null : Number(e.target.value))}>
-              <option value="hierarchy">{nested ? "hierarchy, open to descend" : "all communities with parent links"}</option>
-              {levels.map((level) => <option key={level} value={level}>level {level} side by side</option>)}
+              <option value="hierarchy">{nested ? t("hierarchy, open to descend") : t("all communities with parent links")}</option>
+              {levels.map((level) => <option key={level} value={level}>{t("level {level} side by side", { level })}</option>)}
             </select>
           </label>
-          <label className="control"><input type="checkbox" checked={showUnassigned} onChange={(e) => setShowUnassigned(e.target.checked)} /> Entities in no community</label>
-          <label className="control">Entity budget
+          <label className="control"><input type="checkbox" checked={showUnassigned} onChange={(e) => setShowUnassigned(e.target.checked)} /> {t("Entities in no community")}</label>
+          <label className="control">{t("Entity budget")}
             <select value={maxEntities} onChange={(e) => setMaxEntities(Number(e.target.value))}>
               {ENTITY_BUDGETS.map((n) => <option key={n} value={n}>{fmt(n)}</option>)}
             </select>
           </label>
         </div>
         <div className="graph-controls">
-          <button className="btn" onClick={() => onExpandedChange(new Set())} disabled={expanded.size === 0}>Close all</button>
-          <button className="btn" onClick={() => cyRef.current?.animate({ fit: { eles: cyRef.current.elements(), padding: 40 } }, { duration: 250 })}>Fit</button>
-          <button className="btn" onClick={() => { positionsRef.current = {}; setNonce((n) => n + 1); }} title="Recompute the layout from scratch">Re-layout</button>
-          <button className="btn" onClick={() => cyRef.current && exportCytoscapePng(cyRef.current, "community-map")} title="Download the map as a PNG at 2x">PNG</button>
+          <button className="btn" onClick={() => onExpandedChange(new Set())} disabled={expanded.size === 0}>{t("Close all")}</button>
+          <button className="btn" onClick={() => cyRef.current?.animate({ fit: { eles: cyRef.current.elements(), padding: 40 } }, { duration: 250 })}>{t("Fit")}</button>
+          <button className="btn" onClick={() => { positionsRef.current = {}; setNonce((n) => n + 1); }} title={t("Recompute the layout from scratch")}>{t("Re-layout")}</button>
+          <button className="btn" onClick={() => cyRef.current && exportCytoscapePng(cyRef.current, "community-map")} title={t("Download the map as a PNG at 2x")}>PNG</button>
         </div>
       </div>
 
       {typeCounts.length > 0 && (
         <div className="graph-legend">
-          <span className="legend-title">Entity types</span>
+          <span className="legend-title">{t("Entity types")}</span>
           {typeCounts.map(([type, count]) => (
             <span key={type} className="legend-item"><i style={{ background: colors.get(type) }} />{type} <span className="num">{fmt(count)}</span></span>
           ))}
@@ -221,7 +227,7 @@ export function CommunityMap(props: Props) {
 
       <div className="graph-canvas-wrap">
         <div className="graph-canvas" ref={host} role="img" aria-label="Community map" />
-        {layout.status === "running" && <div className="layout-overlay">Computing layout…</div>}
+        {layout.status === "running" && <div className="layout-overlay">{t("Computing layout…")}</div>}
         {hover && (
           <div className="graph-tip" style={{ left: hover.x, top: hover.y }}>
             <strong>{hover.title}</strong>
@@ -230,21 +236,22 @@ export function CommunityMap(props: Props) {
         )}
         {picked && (
           <div className="picked-info">
-            <strong>{picked.a}</strong> and <strong>{picked.b}</strong>: {fmt(picked.count)} relationships between their entities
+            <Rich text="**{a}** and **{b}**: {count} relationships between their entities" vars={{ a: picked.a, b: picked.b, count: fmt(picked.count) }} />
           </div>
         )}
       </div>
 
       <p className="graph-stats">
-        {fmt(stats.communityNodes)} communities and {fmt(stats.entityNodes)} entities drawn
-        {stats.truncatedEntities > 0 && <> ({fmt(stats.truncatedEntities)} more held back by the entity budget)</>}, {fmt(model.aggregateEdges.length)} links between groups.
-        {model.unassigned && <> {fmt(model.unassigned.total)} entities belong to no community.</>}{" "}
-        {baseLevel === null && nested && "Double-click a community to open it: its child communities and its own members appear inside."}
-        {baseLevel === null && !nested && "Parents do not contain their children in this data, so communities stand side by side; dashed arrows point to the parent. Double-click a community to see its members."}
-        {baseLevel !== null && "One level side by side. Double-click a community to see its members."}
-        {" "}Line width is the number of relationships between two groups; click one for the count.
-        {layout.status === "ready" && layout.where !== "cache" && <> Layout {Math.round(layout.ms)} ms{layout.where === "worker" ? " off the main thread" : ""}.</>}
-        {layout.status === "ready" && layout.where === "cache" && <> Layout restored from cache.</>}
+        {t("{communities} communities and {entities} entities drawn", { communities: fmt(stats.communityNodes), entities: fmt(stats.entityNodes) })}
+        {stats.truncatedEntities > 0 && t(" ({truncated} more held back by the entity budget)", { truncated: fmt(stats.truncatedEntities) })}
+        {t(", {links} links between groups.", { links: fmt(model.aggregateEdges.length) })}
+        {model.unassigned && t(" {total} entities belong to no community.", { total: fmt(model.unassigned.total) })}{" "}
+        {baseLevel === null && nested && t("Double-click a community to open it: its child communities and its own members appear inside.")}
+        {baseLevel === null && !nested && t("Parents do not contain their children in this data, so communities stand side by side; dashed arrows point to the parent. Double-click a community to see its members.")}
+        {baseLevel !== null && t("One level side by side. Double-click a community to see its members.")}
+        {t(" Line width is the number of relationships between two groups; click one for the count.")}
+        {layout.status === "ready" && layout.where !== "cache" && t(" Layout {ms} ms{where}.", { ms: Math.round(layout.ms), where: layout.where === "worker" ? t(" off the main thread") : "" })}
+        {layout.status === "ready" && layout.where === "cache" && t(" Layout restored from cache.")}
       </p>
     </section>
   );

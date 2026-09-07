@@ -6,6 +6,7 @@ import { communitySubgraph } from "../../core/graph/subgraph";
 import type { Dataset, Partition } from "../../core/model";
 import { exportCytoscapePng, safeName } from "../download";
 import { fmt } from "../format";
+import { useT } from "../i18n";
 import { buildElements, edgeId, fitToCommunities, layoutOptions, nodeId, runSeededLayout } from "./elements";
 import { GRAPH_STYLE } from "./style";
 
@@ -27,6 +28,7 @@ const GHOST_LIMIT = 40;
 const LABEL_AUTO_LIMIT = 150;
 
 export function CommunityGraph({ dataset, partition, communityIds, focus, onFocus, onRemoveCommunity }: Props) {
+  const { t } = useT();
   const [maxNodes, setMaxNodes] = useState(500);
   const [showBoundary, setShowBoundary] = useState(true);
   const [labels, setLabels] = useState<"all" | "focus">("all");
@@ -227,46 +229,46 @@ export function CommunityGraph({ dataset, partition, communityIds, focus, onFocu
           {included.map((c, i) => (
             <span key={c.id} className="chip static">
               {c.title} ({fmt(c.entityIds.length)})
-              {i > 0 && <button className="chip-x" aria-label={`Remove ${c.title} from the graph`} onClick={() => onRemoveCommunity(c.id)}>×</button>}
+              {i > 0 && <button className="chip-x" aria-label={t("Remove {title} from the graph", { title: c.title })} onClick={() => onRemoveCommunity(c.id)}>×</button>}
             </span>
           ))}
         </div>
         <div className="graph-controls">
-          <input className="field" placeholder="Find an entity" aria-label="Find an entity" value={query} onChange={(e) => setQuery(e.target.value)} onKeyDown={(e) => e.key === "Enter" && find()} />
-          <button className="btn" onClick={find} disabled={!query.trim()}>Find</button>
-          <label className="control">Labels
+          <input className="field" placeholder={t("Find an entity")} aria-label={t("Find an entity")} value={query} onChange={(e) => setQuery(e.target.value)} onKeyDown={(e) => e.key === "Enter" && find()} />
+          <button className="btn" onClick={find} disabled={!query.trim()}>{t("Find")}</button>
+          <label className="control">{t("Labels")}
             <select value={labels} onChange={(e) => setLabels(e.target.value as "all" | "focus")}>
-              <option value="all">all</option>
-              <option value="focus">selection only</option>
+              <option value="all">{t("all")}</option>
+              <option value="focus">{t("selection only")}</option>
             </select>
           </label>
-          <label className="control">Entities
+          <label className="control">{t("Entities")}
             <select value={maxNodes} onChange={(e) => setMaxNodes(Number(e.target.value))}>
-              {NODE_LIMITS.map((n) => <option key={n} value={n}>{n === 0 ? "all" : `top ${n}`}</option>)}
+              {NODE_LIMITS.map((n) => <option key={n} value={n}>{n === 0 ? t("all") : t("top {n}", { n })}</option>)}
             </select>
           </label>
-          <label className="control"><input type="checkbox" checked={showBoundary} onChange={(e) => setShowBoundary(e.target.checked)} /> Outside links</label>
-          <button className="btn" onClick={() => cyRef.current && fitToCommunities(cyRef.current, true)} title="Frame the community">Fit</button>
-          <button className="btn" onClick={() => cyRef.current?.animate({ fit: { eles: cyRef.current.elements(), padding: 40 } }, { duration: 250 })} title="Frame everything, outside links included">All</button>
-          <button className="btn" onClick={relayout} title="Recompute the layout from scratch">Re-layout</button>
-          <button className="btn" onClick={() => cyRef.current && exportCytoscapePng(cyRef.current, `community-${safeName(included[0]?.title ?? "graph")}`)} title="Download the picture as a PNG at 2x">PNG</button>
+          <label className="control"><input type="checkbox" checked={showBoundary} onChange={(e) => setShowBoundary(e.target.checked)} /> {t("Outside links")}</label>
+          <button className="btn" onClick={() => cyRef.current && fitToCommunities(cyRef.current, true)} title={t("Frame the community")}>{t("Fit")}</button>
+          <button className="btn" onClick={() => cyRef.current?.animate({ fit: { eles: cyRef.current.elements(), padding: 40 } }, { duration: 250 })} title={t("Frame everything, outside links included")}>{t("All")}</button>
+          <button className="btn" onClick={relayout} title={t("Recompute the layout from scratch")}>{t("Re-layout")}</button>
+          <button className="btn" onClick={() => cyRef.current && exportCytoscapePng(cyRef.current, `community-${safeName(included[0]?.title ?? "graph")}`)} title={t("Download the picture as a PNG at 2x")}>PNG</button>
         </div>
       </div>
 
       <div className="graph-legend">
-        <span className="legend-title">Entity types</span>
+        <span className="legend-title">{t("Entity types")}</span>
         {typeCounts.map(([type, count]) => (
           <button
             key={type}
             className={`legend-item${highlightType === type ? " active" : ""}`}
             onClick={() => setHighlightType(highlightType === type ? null : type)}
-            title={highlightType === type ? "Show all types" : `Highlight ${type}`}
+            title={highlightType === type ? t("Show all types") : t("Highlight {type}", { type })}
           >
             <i style={{ background: colors.get(type) }} />
             {type} <span className="num">{fmt(count)}</span>
           </button>
         ))}
-        <span className="legend-title">Relationship types</span>
+        <span className="legend-title">{t("Relationship types")}</span>
         {[...subgraph.typeCounts.entries()].sort((a, b) => b[1] - a[1]).map(([type, count]) => (
           <button
             key={type}
@@ -277,7 +279,7 @@ export function CommunityGraph({ dataset, partition, communityIds, focus, onFocu
               else next.add(type);
               return next;
             })}
-            title={hiddenTypes.has(type) ? `Show ${type}` : `Hide ${type}`}
+            title={hiddenTypes.has(type) ? t("Show {type}", { type }) : t("Hide {type}", { type })}
           >
             {type} <span className="num">{fmt(count)}</span>
           </button>
@@ -295,12 +297,12 @@ export function CommunityGraph({ dataset, partition, communityIds, focus, onFocu
       </div>
 
       <p className="graph-stats">
-        {fmt(stats.shownMembers)} of {fmt(stats.members)} entities, {fmt(stats.internalEdges)} internal relationships
-        {showBoundary && <>, {fmt(stats.boundaryEdges)} outside links to {fmt(stats.ghostNodes)} entities drawn dashed</>}
-        {stats.hiddenBoundaryEdges > 0 && <> ({fmt(stats.hiddenBoundaryEdges)} more outside links not drawn)</>}.
-        {stats.shownMembers < stats.members && <> Showing the most connected {fmt(stats.shownMembers)}; raise the limit above to see all.</>}
-        {dominant && <> <b>{dominant.type}</b> makes up {Math.round(dominant.share * 100)}% of the internal links; hide it in the relationship types above to see the rest of the structure.</>}
-        {" "}Click a node for its neighbours, a link for its detail, the background or Esc to clear. Drag nodes to tidy; positions are kept while you filter.
+        {t("{shown} of {members} entities, {internal} internal relationships", { shown: fmt(stats.shownMembers), members: fmt(stats.members), internal: fmt(stats.internalEdges) })}
+        {showBoundary && t(", {boundary} outside links to {ghosts} entities drawn dashed", { boundary: fmt(stats.boundaryEdges), ghosts: fmt(stats.ghostNodes) })}
+        {stats.hiddenBoundaryEdges > 0 && t(" ({hidden} more outside links not drawn)", { hidden: fmt(stats.hiddenBoundaryEdges) })}.
+        {stats.shownMembers < stats.members && ` ${t("Showing the most connected {shown}; raise the limit above to see all.", { shown: fmt(stats.shownMembers) })}`}
+        {dominant && <> <b>{dominant.type}</b>{t(" makes up {share}% of the internal links; hide it in the relationship types above to see the rest of the structure.", { share: Math.round(dominant.share * 100) })}</>}
+        {" "}{t("Click a node for its neighbours, a link for its detail, the background or Esc to clear. Drag nodes to tidy; positions are kept while you filter.")}
       </p>
     </section>
   );

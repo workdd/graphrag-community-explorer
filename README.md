@@ -55,6 +55,9 @@ integrity panel says so. Exports from Apache AGE that follow the same layout loa
 
 ## What you see
 
+The interface is available in English and Korean; the switch sits in the top bar and the choice is
+remembered in the browser.
+
 - A one-paragraph summary with the counts that matter: entities, relationships, communities, levels,
   coverage, isolated entities.
 - The hierarchy as a tree, with depth shown by indentation and tint, not by force layout.
@@ -111,7 +114,7 @@ GraphRAG 산출물(Parquet)을 커뮤니티 단위로 읽는 뷰어입니다. �
 무결성 검사가 먼저 나오고, 그래프는 선택한 커뮤니티 안에서만 엽니다. 모든 처리는 브라우저 안에서 끝나며 파일은
 어디에도 업로드되지 않습니다.
 
-- 실행: `npm install` 후 `npm run dev`, 그리고 **Open the sample dataset** 또는 GraphRAG `output/` 폴더를 드롭.
+- 실행: `npm install` 후 `npm run dev`, 그리고 **Open the sample dataset** 또는 GraphRAG `output/` 폴더를 드롭. 상단의 **한국어** 버튼으로 화면 언어를 바꿀 수 있습니다.
 - 로컬 실데이터: `local-data/<이름>/` 에 두고 `?data=./data/<이름>` 으로 엽니다. 이 폴더는 Git 이 무시하고 빌드에도 들어가지 않습니다. `.env.development.local` 에 `VITE_DEFAULT_DATA=./data/<이름>` 을 적으면 시작 시 바로 열립니다.
 - 추가 커뮤니티 집합: `<라벨>_communities.parquet` 파일을 함께 올리면 상단에서 전환할 수 있습니다.
 - 푸시 전 검사: `npm run hooks` 로 pre-push 훅을 설치하면 실데이터·환경 파일·사내 식별자가 섞인 커밋을 막습니다.

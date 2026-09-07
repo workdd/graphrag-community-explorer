@@ -15,7 +15,7 @@ export function boxSize(count: number): { w: number; h: number } {
   return { w, h: Math.round(w * 0.6) };
 }
 
-export function buildMapElements(model: MapModel, partition: Partition, colors: Map<string, string>, positions: Positions): cytoscape.ElementDefinition[] {
+export function buildMapElements(model: MapModel, partition: Partition, colors: Map<string, string>, positions: Positions, labels = { unassigned: "Not in any community" }): cytoscape.ElementDefinition[] {
   const elements: cytoscape.ElementDefinition[] = [];
   const total = model.communities.length + model.entities.length + 1;
   const radius = 120 + 12 * total;
@@ -61,8 +61,8 @@ export function buildMapElements(model: MapModel, partition: Partition, colors: 
         id: UNASSIGNED_ID,
         kind: "community",
         communityId: UNASSIGNED_ID,
-        label: open ? `Not in any community (${count})` : `Not in any community\n${count}`,
-        title: "Not in any community",
+        label: open ? `${labels.unassigned} (${count})` : `${labels.unassigned}\n${count}`,
+        title: labels.unassigned,
         count,
         fill: "#f3f4f1",
         w,

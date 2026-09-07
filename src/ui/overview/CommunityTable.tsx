@@ -4,6 +4,7 @@ import type { CommunityMetrics } from "../../core/metrics/summary";
 import type { Community, Partition } from "../../core/model";
 import { downloadText, toCsv } from "../download";
 import { fmt, pct } from "../format";
+import { useT } from "../i18n";
 
 interface Props {
   partition: Partition;
@@ -25,6 +26,7 @@ const columns: { key: SortKey; label: string; numeric: boolean }[] = [
 ];
 
 export function CommunityTable({ partition, metrics, selectedId, onSelect }: Props) {
+  const { t } = useT();
   const [sort, setSort] = useState<{ key: SortKey; dir: 1 | -1 }>({ key: "size", dir: -1 });
   const [query, setQuery] = useState("");
   const hasRank = [...partition.communities.values()].some((c) => c.report?.rank !== undefined);
@@ -62,14 +64,14 @@ export function CommunityTable({ partition, metrics, selectedId, onSelect }: Pro
   return (
     <>
       <div className="table-head">
-        <h2>Communities</h2>
+        <h2>{t("Communities")}</h2>
         <span className="muted">
-          {fmt(rows.length)} of {fmt(partition.communities.size)}. Internal counts relationships with both ends inside; boundary counts those with one end outside.
+          {t("{shown} of {total}. Internal counts relationships with both ends inside; boundary counts those with one end outside.", { shown: fmt(rows.length), total: fmt(partition.communities.size) })}
         </span>
-        <input className="field" placeholder="Filter by title" value={query} onChange={(e) => setQuery(e.target.value)} aria-label="Filter communities" />
+        <input className="field" placeholder={t("Filter by title")} value={query} onChange={(e) => setQuery(e.target.value)} aria-label={t("Filter communities")} />
         <button
           className="btn"
-          title="Download the rows below as CSV"
+          title={t("Download the rows below as CSV")}
           onClick={() => downloadText("communities.csv", toCsv([
             ["id", "title", "level", "parent", "entities", "internal", "boundary", "internal_share", "rank"],
             ...rows.map((c) => { const m = metrics.get(c.id); return [c.id, c.title, c.level, c.parentId ?? "", c.entityIds.length, m?.internalEdges ?? 0, m?.boundaryEdges ?? 0, (m?.internalRatio ?? 0).toFixed(4), c.report?.rank ?? ""]; }),
@@ -86,7 +88,7 @@ export function CommunityTable({ partition, metrics, selectedId, onSelect }: Pro
                 onClick={() => header(c.key)}
                 aria-sort={sort.key === c.key ? (sort.dir === 1 ? "ascending" : "descending") : "none"}
               >
-                {c.label}
+                {t(c.label)}
               </th>
             ))}
           </tr>
@@ -112,7 +114,7 @@ export function CommunityTable({ partition, metrics, selectedId, onSelect }: Pro
             );
           })}
           {rows.length === 0 && (
-            <tr><td className="empty" colSpan={shown.length}>No community title contains “{query}”.</td></tr>
+            <tr><td className="empty" colSpan={shown.length}>{t('No community title contains "{query}".', { query })}</td></tr>
           )}
         </tbody>
       </table>

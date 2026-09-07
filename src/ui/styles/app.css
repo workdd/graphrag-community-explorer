@@ -221,3 +221,5 @@
 .quality .table-head { margin: 0 0 8px; }
 .quality .table-head .btn { margin-left: auto; }
 .view-loading { padding: 24px 0; color: var(--ink-2); }
+.load-top { display: flex; align-items: center; justify-content: space-between; }
+.btn.lang { font-size: var(--fs-0); padding: 4px 9px; }
