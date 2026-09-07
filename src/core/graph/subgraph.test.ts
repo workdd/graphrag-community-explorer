@@ -6,7 +6,7 @@ import { communitySubgraph, relationshipsOf } from "./subgraph";
 const entity = (id: string, degree: number, type = "Service"): Entity => ({ id, title: id, type, degree, textUnitIds: [] });
 const rel = (id: string, sourceId: string, targetId: string, type = "calls"): Relationship => ({ id, sourceId, targetId, type, textUnitIds: [] });
 const community = (id: string, entityIds: string[], level = 0): Community => ({
-  id, level, parentId: null, childIds: [], title: `C${id}`, entityIds, relationshipIds: [], size: entityIds.length, membershipSource: "entity_ids",
+  id, level, parentId: null, childIds: [], title: `C${id}`, entityIds, relationshipIds: [], size: entityIds.length, membershipSource: "entity_ids", textUnitIds: [],
 });
 
 const dataset: Dataset = {
@@ -14,6 +14,8 @@ const dataset: Dataset = {
   entities: new Map([entity("a", 3), entity("b", 2), entity("c", 1), entity("x", 2, "Database"), entity("y", 1), entity("z", 1)].map((e) => [e.id, e])),
   relationships: [rel("ab", "a", "b"), rel("bc", "b", "c"), rel("ax", "a", "x", "reads"), rel("ay", "a", "y"), rel("bx", "b", "x", "reads"), rel("cz", "c", "z")],
   partitions: [],
+  textUnits: new Map(),
+  documents: new Map(),
 };
 const partition: Partition = {
   id: "p", label: "p", levels: [0], rootLevel: 0,

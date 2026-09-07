@@ -5,7 +5,7 @@ import { UNASSIGNED_ID, buildMapModel, nestingRatio } from "./map";
 const entity = (id: string, degree = 1): Entity => ({ id, title: id, type: "Service", degree, textUnitIds: [] });
 const rel = (id: string, sourceId: string, targetId: string): Relationship => ({ id, sourceId, targetId, type: "calls", textUnitIds: [] });
 const community = (id: string, level: number, parentId: string | null, entityIds: string[], childIds: string[] = []): Community => ({
-  id, level, parentId, childIds, title: `C${id}`, entityIds, relationshipIds: [], size: entityIds.length, membershipSource: "entity_ids",
+  id, level, parentId, childIds, title: `C${id}`, entityIds, relationshipIds: [], size: entityIds.length, membershipSource: "entity_ids", textUnitIds: [],
 });
 const partitionOf = (list: Community[]): Partition => ({
   id: "p", label: "p", communities: new Map(list.map((c) => [c.id, c])), levels: [...new Set(list.map((c) => c.level))].sort(), rootLevel: 0,
@@ -16,6 +16,8 @@ const dataset: Dataset = {
   entities: new Map(["a", "b", "c", "d", "e", "f", "z"].map((id, i) => [id, entity(id, 7 - i)])),
   relationships: [rel("ab", "a", "b"), rel("bc", "b", "c"), rel("cd", "c", "d"), rel("de", "d", "e"), rel("ef", "e", "f"), rel("fz", "f", "z"), rel("az", "a", "z")],
   partitions: [],
+  textUnits: new Map(),
+  documents: new Map(),
 };
 // Nested: root 0 ⊃ {1, 2}; 1 = {a, b}, 2 = {c, d}; root keeps e as its own extra member; f and z are unassigned.
 const nestedPartition = partitionOf([

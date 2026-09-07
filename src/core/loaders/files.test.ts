@@ -11,7 +11,8 @@ describe("classifyFile", () => {
 
   it("treats <label>_communities.parquet as an extra partition and ignores other files", () => {
     expect(classifyFile("leiden_communities.parquet")).toEqual({ partition: "leiden" });
-    expect(classifyFile("text_units.parquet")).toBeNull();
+    expect(classifyFile("text_units.parquet")).toEqual({ table: "text_units" });
+    expect(classifyFile("create_final_documents.parquet")).toEqual({ table: "documents" });
     expect(classifyFile("notes.txt")).toBeNull();
   });
 });

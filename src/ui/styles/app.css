@@ -197,3 +197,24 @@
 .props dd { margin: 0; overflow-wrap: anywhere; }
 .layout-overlay { position: absolute; inset: 0; display: flex; align-items: center; justify-content: center; background: rgba(255, 255, 255, 0.55); color: var(--ink-2); font-size: var(--fs-2); pointer-events: none; }
 .picked-info { position: absolute; left: 12px; bottom: 12px; max-width: 60%; padding: 8px 12px; border-radius: var(--radius); background: var(--surface); border: 1px solid var(--rule); box-shadow: 0 2px 8px rgba(27, 36, 48, 0.12); }
+
+/* Quality view */
+.quality { max-width: 1100px; }
+.quality section { margin-bottom: 30px; }
+.quality h2 { font-size: var(--fs-2); font-weight: 600; margin-bottom: 6px; }
+.quality .muted { max-width: 80ch; margin-bottom: 10px; }
+.ctable.compact th, .ctable.compact td { padding: 5px 10px; }
+.ctable tbody tr.static { cursor: default; }
+.ctable tbody tr.static:hover { background: transparent; }
+.hist { display: grid; gap: 6px; }
+.hist-row { display: flex; align-items: center; gap: 10px; }
+.hist-svg { width: 100%; max-width: 560px; height: 70px; }
+.compare-controls { display: flex; flex-wrap: wrap; gap: 16px; margin-bottom: 8px; }
+.compare-controls select { margin-left: 4px; }
+.summary.small { font-size: var(--fs-1); margin-bottom: 10px; }
+
+/* Evidence */
+.evidence li { padding: 6px 0; border-bottom: 1px solid var(--rule-2); }
+.evidence-text { display: block; text-align: left; width: 100%; line-height: 1.45; }
+.evidence-text:hover { color: var(--ink-2); }
+.evidence-doc { display: block; margin-top: 2px; color: var(--ink-3); font-size: var(--fs-0); }

@@ -4,6 +4,7 @@ import { checkIntegrity } from "../../core/metrics/integrity";
 import { datasetCounts, summarizePartition } from "../../core/metrics/summary";
 import { CommunityGraph, type GraphFocus } from "../graph/CommunityGraph";
 import { CommunityMap } from "../map/CommunityMap";
+import { QualityView } from "../quality/QualityView";
 import { Mark } from "../Mark";
 import { fmt, pct } from "../format";
 import { CommunityTable } from "./CommunityTable";
@@ -21,7 +22,7 @@ export function Overview({ result, label, onReset }: Props) {
   const { dataset, notes } = result;
   const [partitionId, setPartitionId] = useState(dataset.partitions[0]?.id ?? "");
   const [selectedId, setSelectedId] = useState<string | null>(null);
-  const [view, setView] = useState<"table" | "map" | "graph">("table");
+  const [view, setView] = useState<"table" | "map" | "graph" | "quality">("table");
   const [mapExpanded, setMapExpanded] = useState<Set<string>>(new Set());
   const [focus, setFocus] = useState<GraphFocus>(null);
   const [extraIds, setExtraIds] = useState<string[]>([]);
@@ -93,11 +94,12 @@ export function Overview({ result, label, onReset }: Props) {
         )}
       </aside>
 
-      <main className={`main${view !== "table" ? " graph-mode" : ""}`}>
+      <main className={`main${view === "map" || view === "graph" ? " graph-mode" : ""}`}>
         <div className="main-head">
           <div className="segmented" role="tablist">
             <button role="tab" aria-selected={view === "table"} className={view === "table" ? "active" : ""} onClick={() => setView("table")}>Overview</button>
             <button role="tab" aria-selected={view === "map"} className={view === "map" ? "active" : ""} disabled={!partition} onClick={() => setView("map")}>Map</button>
+            <button role="tab" aria-selected={view === "quality"} className={view === "quality" ? "active" : ""} disabled={!partition} onClick={() => setView("quality")}>Quality</button>
             <button
               role="tab"
               aria-selected={view === "graph"}
@@ -111,7 +113,9 @@ export function Overview({ result, label, onReset }: Props) {
           </div>
         </div>
 
-        {view === "map" && partition ? (
+        {view === "quality" && partition ? (
+          <QualityView dataset={dataset} partition={partition} selectedId={selectedId} onSelect={select} />
+        ) : view === "map" && partition ? (
           <CommunityMap
             dataset={dataset}
             partition={partition}

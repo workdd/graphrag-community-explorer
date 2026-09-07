@@ -245,6 +245,66 @@ for domain, areas in HIERARCHY.items():
 for r in reports:  # children lists are filled after all communities exist
     r["children"] = communities[r["community"]]["children"]
 
+# Text units and documents: one document per domain, a couple of paragraphs per topic that
+# mention member titles, so evidence panels have something to show.
+documents: list[dict] = []
+text_units: list[dict] = []
+doc_by_domain: dict[str, str] = {}
+for domain in HIERARCHY:
+    doc_id = stable_id("document", domain)
+    doc_by_domain[domain] = doc_id
+    documents.append({
+        "id": doc_id,
+        "human_readable_id": len(documents),
+        "title": f"{domain} architecture notes",
+        "text": "",
+        "text_unit_ids": [],
+        "creation_date": "2026-09-07",
+        "metadata": "",
+    })
+unit_by_topic: dict[str, list[str]] = {}
+for domain, areas in HIERARCHY.items():
+    for area, topics in areas.items():
+        for topic in topics:
+            members = topic_members[topic]
+            member_ids = {e["id"] for e in members}
+            internal = [r for r in relationships
+                        if by_title[r["source"]]["id"] in member_ids and by_title[r["target"]]["id"] in member_ids]
+            halves = [internal[: len(internal) // 2 or 1], internal[len(internal) // 2 or 1:]]
+            for part, rels in enumerate(halves):
+                if not rels and part > 0:
+                    continue
+                mentioned = {r["source"] for r in rels} | {r["target"] for r in rels}
+                sentences = [r["description"] for r in rels] or [f"{members[0]['title']} belongs to {topic.lower()}."]
+                text = (f"In the {area.lower()} area of {domain.lower()}, the {topic.lower()} topic covers "
+                        f"{len(members)} components. " + " ".join(sentences))
+                unit_id = stable_id("text_unit", f"{topic}/{part}")
+                unit = {
+                    "id": unit_id,
+                    "human_readable_id": len(text_units),
+                    "text": text,
+                    "n_tokens": len(text.split()),
+                    "document_ids": [doc_by_domain[domain]],
+                    "entity_ids": sorted(by_title[t]["id"] for t in mentioned) or [members[0]["id"]],
+                    "relationship_ids": [r["id"] for r in rels],
+                    "covariate_ids": [],
+                }
+                text_units.append(unit)
+                unit_by_topic.setdefault(topic, []).append(unit_id)
+                for t in mentioned:
+                    by_title[t]["text_unit_ids"].append(unit_id)
+                for r in rels:
+                    r["text_unit_ids"].append(unit_id)
+                for d in documents:
+                    if d["id"] == doc_by_domain[domain]:
+                        d["text_unit_ids"].append(unit_id)
+for d in documents:
+    d["text"] = " ".join(u["text"] for u in text_units if u["document_ids"][0] == d["id"])
+for c in communities:  # a community's units are those of its members' topics
+    ids = {uid for topic, uids in unit_by_topic.items() for uid in uids
+           if any(e["id"] in set(c["entity_ids"]) for e in topic_members[topic])}
+    c["text_unit_ids"] = sorted(ids)
+
 S, I, D, L = pa.string(), pa.int64(), pa.float64(), pa.list_(pa.string())
 SCHEMAS = {
     "entities": pa.schema([("id", S), ("human_readable_id", I), ("title", S), ("type", S), ("description", S),
@@ -259,12 +319,17 @@ SCHEMAS = {
                                     ("rank", D), ("rating_explanation", S),
                                     ("findings", pa.list_(pa.struct([("summary", S), ("explanation", S)]))),
                                     ("full_content_json", S), ("period", S), ("size", I)]),
+    "text_units": pa.schema([("id", S), ("human_readable_id", I), ("text", S), ("n_tokens", I), ("document_ids", L),
+                             ("entity_ids", L), ("relationship_ids", L), ("covariate_ids", L)]),
+    "documents": pa.schema([("id", S), ("human_readable_id", I), ("title", S), ("text", S), ("text_unit_ids", L),
+                            ("creation_date", S), ("metadata", S)]),
 }
 OUT.mkdir(parents=True, exist_ok=True)
-for name, rows in (("entities", entities), ("relationships", relationships), ("communities", communities), ("community_reports", reports)):
+for name, rows in (("entities", entities), ("relationships", relationships), ("communities", communities), ("community_reports", reports),
+                   ("text_units", text_units), ("documents", documents)):
     pq.write_table(pa.Table.from_pylist(rows, schema=SCHEMAS[name]), OUT / f"{name}.parquet", compression="NONE")
 levels = sorted({c["level"] for c in communities})
 covered = {eid for c in communities for eid in c["entity_ids"]}
 isolated = sum(1 for e in entities if e["degree"] == 0)
-print(f"entities={len(entities)} relationships={len(relationships)} communities={len(communities)} levels={levels} "
+print(f"entities={len(entities)} relationships={len(relationships)} communities={len(communities)} levels={levels} text_units={len(text_units)} documents={len(documents)} "
       f"covered={len(covered)} isolated={isolated} -> {OUT}")

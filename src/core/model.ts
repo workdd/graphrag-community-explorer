@@ -50,6 +50,22 @@ export interface Community {
   size: number;
   membershipSource: MembershipSource;
   report?: CommunityReport;
+  textUnitIds: string[];
+}
+
+export interface TextUnit {
+  id: string;
+  text: string;
+  documentIds: string[];
+  entityIds: string[];
+  relationshipIds: string[];
+  tokens?: number;
+}
+
+export interface Document {
+  id: string;
+  title: string;
+  text?: string;
 }
 
 export interface Partition {
@@ -70,4 +86,7 @@ export interface Dataset {
   relationships: Relationship[];
   /** At least one when a communities table was loaded. Extra partitions come from `<label>_communities.parquet`. */
   partitions: Partition[];
+  /** Source chunks and documents, when the index shipped them. */
+  textUnits: Map<string, TextUnit>;
+  documents: Map<string, Document>;
 }

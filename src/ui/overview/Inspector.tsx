@@ -1,4 +1,5 @@
-import { useMemo } from "react";
+import { useMemo, useState } from "react";
+import { evidenceForCommunity, evidenceForEntity, evidenceForRelationship, snippet, type Evidence } from "../../core/evidence";
 import { displayTitle } from "../../core/graph/palette";
 import { relationshipsOf } from "../../core/graph/subgraph";
 import { membershipIndex, pathTo } from "../../core/hierarchy";
@@ -103,6 +104,8 @@ function CommunityPanel({ dataset, partition, community, metrics, onFocus, onSel
         </>
       )}
 
+      <EvidenceList title="Source text" items={evidenceForCommunity(dataset, community)} hasUnits={dataset.textUnits.size > 0} />
+
       <h3>Entities</h3>
       <ul className="members">
         {members.slice(0, MEMBER_PREVIEW).map((e) => (
@@ -177,7 +180,46 @@ function EntityPanel({ dataset, partition, community, onFocus, onSelect, inGraph
         })}
       </ul>
       {relationships.length > RELATIONSHIP_PREVIEW && <p className="muted">{fmt(relationships.length - RELATIONSHIP_PREVIEW)} more.</p>}
+
+      <EvidenceList title="Source text" items={evidenceForEntity(dataset, entity.id)} hasUnits={dataset.textUnits.size > 0} />
     </div>
+  );
+}
+
+const EVIDENCE_PREVIEW = 5;
+
+/** Chunks behind an item, newest GraphRAG layouts first; older indexes without text units say so once. */
+function EvidenceList({ title, items, hasUnits }: { title: string; items: Evidence[]; hasUnits: boolean }) {
+  const [open, setOpen] = useState<Set<string>>(new Set());
+  if (!hasUnits) return null;
+  return (
+    <>
+      <h3>{title} ({fmt(items.length)})</h3>
+      {items.length === 0 ? (
+        <p className="muted">No text unit mentions this.</p>
+      ) : (
+        <ul className="evidence">
+          {items.slice(0, open.has("*") ? items.length : EVIDENCE_PREVIEW).map(({ unit, documentTitles }) => {
+            const expanded = open.has(unit.id);
+            return (
+              <li key={unit.id}>
+                <button
+                  className="evidence-text"
+                  onClick={() => setOpen((prev) => { const next = new Set(prev); if (next.has(unit.id)) next.delete(unit.id); else next.add(unit.id); return next; })}
+                  title={expanded ? "Show less" : "Show the whole chunk"}
+                >
+                  {expanded ? unit.text : snippet(unit.text)}
+                </button>
+                <span className="evidence-doc">{documentTitles.join(", ") || "no document"}{unit.tokens !== undefined && `, ${fmt(unit.tokens)} tokens`}</span>
+              </li>
+            );
+          })}
+        </ul>
+      )}
+      {items.length > EVIDENCE_PREVIEW && !open.has("*") && (
+        <button className="btn" onClick={() => setOpen((prev) => new Set([...prev, "*"]))}>Show all {fmt(items.length)}</button>
+      )}
+    </>
   );
 }
 
@@ -221,6 +263,7 @@ function RelationshipPanel({ dataset, community, onFocus, relationshipId }: Prop
         {relationship.weight !== undefined && <>, weight {relationship.weight}</>}.
       </p>
       {relationship.description && <p className="desc">{relationship.description}</p>}
+      <EvidenceList title="Source text" items={evidenceForRelationship(dataset, relationship.id)} hasUnits={dataset.textUnits.size > 0} />
       <div className="stack">
         {source && <button className="chip" onClick={() => onFocus({ kind: "entity", id: source.id })}>Source: {displayTitle(source)}</button>}
         {target && <button className="chip" onClick={() => onFocus({ kind: "entity", id: target.id })}>Target: {displayTitle(target)}</button>}

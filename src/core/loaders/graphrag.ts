@@ -2,12 +2,14 @@ import type {
   Community,
   CommunityReport,
   Dataset,
+  Document,
   Entity,
   Finding,
   MembershipSource,
   Partition,
   Relationship,
   SourceKind,
+  TextUnit,
 } from "../model";
 import type { Row } from "./parquet";
 
@@ -16,6 +18,8 @@ export interface Tables {
   relationships: Row[];
   communities?: Row[];
   community_reports?: Row[];
+  text_units?: Row[];
+  documents?: Row[];
   /** Additional community sets keyed by label, e.g. "leiden" from leiden_communities.parquet. */
   extraPartitions?: Record<string, Row[]>;
 }
@@ -175,6 +179,7 @@ function buildPartition(
       size: num(row.size) ?? known.length,
       membershipSource,
       report: reports.get(numberOf(row) ?? number),
+      textUnitIds: list(row.text_unit_ids),
     });
   });
 
@@ -255,6 +260,24 @@ export function buildDataset(tables: Tables, files: string[]): LoadResult {
     partitions.push(buildPartition(label, label, rows, [], relationships, entities, notes));
   }
 
+  const textUnits = new Map<string, TextUnit>();
+  (tables.text_units ?? []).forEach((row, index) => {
+    const id = str(row.id) ?? `text-unit-${index}`;
+    textUnits.set(id, {
+      id,
+      text: str(row.text) ?? "",
+      documentIds: list(row.document_ids),
+      entityIds: list(row.entity_ids),
+      relationshipIds: list(row.relationship_ids),
+      tokens: num(row.n_tokens),
+    });
+  });
+  const documents = new Map<string, Document>();
+  (tables.documents ?? []).forEach((row, index) => {
+    const id = str(row.id) ?? `document-${index}`;
+    documents.set(id, { id, title: str(row.title) ?? id, text: str(row.text) });
+  });
+
   const kind: SourceKind = tables.entities.some((row) => "age_properties_json" in row) ? "age-export" : "graphrag";
-  return { dataset: { source: { kind, files }, entities, relationships, partitions }, notes: notes.toArray() };
+  return { dataset: { source: { kind, files }, entities, relationships, partitions, textUnits, documents }, notes: notes.toArray() };
 }

@@ -5,7 +5,7 @@ import { datasetCounts, summarizePartition } from "./summary";
 
 const entity = (id: string, degree = 0): Entity => ({ id, title: id, type: id.startsWith("d") ? "Database" : "Service", degree, textUnitIds: [] });
 const community = (id: string, parentId: string | null, entityIds: string[], size = entityIds.length, extra: Partial<Community> = {}): Community => ({
-  id, level: parentId === null ? 0 : 1, parentId, childIds: [], title: `C${id}`, entityIds, relationshipIds: [], size, membershipSource: "entity_ids", ...extra,
+  id, level: parentId === null ? 0 : 1, parentId, childIds: [], title: `C${id}`, entityIds, relationshipIds: [], size, membershipSource: "entity_ids", textUnitIds: [], ...extra,
 });
 
 const dataset: Dataset = {
@@ -17,6 +17,8 @@ const dataset: Dataset = {
     { id: "r3", sourceId: "c", targetId: "d1", type: "reads", textUnitIds: [] },
   ],
   partitions: [],
+  textUnits: new Map(),
+  documents: new Map(),
 };
 const partition: Partition = {
   id: "p", label: "p", levels: [0, 1], rootLevel: 0,

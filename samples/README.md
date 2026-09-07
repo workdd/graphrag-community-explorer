@@ -1,7 +1,8 @@
 # Sample dataset
 
 `public/samples/demo/` holds a synthetic dataset in the Microsoft GraphRAG (>= 1.0) output layout:
-`entities.parquet`, `relationships.parquet`, `communities.parquet`, `community_reports.parquet`.
+`entities.parquet`, `relationships.parquet`, `communities.parquet`, `community_reports.parquet`,
+`text_units.parquet`, `documents.parquet`.
 
 It describes an invented e-commerce platform (services, data stores, queues, teams, vendors,
 incidents) organized in three community levels: domains, areas, topics. Twenty "legacy" entities

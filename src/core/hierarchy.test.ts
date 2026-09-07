@@ -3,7 +3,7 @@ import { buildTree, depthOfLevel, membershipIndex, pathTo, primaryCommunity } fr
 import type { Community, Partition } from "./model";
 
 const community = (id: string, level: number, parentId: string | null, size: number, entityIds: string[] = []): Community => ({
-  id, level, parentId, childIds: [], title: `C${id}`, entityIds, relationshipIds: [], size, membershipSource: "entity_ids",
+  id, level, parentId, childIds: [], title: `C${id}`, entityIds, relationshipIds: [], size, membershipSource: "entity_ids", textUnitIds: [],
 });
 const partition = (list: Community[], rootLevel: number): Partition => ({
   id: "p", label: "p", communities: new Map(list.map((c) => [c.id, c])), levels: [...new Set(list.map((c) => c.level))].sort(), rootLevel,

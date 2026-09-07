@@ -5,9 +5,9 @@ Open the Parquet files GraphRAG writes, read the community hierarchy and reports
 into the entities and relationships inside each community. Everything runs in your browser; no file
 is uploaded anywhere.
 
-Status: early alpha. Loader, overview, hierarchy tree, community table, report inspector, integrity
-checks, the community graph and the community map are in place. Quality metrics, partition
-comparison and evidence views are next; see [docs/ROADMAP.md](docs/ROADMAP.md).
+Status: 0.1 alpha. Loader, overview, hierarchy tree, community table, report inspector, integrity
+checks, community graph, community map, quality metrics, partition comparison and source-text
+evidence are in place; see [docs/ROADMAP.md](docs/ROADMAP.md) for what comes next.
 
 ![Overview of the sample dataset: hierarchy tree, summary sentence, community table](docs/screenshots/overview-sample.png)
 
@@ -36,6 +36,7 @@ To make that folder open by default on your machine, copy `.env.example` to `.en
 | `relationships.parquet` | Edges between entity titles. Required. |
 | `communities.parquet` | Levels, parents, members. Without it there is no hierarchy. |
 | `community_reports.parquet` | Summaries, findings and ranks. |
+| `text_units.parquet`, `documents.parquet` | Source chunks and documents; the inspector shows the text behind an entity, relationship or community. |
 | `<label>_communities.parquet` | Any additional community set (for example `leiden_communities.parquet`) becomes a switchable partition. |
 
 File names from GraphRAG 0.3 to 2.x are recognized, including the `create_final_` prefix. When an
@@ -56,6 +57,10 @@ integrity panel says so. Exports from Apache AGE that follow the same layout loa
   in a nested hierarchy its child communities and its own members appear inside, otherwise its
   members do and dashed arrows show parents. Entities in no community form their own box. Layouts
   run in a web worker and are cached, so the same picture comes back instantly.
+- Quality: modularity and coverage per level, size distributions, density and conductance per
+  community, and a side-by-side comparison of two community sets (NMI, ARI, overlap table).
+- Evidence: the text units and documents behind an entity, relationship or community, when the
+  index shipped them.
 - The community graph: members drawn inside the community container, colored by entity type and
   sized by degree, with labels that stay readable. Outside links reach dashed ghost nodes, and any
   neighbouring community can be added to the same picture. Click a node for its neighbourhood and
