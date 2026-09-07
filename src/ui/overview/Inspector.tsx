@@ -19,6 +19,9 @@ interface Props {
   inGraph: boolean;
   graphIds: string[];
   onAddCommunity: (id: string) => void;
+  inMap: boolean;
+  mapOpen: boolean;
+  onToggleMap: () => void;
 }
 
 const MEMBER_PREVIEW = 24;
@@ -33,7 +36,7 @@ export function Inspector(props: Props) {
   return <CommunityPanel {...props} partition={partition} community={community} />;
 }
 
-function CommunityPanel({ dataset, partition, community, metrics, onFocus, onSelect, onOpenGraph, inGraph }: Props & { partition: Partition; community: Community }) {
+function CommunityPanel({ dataset, partition, community, metrics, onFocus, onSelect, onOpenGraph, inGraph, inMap, mapOpen, onToggleMap }: Props & { partition: Partition; community: Community }) {
   const path = pathTo(partition, community.id);
   const m = metrics?.get(community.id);
   const members = community.entityIds.map((id) => dataset.entities.get(id)).filter((e): e is Entity => e !== undefined);
@@ -59,6 +62,11 @@ function CommunityPanel({ dataset, partition, community, metrics, onFocus, onSel
       </p>
       {inGraph ? (
         <p className="muted">Shown in the graph. Click a node for its neighbours.</p>
+      ) : inMap ? (
+        <div className="stack">
+          <button className="btn primary" onClick={onToggleMap}>{mapOpen ? "Close in map" : "Open in map"}</button>
+          <button className="btn" onClick={onOpenGraph}>Open internal graph</button>
+        </div>
       ) : (
         <button className="btn primary" onClick={onOpenGraph}>Open internal graph</button>
       )}

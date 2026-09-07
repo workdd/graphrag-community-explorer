@@ -3,6 +3,7 @@ import { depthOfLevel } from "../../core/hierarchy";
 import { displayTitle } from "../../core/graph/palette";
 import type { Subgraph } from "../../core/graph/subgraph";
 import type { Community, Partition } from "../../core/model";
+import { withSeed } from "../../core/graph/seed";
 import { DEPTH_FILL } from "./style";
 
 export const nodeId = (entityId: string) => `n:${entityId}`;
@@ -113,22 +114,8 @@ export function layoutOptions(nodeCount: number, incremental: boolean): cytoscap
 
 /** Same input, same picture: the layout's random calls are fed from a seed derived from the node ids. Returns elapsed ms. */
 export function runSeededLayout(cy: cytoscape.Core, options: cytoscape.LayoutOptions, seedText: string): number {
-  let seed = 2166136261;
-  for (let i = 0; i < seedText.length; i++) seed = Math.imul(seed ^ seedText.charCodeAt(i), 16777619);
-  const original = Math.random;
-  let state = seed >>> 0;
-  Math.random = () => {
-    state = (state + 0x6d2b79f5) >>> 0;
-    let t = Math.imul(state ^ (state >>> 15), 1 | state);
-    t = (t + Math.imul(t ^ (t >>> 7), 61 | t)) ^ t;
-    return ((t ^ (t >>> 14)) >>> 0) / 4294967296;
-  };
   const started = performance.now();
-  try {
-    cy.layout(options).run();
-  } finally {
-    Math.random = original;
-  }
+  withSeed(seedText, () => cy.layout(options).run());
   return performance.now() - started;
 }
 

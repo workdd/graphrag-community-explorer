@@ -6,12 +6,14 @@ into the entities and relationships inside each community. Everything runs in yo
 is uploaded anywhere.
 
 Status: early alpha. Loader, overview, hierarchy tree, community table, report inspector, integrity
-checks and the community graph are in place. The whole-dataset community map is next; see
-[docs/ROADMAP.md](docs/ROADMAP.md).
+checks, the community graph and the community map are in place. Quality metrics, partition
+comparison and evidence views are next; see [docs/ROADMAP.md](docs/ROADMAP.md).
 
 ![Overview of the sample dataset: hierarchy tree, summary sentence, community table](docs/screenshots/overview-sample.png)
 
 ![Graph of one community: entities colored by type inside the community container, a selected node with its incoming and outgoing links](docs/screenshots/graph-sample.png)
+
+![Community map: nested containers three levels deep, opened down to the entities of one topic, with aggregate links between groups](docs/screenshots/map-sample.png)
 
 ## Try it
 
@@ -49,6 +51,11 @@ integrity panel says so. Exports from Apache AGE that follow the same layout loa
 - The community report (summary, findings, rank), parent path, child communities and members.
 - Integrity findings: duplicate ids, unresolved members or parents, children not nested in their
   parent, size mismatches, dangling relationships.
+- The community map: the whole dataset as community boxes sized by member count, linked by lines
+  whose width is the number of relationships between two groups. Double-click a box to open it;
+  in a nested hierarchy its child communities and its own members appear inside, otherwise its
+  members do and dashed arrows show parents. Entities in no community form their own box. Layouts
+  run in a web worker and are cached, so the same picture comes back instantly.
 - The community graph: members drawn inside the community container, colored by entity type and
   sized by degree, with labels that stay readable. Outside links reach dashed ghost nodes, and any
   neighbouring community can be added to the same picture. Click a node for its neighbourhood and

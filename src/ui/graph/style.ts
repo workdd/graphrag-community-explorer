@@ -8,8 +8,6 @@ export const GRAPH_STYLE = [
     selector: "node",
     style: {
       "background-color": "data(color)",
-      width: "data(size)",
-      height: "data(size)",
       "border-width": 1.5,
       "border-color": "#ffffff",
       label: "data(label)",
@@ -29,6 +27,7 @@ export const GRAPH_STYLE = [
       "overlay-opacity": 0,
     },
   },
+  { selector: "node[size]", style: { width: "data(size)", height: "data(size)" } },
   { selector: "node.ghost", style: { "background-color": "#ffffff", "border-color": "data(color)", "border-width": 1.5, "border-style": "dashed", color: "#5f6b78" } },
   {
     selector: "node:parent",
@@ -88,3 +87,39 @@ export const GRAPH_STYLE = [
 ] as unknown as cytoscape.StylesheetStyle[];
 
 export const DEPTH_FILL = ["#eef2ea", "#e2e8dc", "#d5ddcd", "#c8d2bf"];
+
+/** Map view: collapsed communities are labelled boxes; aggregate links carry counts. */
+export const MAP_STYLE = [
+  ...GRAPH_STYLE,
+  {
+    selector: "node.collapsed",
+    style: {
+      shape: "round-rectangle",
+      width: "data(w)",
+      height: "data(h)",
+      "background-color": "data(fill)",
+      "background-opacity": 1,
+      "border-width": 1.5,
+      "border-color": "#b9c6ae",
+      label: "data(label)",
+      "font-size": 12,
+      "font-weight": 600,
+      "text-valign": "center",
+      "text-halign": "center",
+      "text-wrap": "wrap",
+      "text-max-width": "data(labelWidth)",
+      "text-background-opacity": 0,
+      "text-margin-y": 0,
+      color: "#1b2430",
+      "min-zoomed-font-size": 3,
+    },
+  },
+  { selector: "node.unassigned", style: { "border-style": "dashed", "border-color": "#8c96a0", color: "#5f6b78" } },
+  { selector: "node.selected", style: { "border-color": "#3d5afe", "border-width": 3 } },
+  { selector: "node:parent.selected", style: { "border-color": "#3d5afe", "border-width": 2.5 } },
+  { selector: "edge.agg", style: { width: "data(width)", "line-color": "#c2c9d0", "target-arrow-shape": "none", "curve-style": "straight", opacity: 0.9 } },
+  { selector: "edge.agg.loose", style: { "line-style": "dashed", "line-dash-pattern": [3, 4], "line-color": "#d5dbe1", opacity: 0.8 } },
+  { selector: "edge.agg.hover, edge.agg.picked", style: { "line-color": "#5f6b78", label: "data(count)", "font-size": 11, "text-rotation": "none", "text-margin-y": 0, opacity: 1 } },
+  { selector: "edge.plink", style: { "line-style": "dashed", "line-dash-pattern": [6, 4], "line-color": "#a9b89c", "target-arrow-color": "#a9b89c", "target-arrow-shape": "triangle", "arrow-scale": 0.9, width: 1.4, "curve-style": "bezier" } },
+  { selector: "edge.plink.hover", style: { label: "data(type)", "line-color": "#5f6b78", "target-arrow-color": "#5f6b78" } },
+] as unknown as cytoscape.StylesheetStyle[];

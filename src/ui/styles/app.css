@@ -195,3 +195,5 @@
 .props div { display: contents; }
 .props dt { color: var(--ink-2); }
 .props dd { margin: 0; overflow-wrap: anywhere; }
+.layout-overlay { position: absolute; inset: 0; display: flex; align-items: center; justify-content: center; background: rgba(255, 255, 255, 0.55); color: var(--ink-2); font-size: var(--fs-2); pointer-events: none; }
+.picked-info { position: absolute; left: 12px; bottom: 12px; max-width: 60%; padding: 8px 12px; border-radius: var(--radius); background: var(--surface); border: 1px solid var(--rule); box-shadow: 0 2px 8px rgba(27, 36, 48, 0.12); }

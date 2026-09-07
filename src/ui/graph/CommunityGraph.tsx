@@ -93,7 +93,6 @@ export function CommunityGraph({ dataset, partition, communityIds, focus, onFocu
       layout: { name: "preset" },
       minZoom: 0.05,
       maxZoom: 6,
-      wheelSensitivity: 0.2,
       boxSelectionEnabled: false,
       autounselectify: true,
     });
