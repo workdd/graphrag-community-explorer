@@ -85,7 +85,7 @@ export function LoadScreen({ state, onFiles, onSample, defaultData, onDefault }:
             <button className="btn primary" onClick={onDefault} disabled={state.status === "loading"}>
               Open {defaultData}
             </button>
-            <span className="note">Configured in .env.local as VITE_DEFAULT_DATA.</span>
+            <span className="note">Configured in .env.development.local as VITE_DEFAULT_DATA.</span>
           </div>
         )}
         <div className="load-actions">

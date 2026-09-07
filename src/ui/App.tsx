@@ -10,7 +10,7 @@ export type LoadState =
   | { status: "error"; message: string }
   | { status: "ready"; result: LoadResult; label: string };
 
-// Local default for developers: VITE_DEFAULT_DATA=./data/my-index in .env.local (ignored by Git).
+// Local default for developers: VITE_DEFAULT_DATA=./data/my-index in .env.development.local (ignored by Git, dev only).
 const DEFAULT_DATA = (import.meta.env.VITE_DEFAULT_DATA as string | undefined)?.trim() || undefined;
 
 export function App() {

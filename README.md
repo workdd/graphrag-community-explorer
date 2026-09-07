@@ -23,10 +23,20 @@ npm run dev          # http://127.0.0.1:5173
 ```
 
 Click **Open the sample dataset**, or drop your GraphRAG `output/` folder onto the page.
-To open a folder that is served over HTTP, add `?data=<url>`; for local files put them under
-`public/data/<name>/` (ignored by Git) and open `http://127.0.0.1:5173/?data=./data/<name>`.
-To make that folder open by default on your machine, copy `.env.example` to `.env.local` and set
-`VITE_DEFAULT_DATA=./data/<name>` (restart `npm run dev` afterwards).
+
+Live demo with the sample: https://workdd.github.io/graphrag-community-explorer/
+
+To work with your own index every day, put its files under `local-data/<name>/` (ignored by Git and
+served only by the dev server) and open `http://127.0.0.1:5173/?data=./data/<name>`. To make it open
+by default, copy `.env.example` to `.env.development.local` and set `VITE_DEFAULT_DATA=./data/<name>`.
+Any folder served over HTTP works the same way with `?data=<url>`.
+
+To serve a built copy together with an index folder, without the dev server:
+
+```sh
+npm run build
+npm run serve -- --data ~/graphrag/output     # http://127.0.0.1:4180/?data=./data/output
+```
 
 ## What it reads
 
@@ -71,15 +81,20 @@ integrity panel says so. Exports from Apache AGE that follow the same layout loa
 
 ```sh
 npm run typecheck
-npm test
-npm run build
+npm test             # vitest: loaders, hierarchy, metrics, map model, evidence
+npm run e2e          # Playwright smoke test against the production build (uses installed Chrome)
+npm run build        # vite build, then scripts/check-dist.mjs refuses any dataset but the sample
 npm run hooks        # installs the pre-push check once per clone
 uv run samples/generate_sample.py   # regenerates the synthetic sample
 ```
 
-`scripts/check-sensitive.sh` runs before every push and in CI. It refuses data files outside
-`public/samples/`, environment files, and identifiers that only occur in private exports. Keep real
-data in `public/data/` or anywhere else that Git ignores.
+Two checks keep private data out of the open: `scripts/check-sensitive.sh` runs before every push
+and in CI and refuses data files outside `public/samples/`, environment files and identifiers that
+only occur in private exports; `scripts/check-dist.mjs` runs after every build and fails if `dist/`
+would publish anything but the sample. Real indexes belong in `local-data/`, which Git ignores and
+the build never copies.
+
+See [CONTRIBUTING.md](CONTRIBUTING.md) for the workflow and [CHANGELOG.md](CHANGELOG.md) for releases.
 
 ## License
 
@@ -97,6 +112,6 @@ GraphRAG 산출물(Parquet)을 커뮤니티 단위로 읽는 뷰어입니다. �
 어디에도 업로드되지 않습니다.
 
 - 실행: `npm install` 후 `npm run dev`, 그리고 **Open the sample dataset** 또는 GraphRAG `output/` 폴더를 드롭.
-- 로컬 실데이터: `public/data/<이름>/` 에 두고 `?data=./data/<이름>` 으로 엽니다. 이 폴더는 Git 이 무시합니다.
+- 로컬 실데이터: `local-data/<이름>/` 에 두고 `?data=./data/<이름>` 으로 엽니다. 이 폴더는 Git 이 무시하고 빌드에도 들어가지 않습니다. `.env.development.local` 에 `VITE_DEFAULT_DATA=./data/<이름>` 을 적으면 시작 시 바로 열립니다.
 - 추가 커뮤니티 집합: `<라벨>_communities.parquet` 파일을 함께 올리면 상단에서 전환할 수 있습니다.
 - 푸시 전 검사: `npm run hooks` 로 pre-push 훅을 설치하면 실데이터·환경 파일·사내 식별자가 섞인 커밋을 막습니다.

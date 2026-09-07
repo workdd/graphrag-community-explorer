@@ -1,6 +1,6 @@
 {
   "name": "graphrag-community-explorer",
-  "version": "0.1.0-alpha.0",
+  "version": "0.1.0",
   "private": true,
   "description": "Community-first explorer for Microsoft GraphRAG outputs and Apache AGE exports. Runs entirely in the browser.",
   "license": "MIT",
@@ -10,14 +10,17 @@
   },
   "scripts": {
     "dev": "vite",
-    "build": "vite build",
+    "build": "vite build && node scripts/check-dist.mjs",
     "preview": "vite preview",
     "typecheck": "tsc --noEmit -p tsconfig.json",
     "test": "vitest run",
     "test:watch": "vitest",
     "check:sensitive": "bash scripts/check-sensitive.sh",
     "hooks": "git config core.hooksPath .githooks && echo 'git hooks enabled (pre-push runs check:sensitive)'",
-    "sample": "python3 samples/generate_sample.py"
+    "sample": "python3 samples/generate_sample.py",
+    "e2e": "playwright test",
+    "serve": "node scripts/serve.mjs",
+    "deploy:pages": "bash scripts/deploy-pages.sh"
   },
   "dependencies": {
     "cytoscape": "^3.34.2",
@@ -27,7 +30,9 @@
     "react-dom": "^19.2.0"
   },
   "devDependencies": {
+    "@playwright/test": "^1.63.0",
     "@types/cytoscape": "^3.31.0",
+    "@types/node": "^26.5.0",
     "@types/react": "^19.2.0",
     "@types/react-dom": "^19.2.0",
     "@vitejs/plugin-react": "^6.1.0",

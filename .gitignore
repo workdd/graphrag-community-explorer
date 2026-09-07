@@ -5,11 +5,15 @@ coverage/
 .DS_Store
 
 # Local datasets never ship with the repository. Only the synthetic sample under
-# public/samples/ is tracked. Put your own files in public/data/ and open ?data=./data/<dir>.
+# public/samples/ is tracked. Put your own files in local-data/<name>/ (served at /data/<name>
+# by the dev server only) and open ?data=./data/<name>.
 *.parquet
 !public/samples/**/*.parquet
+local-data/
 public/data/
 artifacts/
+test-results/
+playwright-report/
 .env
 .env.*
 !.env.example
