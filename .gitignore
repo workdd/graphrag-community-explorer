@@ -1,0 +1,9 @@
+# Local AGE/GraphRAG data (never commit to the public repository)
+public/artifacts/*.parquet
+artifacts/
+*.age.json
+*.snapshot.json
+.env
+.env.*
+!*.env.example
+node_modules/
