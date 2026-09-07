@@ -218,3 +218,6 @@
 .evidence-text { display: block; text-align: left; width: 100%; line-height: 1.45; }
 .evidence-text:hover { color: var(--ink-2); }
 .evidence-doc { display: block; margin-top: 2px; color: var(--ink-3); font-size: var(--fs-0); }
+.quality .table-head { margin: 0 0 8px; }
+.quality .table-head .btn { margin-left: auto; }
+.view-loading { padding: 24px 0; color: var(--ink-2); }

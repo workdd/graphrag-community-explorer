@@ -4,6 +4,7 @@ import fcose from "cytoscape-fcose";
 import { typeColors } from "../../core/graph/palette";
 import { communitySubgraph } from "../../core/graph/subgraph";
 import type { Dataset, Partition } from "../../core/model";
+import { exportCytoscapePng, safeName } from "../download";
 import { fmt } from "../format";
 import { buildElements, edgeId, fitToCommunities, layoutOptions, nodeId, runSeededLayout } from "./elements";
 import { GRAPH_STYLE } from "./style";
@@ -248,6 +249,7 @@ export function CommunityGraph({ dataset, partition, communityIds, focus, onFocu
           <button className="btn" onClick={() => cyRef.current && fitToCommunities(cyRef.current, true)} title="Frame the community">Fit</button>
           <button className="btn" onClick={() => cyRef.current?.animate({ fit: { eles: cyRef.current.elements(), padding: 40 } }, { duration: 250 })} title="Frame everything, outside links included">All</button>
           <button className="btn" onClick={relayout} title="Recompute the layout from scratch">Re-layout</button>
+          <button className="btn" onClick={() => cyRef.current && exportCytoscapePng(cyRef.current, `community-${safeName(included[0]?.title ?? "graph")}`)} title="Download the picture as a PNG at 2x">PNG</button>
         </div>
       </div>
 

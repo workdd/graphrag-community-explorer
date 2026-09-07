@@ -2,6 +2,7 @@ import { useMemo, useState } from "react";
 import { depthOfLevel } from "../../core/hierarchy";
 import type { CommunityMetrics } from "../../core/metrics/summary";
 import type { Community, Partition } from "../../core/model";
+import { downloadText, toCsv } from "../download";
 import { fmt, pct } from "../format";
 
 interface Props {
@@ -66,6 +67,14 @@ export function CommunityTable({ partition, metrics, selectedId, onSelect }: Pro
           {fmt(rows.length)} of {fmt(partition.communities.size)}. Internal counts relationships with both ends inside; boundary counts those with one end outside.
         </span>
         <input className="field" placeholder="Filter by title" value={query} onChange={(e) => setQuery(e.target.value)} aria-label="Filter communities" />
+        <button
+          className="btn"
+          title="Download the rows below as CSV"
+          onClick={() => downloadText("communities.csv", toCsv([
+            ["id", "title", "level", "parent", "entities", "internal", "boundary", "internal_share", "rank"],
+            ...rows.map((c) => { const m = metrics.get(c.id); return [c.id, c.title, c.level, c.parentId ?? "", c.entityIds.length, m?.internalEdges ?? 0, m?.boundaryEdges ?? 0, (m?.internalRatio ?? 0).toFixed(4), c.report?.rank ?? ""]; }),
+          ]), "text/csv;charset=utf-8")}
+        >CSV</button>
       </div>
       <table className="ctable">
         <thead>

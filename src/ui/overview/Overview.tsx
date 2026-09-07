@@ -1,10 +1,23 @@
-import { useMemo, useState } from "react";
+import { Suspense, lazy, useEffect, useMemo, useState } from "react";
 import type { LoadResult } from "../../core/loaders/graphrag";
 import { checkIntegrity } from "../../core/metrics/integrity";
 import { datasetCounts, summarizePartition } from "../../core/metrics/summary";
-import { CommunityGraph, type GraphFocus } from "../graph/CommunityGraph";
-import { CommunityMap } from "../map/CommunityMap";
-import { QualityView } from "../quality/QualityView";
+import type { GraphFocus } from "../graph/CommunityGraph";
+
+// Heavy views (Cytoscape) load on demand so the overview appears before the graph code downloads.
+const CommunityGraph = lazy(() => import("../graph/CommunityGraph").then((m) => ({ default: m.CommunityGraph })));
+const CommunityMap = lazy(() => import("../map/CommunityMap").then((m) => ({ default: m.CommunityMap })));
+const QualityView = lazy(() => import("../quality/QualityView").then((m) => ({ default: m.QualityView })));
+
+type View = "table" | "map" | "graph" | "quality";
+const VIEWS: View[] = ["table", "map", "graph", "quality"];
+
+/** #view=map&set=leiden&community=11 makes the current screen shareable; ?data= stays in the query. */
+function readHash(): { view?: View; set?: string; community?: string } {
+  const params = new URLSearchParams(window.location.hash.replace(/^#/, ""));
+  const view = params.get("view") as View | null;
+  return { view: view && VIEWS.includes(view) ? view : undefined, set: params.get("set") ?? undefined, community: params.get("community") ?? undefined };
+}
 import { Mark } from "../Mark";
 import { fmt, pct } from "../format";
 import { CommunityTable } from "./CommunityTable";
@@ -20,9 +33,10 @@ interface Props {
 
 export function Overview({ result, label, onReset }: Props) {
   const { dataset, notes } = result;
-  const [partitionId, setPartitionId] = useState(dataset.partitions[0]?.id ?? "");
-  const [selectedId, setSelectedId] = useState<string | null>(null);
-  const [view, setView] = useState<"table" | "map" | "graph" | "quality">("table");
+  const [initial] = useState(readHash);
+  const [partitionId, setPartitionId] = useState(() => (initial.set && dataset.partitions.some((p) => p.id === initial.set) ? initial.set : dataset.partitions[0]?.id ?? ""));
+  const [selectedId, setSelectedId] = useState<string | null>(() => initial.community ?? null);
+  const [view, setView] = useState<View>(() => (initial.view === "graph" && !initial.community ? "table" : initial.view ?? "table"));
   const [mapExpanded, setMapExpanded] = useState<Set<string>>(new Set());
   const [focus, setFocus] = useState<GraphFocus>(null);
   const [extraIds, setExtraIds] = useState<string[]>([]);
@@ -35,6 +49,15 @@ export function Overview({ result, label, onReset }: Props) {
   const levels = partition?.levels ?? [];
   const selected = selectedId && partition ? partition.communities.get(selectedId) ?? null : null;
   const graphIds = useMemo(() => (selectedId ? [selectedId, ...extraIds.filter((id) => id !== selectedId)] : []), [selectedId, extraIds]);
+
+  useEffect(() => {
+    const params = new URLSearchParams();
+    if (view !== "table") params.set("view", view);
+    if (partition && dataset.partitions.length > 1) params.set("set", partition.id);
+    if (selectedId) params.set("community", selectedId);
+    const hash = params.toString();
+    window.history.replaceState(null, "", `${window.location.pathname}${window.location.search}${hash ? `#${hash}` : ""}`);
+  }, [view, partition, selectedId, dataset]);
 
   const select = (id: string | null) => {
     setSelectedId(id);
@@ -113,6 +136,7 @@ export function Overview({ result, label, onReset }: Props) {
           </div>
         </div>
 
+        <Suspense fallback={<div className="view-loading">Loading view…</div>}>
         {view === "quality" && partition ? (
           <QualityView dataset={dataset} partition={partition} selectedId={selectedId} onSelect={select} />
         ) : view === "map" && partition ? (
@@ -166,6 +190,7 @@ export function Overview({ result, label, onReset }: Props) {
             )}
           </>
         )}
+        </Suspense>
       </main>
 
       <aside className="inspector">

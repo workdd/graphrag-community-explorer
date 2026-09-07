@@ -4,6 +4,7 @@ import { UNASSIGNED_ID, buildMapModel, communityKey, entityKey, nestingRatio } f
 import { typeColors } from "../../core/graph/palette";
 import { hashText } from "../../core/graph/seed";
 import type { Dataset, Partition } from "../../core/model";
+import { exportCytoscapePng } from "../download";
 import { fmt } from "../format";
 import type { GraphFocus } from "../graph/CommunityGraph";
 import { loadCachedLayout, requestLayout, saveCachedLayout } from "../graph/layoutClient";
@@ -205,6 +206,7 @@ export function CommunityMap(props: Props) {
           <button className="btn" onClick={() => onExpandedChange(new Set())} disabled={expanded.size === 0}>Close all</button>
           <button className="btn" onClick={() => cyRef.current?.animate({ fit: { eles: cyRef.current.elements(), padding: 40 } }, { duration: 250 })}>Fit</button>
           <button className="btn" onClick={() => { positionsRef.current = {}; setNonce((n) => n + 1); }} title="Recompute the layout from scratch">Re-layout</button>
+          <button className="btn" onClick={() => cyRef.current && exportCytoscapePng(cyRef.current, "community-map")} title="Download the map as a PNG at 2x">PNG</button>
         </div>
       </div>
 

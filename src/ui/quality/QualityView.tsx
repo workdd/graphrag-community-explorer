@@ -4,6 +4,7 @@ import { comparePartitions } from "../../core/metrics/compare";
 import { SIZE_BUCKETS, communityQuality, levelQuality, sizeHistogram } from "../../core/metrics/quality";
 import type { Dataset, Partition } from "../../core/model";
 import { DEPTH_FILL } from "../graph/style";
+import { downloadText, toCsv } from "../download";
 import { fmt, pct } from "../format";
 
 interface Props {
@@ -119,7 +120,17 @@ export function QualityView({ dataset, partition, selectedId, onSelect }: Props)
       {dataset.partitions.length > 1 && <ComparePanel dataset={dataset} current={partition} />}
 
       <section>
-        <h2>Communities</h2>
+        <div className="table-head">
+          <h2>Communities</h2>
+          <button
+            className="btn"
+            title="Download all rows as CSV"
+            onClick={() => downloadText("community-quality.csv", toCsv([
+              ["id", "title", "level", "entities", "internal", "boundary", "internal_share", "density", "conductance", "average_degree"],
+              ...rows.map((id) => { const c = partition.communities.get(id)!; const q = quality.get(id)!; return [c.id, c.title, c.level, q.size, q.internalEdges, q.boundaryEdges, q.internalRatio.toFixed(4), q.density.toFixed(4), q.conductance.toFixed(4), q.averageDegree.toFixed(3)]; }),
+            ]), "text/csv;charset=utf-8")}
+          >CSV</button>
+        </div>
         <table className="ctable">
           <thead>
             <tr>
