@@ -10,10 +10,10 @@ test("a record picked in the top bar centres the graph and abstracts the rest", 
   await expect(page.getByRole("tab", { name: "Network" })).toHaveAttribute("aria-selected", "true");
   await expect(page.locator(".chip.static")).toContainText("centred on", { timeout: 30_000 });
   await expect(page.locator(".graph-stats")).toContainText("neighbours over");
-  await expect(page.locator(".control", { hasText: "Arrange" }).locator("select")).toHaveValue("focus");
+  await expect(page.locator(".control", { hasText: new RegExp("^Arrange") }).locator("select")).toHaveValue("focus");
 
   // The same switch decides part or whole in every arrangement.
-  const show = page.locator(".control", { hasText: "Show" }).locator("select");
+  const show = page.locator(".control", { hasText: new RegExp("^Show") }).locator("select");
   await expect(show).toHaveValue("some");
   await expect(page.locator(".graph-stats")).toContainText("Part:");
   await show.selectOption("all");

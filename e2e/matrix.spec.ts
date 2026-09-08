@@ -13,7 +13,7 @@ test("a dense triple offers the grid, and the grid reads the pairs", async ({ pa
   await expect(page.locator(".graph-stats")).toContainText("cells are filled");
 
   // The cross selector lists every pair of types that has relationships.
-  await expect(page.locator(".control", { hasText: "Cross" }).locator("option").first()).toContainText("×");
+  await expect(page.locator(".control", { hasText: new RegExp("^Cross") }).locator("option").first()).toContainText("×");
 });
 
 test("a star-shaped triple is listed as counts per hub", async ({ page }) => {

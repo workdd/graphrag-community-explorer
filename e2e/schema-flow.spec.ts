@@ -16,7 +16,7 @@ test("a triple picked in the schema view carries through to the data and the Lei
   await expect(page.locator(".graph-stats")).toContainText("types drawn", { timeout: 30_000 });
 
   await page.getByRole("tab", { name: "Formation" }).click();
-  const scope = page.locator(".control", { hasText: "Run on" }).locator("select");
+  const scope = page.locator(".control", { hasText: new RegExp("^Run on") }).locator("select");
   await expect(scope).toHaveValue("spotlight");
   await page.getByRole("button", { name: "Play" }).click();
   await expect(page.locator(".formation-groups > li").first()).toBeVisible({ timeout: 30_000 });

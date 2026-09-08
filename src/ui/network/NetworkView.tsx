@@ -790,7 +790,7 @@ export function NetworkView({ dataset, partition, focus, onFocus, selectedCommun
                 const next = event.target.value as Overlay;
                 setOverlay(next);
                 // Asking for communities should show them, and the schema view has none to show.
-                if (next !== "off" && partition && (arrange === "schema" || arrange === "focus")) setArrange("communities");
+                if (next !== "off" && partition && (arrange === "schema" || arrange === "focus")) setArrange("force");
               }}
               disabled={!partition}
               title={partition ? undefined : t("Needs communities.parquet")}
@@ -804,8 +804,8 @@ export function NetworkView({ dataset, partition, focus, onFocus, selectedCommun
             <select value={arrange} onChange={(e) => setArrange(e.target.value as Arrange)}>
               <option value="schema">{t("schema, open a type to see its records")}</option>
               {seedId && <option value="focus">{t("one record at the centre")}</option>}
-              {partition && <option value="communities">{t("one blob per community")}</option>}
-              <option value="force">{t("free")}</option>
+              {partition && <option value="communities">{t("one blob per community, in rows")}</option>}
+              <option value="force">{t(partition ? "free, communities held together" : "free")}</option>
               <option value="layers">{t("layers by entity type")}</option>
             </select>
           </label>

@@ -238,6 +238,8 @@ const KO: Record<string, string> = {
   "Around {entity}": "{entity} 주변",
   "Fold leaves": "잎 묶기",
   "See on map": "지도에서 보기",
+  "free, communities held together": "자유, 커뮤니티는 뭉쳐서",
+  "one blob per community, in rows": "커뮤니티마다 한 덩어리, 줄지어",
   "one blob per community": "커뮤니티마다 한 덩어리",
   "{groups} communities, each packed into its own blob with a gap around it. {loose} records belong to none.": "커뮤니티 {groups}개를 각각 한 덩어리로 묶고 사이를 띄웠습니다. 어디에도 속하지 않은 레코드는 {loose}개입니다.",
   "Click a record to centre on it.": "레코드를 누르면 그 레코드가 가운데로 옵니다.",

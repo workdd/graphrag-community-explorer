@@ -7,13 +7,13 @@ test("network view opens by default and arranges entity types in columns", async
   await expect(page.locator(".rail")).toHaveCount(0);
   // The schema is the frame: each type is one node until it is opened.
   await expect(page.locator(".graph-stats")).toContainText("types drawn", { timeout: 30_000 });
-  const arrange = page.locator(".control", { hasText: "Arrange" }).locator("select");
+  const arrange = page.locator(".control", { hasText: new RegExp("^Arrange") }).locator("select");
   await expect(arrange).toHaveValue("schema");
   await arrange.selectOption("layers");
   await expect(page.locator(".graph-stats")).toContainText("point forward", { timeout: 30_000 });
 
   // Communities start off and are added as an overlay.
-  const communities = page.locator(".control", { hasText: "Communities" }).locator("select");
+  const communities = page.locator(".control", { hasText: new RegExp("^Communities") }).locator("select");
   await expect(communities).toHaveValue("off");
   await communities.selectOption("clouds");
   await expect(page.locator("canvas.cloud-layer")).toHaveCount(1);
@@ -24,7 +24,7 @@ test("network view opens by default and arranges entity types in columns", async
 
 test("hiding a relationship type redraws the graph without it", async ({ page }) => {
   await page.goto("/?data=./samples/demo#view=network");
-  await page.locator(".control", { hasText: "Arrange" }).locator("select").selectOption("layers");
+  await page.locator(".control", { hasText: new RegExp("^Arrange") }).locator("select").selectOption("layers");
   await expect(page.locator(".graph-stats")).toContainText("233 relationships", { timeout: 30_000 });
   await page.locator(".graph-legend button", { hasText: "related" }).first().click();
   await expect(page.locator(".graph-stats")).toContainText("0 relationships");
@@ -43,8 +43,8 @@ test("the schema strip walks the data outwards one relationship at a time", asyn
 
 test("part and whole are the same switch in every arrangement", async ({ page }) => {
   await page.goto("/?data=./samples/demo#view=network");
-  const show = page.locator(".control", { hasText: "Show" }).locator("select");
-  const arrange = page.locator(".control", { hasText: "Arrange" }).locator("select");
+  const show = page.locator(".control", { hasText: new RegExp("^Show") }).locator("select");
+  const arrange = page.locator(".control", { hasText: new RegExp("^Arrange") }).locator("select");
   await expect(show).toHaveValue("some");
   await expect(page.locator(".graph-stats")).toContainText("Part:", { timeout: 30_000 });
 
@@ -67,8 +67,8 @@ test("opening a type names two records and counts the rest", async ({ page }) =>
 
 test("communities are laid out together when the clouds are on", async ({ page }) => {
   await page.goto("/?data=./samples/demo#view=network");
-  await page.locator(".control", { hasText: "Arrange" }).locator("select").selectOption("force");
-  await page.locator(".control", { hasText: "Communities" }).locator("select").selectOption("clouds");
+  await page.locator(".control", { hasText: new RegExp("^Arrange") }).locator("select").selectOption("force");
+  await page.locator(".control", { hasText: new RegExp("^Communities") }).locator("select").selectOption("clouds");
   await expect(page.locator("canvas.cloud-layer")).toHaveCount(1);
   await expect(page.locator(".graph-stats")).toContainText("entities and", { timeout: 30_000 });
 });
@@ -77,8 +77,8 @@ test("turning communities on lays them out as separate blobs", async ({ page }) 
   await page.goto("/?data=./samples/demo#view=network");
   await expect(page.locator(".graph-stats")).toContainText("types drawn", { timeout: 30_000 });
   // Asking for communities from the schema view has to show them, not do nothing.
-  await page.locator(".control", { hasText: "Communities" }).locator("select").selectOption("clouds");
-  await expect(page.locator(".control", { hasText: "Arrange" }).locator("select")).toHaveValue("communities");
-  await expect(page.locator(".graph-stats")).toContainText("packed into its own blob", { timeout: 30_000 });
+  await page.locator(".control", { hasText: new RegExp("^Communities") }).locator("select").selectOption("clouds");
+  await expect(page.locator(".control", { hasText: new RegExp("^Arrange") }).locator("select")).toHaveValue("force");
+  await expect(page.locator(".graph-stats")).toContainText("entities and", { timeout: 30_000 });
   await expect(page.locator("canvas.cloud-layer")).toHaveCount(1);
 });
