@@ -93,7 +93,13 @@ Opening a type in the schema names its two busiest records and keeps the rest as
 count, which opens on click. Nothing anywhere asks you to choose a number of nodes: one switch says
 part of the data or all of it, and part always means a couple of representatives plus a count.
 
-Every node carries its entity type above its name.
+Names appear as there is room for them. On every pan and zoom the visible nodes are measured in
+screen pixels and the best are named first, so a crowded picture names its hubs and the members of a
+community, and zooming in reveals the rest instead of piling text on text. Zooming spreads the graph
+out rather than magnifying it: dots and names hold their size on screen.
+
+Every node carries its entity type under its name, and the community it belongs to once the
+community overlay is on.
 
 Three pictures answer three different questions, and they are wired to each other.
 

@@ -10,6 +10,7 @@ import type { Dataset, Entity, Partition, Relationship } from "../../core/model"
 import { exportCytoscapePng } from "../download";
 import { fmt } from "../format";
 import { attachClouds, cloudColors, type CloudGroup } from "../graph/clouds";
+import { attachLabeller } from "../graph/labeller";
 import type { GraphFocus } from "../graph/CommunityGraph";
 import { loadCachedLayout, requestLayout, saveCachedLayout } from "../graph/layoutClient";
 import { useT } from "../i18n";
@@ -39,7 +40,12 @@ type Arrange = "schema" | "focus" | "force" | "layers";
 const FOCUS_RADIUS = 250;
 
 /** The type belongs on every node: a name alone does not say what kind of thing it is. */
-const nodeLabel = (entity: Entity) => `${entity.type}\n${displayTitle(entity)}`;
+const nodeLabel = (entity: Entity) => `${displayTitle(entity)}\n${entity.type}`;
+/** A community name is long; the label only has room for the head of it. */
+const shortName = (text: string) => {
+  const head = text.split(" · ")[0];
+  return head.length > 18 ? `${head.slice(0, 17)}…` : head;
+};
 /** One line for the layer boxes, which have a fixed height and would clip a wrapped label. */
 const boxLabel = (entity: Entity) => {
   const text = `${entity.type} · ${displayTitle(entity)}`;
@@ -52,7 +58,6 @@ type Positions = Record<string, { x: number; y: number }>;
 const SAMPLE = 800;
 /** Records named when a type or a group is opened. Everything past this is one bubble with a count. */
 const REPRESENTATIVES = 2;
-const LABEL_LIMIT = 150;
 const FAINT_EDGES = 400;
 const BAND = { width: 240, boxWidth: 190, boxHeight: 22, gap: 8, top: 46 };
 const ROW_CHOICES = [12, 16, 20, 25, 30, 40, 50, 65, 80, 100, 130, 170, 220];
@@ -121,6 +126,7 @@ export function NetworkView({ dataset, partition, focus, onFocus, selectedCommun
 
   const colors = useMemo(() => typeColors([...dataset.entities.values()].map((e) => e.type)), [dataset]);
   const schema = useMemo(() => schemaGraph(dataset), [dataset]);
+  const primaryRef = useRef(new Map<string, string>());
   const primary = useMemo(() => {
     if (!partition) return new Map<string, string>();
     const index = membershipIndex(partition);
@@ -131,6 +137,8 @@ export function NetworkView({ dataset, partition, focus, onFocus, selectedCommun
     }
     return out;
   }, [partition]);
+
+  primaryRef.current = primary;
 
   const typeCounts = useMemo(() => {
     const counts = new Map<string, number>();
@@ -181,13 +189,13 @@ export function NetworkView({ dataset, partition, focus, onFocus, selectedCommun
       group: "nodes" as const,
       classes: "record",
       data: {
-        id: entity.id, type: entity.type, label: nodeLabel(entity), boxLabel: boxLabel(entity),
+        id: entity.id, type: entity.type, name: displayTitle(entity), label: nodeLabel(entity), boxLabel: boxLabel(entity), fontSize: 10,
         size: 12 + Math.min(22, Math.sqrt(entity.degree) * 4),
         color: colors.get(entity.type) ?? "#8c96a0", paint: colors.get(entity.type) ?? "#8c96a0",
         ...extra,
       },
     });
-    const nodes: cytoscape.ElementDefinition[] = [{ ...nodeFor(ego.seed), classes: "record seed", data: { ...nodeFor(ego.seed).data, size: 46 } }];
+    const nodes: cytoscape.ElementDefinition[] = [{ ...nodeFor(ego.seed), classes: "record seed", data: { ...nodeFor(ego.seed).data, size: 46, fontSize: 13 } }];
     const edges: cytoscape.ElementDefinition[] = [];
     const placed = new Set([ego.seed.id]);
     for (const group of ego.groups) {
@@ -205,7 +213,7 @@ export function NetworkView({ dataset, partition, focus, onFocus, selectedCommun
         nodes.push({
           group: "nodes" as const,
           classes: "summary",
-          data: { id, label: `+${fmt(group.hidden)}\n${group.neighbourType}`, size: 34 + Math.min(26, Math.log1p(group.hidden) * 7), color: colour, paint: colour, groupKey: group.key },
+          data: { id, label: `+${fmt(group.hidden)}\n${group.neighbourType}`, fontSize: 11, size: 34 + Math.min(26, Math.log1p(group.hidden) * 7), color: colour, paint: colour, groupKey: group.key },
         });
         const [source, target] = group.direction === "out" ? [ego.seed.id, id] : [id, ego.seed.id];
         edges.push({ group: "edges" as const, classes: "flow agg", data: { id: `edge:${id}`, source, target, label: `${group.relationship} ${fmt(group.total)}`, width: 2 } });
@@ -224,7 +232,7 @@ export function NetworkView({ dataset, partition, focus, onFocus, selectedCommun
         nodes.push({
           group: "nodes" as const,
           classes: "summary ring2",
-          data: { id, label: branch.hiddenType ? `+${fmt(branch.hidden)}\n${branch.hiddenType}` : `+${fmt(branch.hidden)}`, size: 26, color: colors.get(branch.hiddenType) ?? "#8c96a0", paint: colors.get(branch.hiddenType) ?? "#8c96a0" },
+          data: { id, label: branch.hiddenType ? `+${fmt(branch.hidden)}\n${branch.hiddenType}` : `+${fmt(branch.hidden)}`, fontSize: 11, size: 26, color: colors.get(branch.hiddenType) ?? "#8c96a0", paint: colors.get(branch.hiddenType) ?? "#8c96a0" },
         });
         edges.push({ group: "edges" as const, classes: "flow agg second", data: { id: `edge:${id}`, source: branch.entity.id, target: id, label: "", width: 1.2 } });
       }
@@ -293,6 +301,7 @@ export function NetworkView({ dataset, partition, focus, onFocus, selectedCommun
         kind: "community",
         type: node.type,
         label: open.has(node.type) ? `${node.type}  ${fmt(records.get(node.type)?.length ?? 0)}/${fmt(node.entities)}` : `${node.type}\n${fmt(node.entities)}`,
+        fontSize: 13,
         size: 40 + Math.sqrt(node.entities) * 4,
         color: colors.get(node.type) ?? "#8c96a0",
         paint: colors.get(node.type) ?? "#8c96a0",
@@ -305,7 +314,7 @@ export function NetworkView({ dataset, partition, focus, onFocus, selectedCommun
         nodes.push({
           group: "nodes" as const,
           classes: "summary",
-          data: { id: `sum:type:${type}`, parent: `type:${type}`, label: `+${fmt(hidden)}`, size: 30 + Math.min(24, Math.log1p(hidden) * 6), color: colour, paint: colour, fullType: type },
+          data: { id: `sum:type:${type}`, parent: `type:${type}`, label: `+${fmt(hidden)}`, fontSize: 11, size: 30 + Math.min(24, Math.log1p(hidden) * 6), color: colour, paint: colour, fullType: type },
         });
       }
       for (const entity of list) {
@@ -313,7 +322,7 @@ export function NetworkView({ dataset, partition, focus, onFocus, selectedCommun
           group: "nodes" as const,
           classes: "record",
           data: {
-            id: entity.id, parent: `type:${type}`, type, label: nodeLabel(entity), boxLabel: boxLabel(entity),
+            id: entity.id, parent: `type:${type}`, type, name: displayTitle(entity), label: nodeLabel(entity), boxLabel: boxLabel(entity), fontSize: 9,
             size: 10 + Math.min(20, Math.sqrt(entity.degree) * 4),
             color: colors.get(type) ?? "#8c96a0", paint: colors.get(type) ?? "#8c96a0",
           },
@@ -367,7 +376,9 @@ export function NetworkView({ dataset, partition, focus, onFocus, selectedCommun
         id: entity.id,
         label: nodeLabel(entity),
         boxLabel: boxLabel(entity),
+        name: displayTitle(entity),
         type: entity.type,
+        fontSize: 10,
         size: 10 + Math.min(26, Math.sqrt(view.degree.get(entity.id) ?? 0) * 5),
         color: colors.get(entity.type) ?? "#8c96a0",
         paint: colors.get(entity.type) ?? "#8c96a0",
@@ -545,8 +556,6 @@ export function NetworkView({ dataset, partition, focus, onFocus, selectedCommun
     } else {
       cy.fit(cy.elements(), 40);
     }
-    if (!layered && arrange !== "schema" && cy.nodes().length > LABEL_LIMIT) cy.nodes().addClass("nolabel");
-    if (arrange === "schema" && cy.nodes(".record").length > LABEL_LIMIT) cy.nodes(".record").addClass("nolabel");
     if (cy.edges().length > FAINT_EDGES) cy.edges().addClass("faint");
     cy.on("tap", "node.typenode, node.typebox", (event) => {
       const type = event.target.data("type") as string;
@@ -590,8 +599,19 @@ export function NetworkView({ dataset, partition, focus, onFocus, selectedCommun
     });
     cyRef.current = cy;
     const detach = attachClouds(cy, wrap.current, () => cloudsRef.current);
+    // Members of a community are named before loose records, and hubs before the rest, which is
+    // what makes a crowded picture still say what it is about.
+    const stopLabels = attachLabeller(cy, {
+      priority: (node) => {
+        if (node.hasClass("seed")) return 1e9;
+        if (node.hasClass("typenode") || node.hasClass("typebox") || node.hasClass("summary")) return 1e8;
+        const inCommunity = primaryRef.current.has(node.id()) ? 1e6 : 0;
+        return inCommunity + node.degree(false);
+      },
+    });
     if (import.meta.env.DEV) (window as unknown as { __cyNetwork?: cytoscape.Core }).__cyNetwork = cy;
     return () => {
+      stopLabels();
       detach();
       cy.destroy();
       cyRef.current = undefined;
@@ -618,6 +638,12 @@ export function NetworkView({ dataset, partition, focus, onFocus, selectedCommun
         const community = primary.get(node.id());
         const index = community === undefined ? -1 : groupOrder.indexOf(community);
         node.data("paint", overlay === "colour" && index >= 0 ? cloudColors(index).stroke : (node.data("color") as string));
+        const name = node.data("name") as string | undefined;
+        const type = node.data("type") as string | undefined;
+        if (name && type) {
+          const title = community && partition ? partition.communities.get(community)?.title : undefined;
+          node.data("label", overlay !== "off" && title ? `${name}\n${type} · ${shortName(title)}` : `${name}\n${type}`);
+        }
       });
     });
     cloudsRef.current = overlay === "clouds"
