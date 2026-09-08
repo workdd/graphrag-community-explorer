@@ -1,3 +1,4 @@
+import type { TableInfo } from "../schema";
 import type {
   Community,
   CommunityReport,
@@ -37,6 +38,8 @@ export interface LoaderNote {
 export interface LoadResult {
   dataset: Dataset;
   notes: LoaderNote[];
+  /** Raw tables as loaded: name, row count, column names. The schema view reads these. */
+  tables: TableInfo[];
 }
 
 export const str = (v: unknown): string | undefined => {
@@ -301,5 +304,16 @@ export function buildDataset(tables: Tables, files: string[]): LoadResult {
   });
 
   const kind: SourceKind = tables.entities.some((row) => "age_properties_json" in row) ? "age-export" : "graphrag";
-  return { dataset: { source: { kind, files }, entities, relationships, partitions, textUnits, documents, covariates }, notes: notes.toArray() };
+  const info = (name: string, rows: Row[] | undefined): TableInfo[] => (rows ? [{ name, rows: rows.length, columns: rows.length > 0 ? Object.keys(rows[0]) : [] }] : []);
+  const tableInfos: TableInfo[] = [
+    ...info("entities", tables.entities),
+    ...info("relationships", tables.relationships),
+    ...info("communities", tables.communities),
+    ...info("community_reports", tables.community_reports),
+    ...info("text_units", tables.text_units),
+    ...info("documents", tables.documents),
+    ...info("covariates", tables.covariates),
+    ...Object.entries(tables.extraPartitions ?? {}).flatMap(([label, rows]) => info(`${label}_communities`, rows)),
+  ];
+  return { dataset: { source: { kind, files }, entities, relationships, partitions, textUnits, documents, covariates }, notes: notes.toArray(), tables: tableInfos };
 }

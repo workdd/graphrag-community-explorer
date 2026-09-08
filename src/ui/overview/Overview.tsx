@@ -20,9 +20,10 @@ import { IntegrityPanel } from "./IntegrityPanel";
 const CommunityGraph = lazy(() => import("../graph/CommunityGraph").then((m) => ({ default: m.CommunityGraph })));
 const CommunityMap = lazy(() => import("../map/CommunityMap").then((m) => ({ default: m.CommunityMap })));
 const QualityView = lazy(() => import("../quality/QualityView").then((m) => ({ default: m.QualityView })));
+const SchemaView = lazy(() => import("../schema/SchemaView").then((m) => ({ default: m.SchemaView })));
 
-type View = "table" | "map" | "graph" | "quality";
-const VIEWS: View[] = ["table", "map", "graph", "quality"];
+type View = "table" | "map" | "graph" | "quality" | "schema";
+const VIEWS: View[] = ["table", "map", "graph", "quality", "schema"];
 type Backgrounds = "boxes" | "clouds";
 
 interface HashState {
@@ -223,6 +224,7 @@ export function Overview({ result, label, onReset }: Props) {
             <button role="tab" aria-selected={view === "table"} className={view === "table" ? "active" : ""} onClick={() => setView("table")}>{t("Overview")}</button>
             <button role="tab" aria-selected={view === "map"} className={view === "map" ? "active" : ""} disabled={!realPartition} title={realPartition ? undefined : t("Needs communities.parquet")} onClick={() => setView("map")}>{t("Map")}</button>
             <button role="tab" aria-selected={view === "quality"} className={view === "quality" ? "active" : ""} disabled={!realPartition} title={realPartition ? undefined : t("Needs communities.parquet")} onClick={() => setView("quality")}>{t("Quality")}</button>
+            <button role="tab" aria-selected={view === "schema"} className={view === "schema" ? "active" : ""} title={t("The tables behind the graph and the rows behind the selection")} onClick={() => setView("schema")}>{t("Schema")}</button>
             <button
               role="tab"
               aria-selected={view === "graph"}
@@ -237,7 +239,9 @@ export function Overview({ result, label, onReset }: Props) {
         </div>
 
         <Suspense fallback={<div className="view-loading">{t("Loading view…")}</div>}>
-        {view === "quality" && realPartition ? (
+        {view === "schema" ? (
+          <SchemaView dataset={dataset} partition={realPartition ?? null} tables={result.tables} selectedId={selectedId} focus={focus} onSelect={select} onFocus={setFocus} onOpenGraph={openGraph} />
+        ) : view === "quality" && realPartition ? (
           <QualityView dataset={dataset} partition={realPartition} selectedId={selectedId} onSelect={select} />
         ) : view === "map" && realPartition ? (
           <CommunityMap
