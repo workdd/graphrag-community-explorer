@@ -329,3 +329,23 @@
 .schema-strip .chip { display: inline-flex; align-items: center; gap: 5px; }
 .schema-strip .chip i { width: 8px; height: 8px; border-radius: 2px; }
 .schema-strip .chip.on { background: var(--accent-soft); border-color: var(--accent); color: var(--accent); }
+
+/* Matrix: a dense pair of types as a grid */
+.matrix-scroll { flex: 1; min-height: 0; overflow: auto; border: 1px solid var(--rule); border-radius: var(--radius-lg); background: var(--surface); }
+.matrix-canvas { display: block; cursor: crosshair; }
+/* One record is the way in, so the search sits in the top bar */
+.finder { position: relative; margin-left: auto; }
+.finder input { width: 200px; }
+.finder-hits { position: absolute; top: 30px; right: 0; width: 320px; z-index: 40; background: var(--surface); border: 1px solid var(--rule); border-radius: var(--radius); box-shadow: 0 8px 24px rgba(27, 36, 48, 0.14); max-height: 320px; overflow-y: auto; }
+.finder-hits li button { display: flex; align-items: baseline; gap: 6px; width: 100%; text-align: left; padding: 5px 9px; font-size: var(--fs-0); }
+.finder-hits li button:hover { background: var(--rule-2); }
+/* Density and grouping readouts in the schema panel */
+.density { display: flex; align-items: center; gap: 8px; margin: 6px 0; font-size: var(--fs-0); }
+.density-bar { flex: 1; height: 6px; border-radius: 3px; background: var(--rule-2); overflow: hidden; }
+.density-bar i { display: block; height: 100%; background: var(--accent); }
+.density.dense .density-bar i { background: var(--warn); }
+.groups { display: flex; flex-direction: column; gap: 3px; }
+.groups li button { display: grid; grid-template-columns: minmax(0, 1fr) 44px; gap: 6px; align-items: center; width: 100%; font-size: var(--fs-0); padding: 2px 4px; border-radius: var(--radius); }
+.groups li button:hover { background: var(--rule-2); }
+.groups .bar { grid-column: 1 / -1; height: 4px; border-radius: 2px; background: var(--depth-2); }
+.groups .bar i { display: block; height: 100%; border-radius: 2px; background: var(--depth-4); }

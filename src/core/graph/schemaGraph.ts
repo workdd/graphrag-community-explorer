@@ -18,7 +18,19 @@ export interface SchemaTripleEdge {
   count: number;
   /** Both ends are the same type, which the layered arrangement cannot show as a step forward. */
   loop: boolean;
+  /** Pairs of entities this triple could possibly connect. */
+  possible: number;
+  /** count / possible. Near one means every pair is joined, and no shape is left to draw. */
+  density: number;
 }
+
+/**
+ * Above this share of its possible pairs a triple is a block, not a shape: arrows give a hairball
+ * whatever the layout, and a matrix is the only readable form.
+ */
+export const DENSE = 0.2;
+
+export const isDense = (edge: SchemaTripleEdge): boolean => edge.density >= DENSE && edge.count >= 50;
 
 export interface SchemaGraph {
   nodes: SchemaTypeNode[];
@@ -46,9 +58,16 @@ export function schemaGraph(dataset: Dataset): SchemaGraph {
     const id = tripleId(from, relationship.type, to);
     const edge = triples.get(id);
     if (edge) edge.count += 1;
-    else triples.set(id, { id, from, to, relationship: relationship.type, count: 1, loop: from === to });
+    else triples.set(id, { id, from, to, relationship: relationship.type, count: 1, loop: from === to, possible: 0, density: 0 });
     touching.set(from, (touching.get(from) ?? 0) + 1);
     if (to !== from) touching.set(to, (touching.get(to) ?? 0) + 1);
+  }
+  // Density needs the type sizes, so it is filled in once every triple has been counted.
+  for (const edge of triples.values()) {
+    const a = entities.get(edge.from) ?? 0;
+    const b = entities.get(edge.to) ?? 0;
+    edge.possible = edge.loop ? (a * (a - 1)) / 2 : a * b;
+    edge.density = edge.possible > 0 ? edge.count / edge.possible : 0;
   }
   return {
     nodes: [...entities.entries()]

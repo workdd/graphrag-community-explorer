@@ -3,7 +3,8 @@ import cytoscape from "cytoscape";
 import fcose from "cytoscape-fcose";
 import { displayTitle, typeColors } from "../../core/graph/palette";
 import { withSeed } from "../../core/graph/seed";
-import { samplesForTriple, samplesForType, schemaGraph, type SchemaTripleEdge } from "../../core/graph/schemaGraph";
+import { isDense, samplesForTriple, samplesForType, schemaGraph, type SchemaTripleEdge } from "../../core/graph/schemaGraph";
+import { groupsForTriple } from "../../core/graph/matrix";
 import type { Dataset } from "../../core/model";
 import { fmt } from "../format";
 import { useT } from "../i18n";
@@ -16,12 +17,14 @@ interface Props {
   onOpenTriple: (edge: SchemaTripleEdge) => void;
   onFocusEntity: (entityId: string) => void;
   onFocusRelationship: (relationshipId: string) => void;
+  onOpenMatrix: (from: string, to: string) => void;
+  onExplore: (entityId: string) => void;
 }
 
 type Picked = { kind: "type"; type: string } | { kind: "triple"; edge: SchemaTripleEdge } | null;
 
 /** The shape of the index: entity types and the relationship triples that actually occur between them. */
-export function SchemaGraphView({ dataset, onOpenType, onOpenTriple, onFocusEntity, onFocusRelationship }: Props) {
+export function SchemaGraphView({ dataset, onOpenType, onOpenTriple, onFocusEntity, onFocusRelationship, onOpenMatrix, onExplore }: Props) {
   const { t } = useT();
   const graph = useMemo(() => schemaGraph(dataset), [dataset]);
   const colors = useMemo(() => typeColors([...dataset.entities.values()].map((e) => e.type)), [dataset]);
@@ -120,6 +123,8 @@ export function SchemaGraphView({ dataset, onOpenType, onOpenTriple, onFocusEnti
 
   const typeSamples = useMemo(() => (picked?.kind === "type" ? samplesForType(dataset, picked.type) : []), [picked, dataset]);
   const tripleSamples = useMemo(() => (picked?.kind === "triple" ? samplesForTriple(dataset, picked.edge) : []), [picked, dataset]);
+  // A star-shaped triple reads as counts per hub, not as arrows.
+  const grouping = useMemo(() => (picked?.kind === "triple" ? groupsForTriple(dataset, picked.edge) : null), [picked, dataset]);
   const node = picked?.kind === "type" ? graph.nodes.find((n) => n.type === picked.type) : undefined;
 
   return (
@@ -166,7 +171,39 @@ export function SchemaGraphView({ dataset, onOpenType, onOpenTriple, onFocusEnti
           <>
             <h4>{picked.edge.from} <span className="muted">{picked.edge.relationship}</span> {picked.edge.to}</h4>
             <p className="muted">{t("{n} relationships of this shape.", { n: fmt(picked.edge.count) })}</p>
-            <button className="btn primary" onClick={() => onOpenTriple(picked.edge)}>{t("Show these records in the graph")}</button>
+            <div className={`density${isDense(picked.edge) ? " dense" : ""}`}>
+              <span className="density-bar"><i style={{ width: `${Math.min(100, Math.round(picked.edge.density * 100))}%` }} /></span>
+              <span className="num">{t("{percent} of the possible pairs are connected", { percent: `${(picked.edge.density * 100).toFixed(1)}%` })}</span>
+            </div>
+            {isDense(picked.edge) ? (
+              <>
+                <p className="muted">{t("Too dense to draw as arrows. See it as a grid.")}</p>
+                <button className="btn primary" onClick={() => onOpenMatrix(picked.edge.from, picked.edge.to)}>{t("See as a grid")}</button>
+                <button className="btn" onClick={() => onOpenTriple(picked.edge)}>{t("Show these records in the graph")}</button>
+              </>
+            ) : (
+              <>
+                <button className="btn primary" onClick={() => onOpenTriple(picked.edge)}>{t("Show these records in the graph")}</button>
+                <button className="btn" onClick={() => onOpenMatrix(picked.edge.from, picked.edge.to)}>{t("See as a grid")}</button>
+              </>
+            )}
+            {grouping && grouping.groups.length > 0 && (
+              <>
+                <h5>{t("Where they hang")}</h5>
+                <p className="muted">{t("{n} distinct {side}, {fan} each on average", { n: fmt(grouping.distinct), side: grouping.by === "target" ? t("targets") : t("sources"), fan: grouping.fanOut.toFixed(1) })}</p>
+                <ul className="groups">
+                  {grouping.groups.map((group) => (
+                    <li key={group.entity.id}>
+                      <button onClick={() => onExplore(group.entity.id)} title={t("Open the neighbourhood")}>
+                        <span className="value-title">{displayTitle(group.entity)}</span>
+                        <span className="num">{fmt(group.count)}</span>
+                        <span className="bar"><i style={{ width: `${Math.round((group.count / grouping.groups[0].count) * 100)}%` }} /></span>
+                      </button>
+                    </li>
+                  ))}
+                </ul>
+              </>
+            )}
             <h5>{t("Records")}</h5>
             <ul className="schema-values">
               {tripleSamples.map((sample) => (

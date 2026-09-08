@@ -21,6 +21,8 @@ interface Props {
   onOpenGraph: () => void;
   onOpenType: (type: string) => void;
   onOpenTriple: (edge: SchemaTripleEdge) => void;
+  onOpenMatrix: (from: string, to: string) => void;
+  onExplore: (entityId: string) => void;
 }
 
 /** The colours of the GraphRAG local-search figure: communities dark, entities blue, relationships green, text units red. */
@@ -44,7 +46,7 @@ const FILE_HINT: Record<TableKey, string> = {
   covariates: "covariates.parquet",
 };
 
-export function SchemaView({ dataset, partition, tables, selectedId, focus, onSelect, onFocus, onOpenGraph, onOpenType, onOpenTriple }: Props) {
+export function SchemaView({ dataset, partition, tables, selectedId, focus, onSelect, onFocus, onOpenGraph, onOpenType, onOpenTriple, onOpenMatrix, onExplore }: Props) {
   const { t } = useT();
   const schema = useMemo(() => describeTables(tables), [tables]);
   const scope: ContextScope = useMemo(() => {
@@ -77,6 +79,8 @@ export function SchemaView({ dataset, partition, tables, selectedId, focus, onSe
           onOpenTriple={onOpenTriple}
           onFocusEntity={(id) => onFocus({ kind: "entity", id })}
           onFocusRelationship={(id) => onFocus({ kind: "relationship", id })}
+          onOpenMatrix={onOpenMatrix}
+          onExplore={onExplore}
         />
       </section>
 

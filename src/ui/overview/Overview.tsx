@@ -14,6 +14,7 @@ import { LangToggle, Rich, useT } from "../i18n";
 import { fmt, pct } from "../format";
 import { CommunityTable } from "./CommunityTable";
 import { version as APP_VERSION } from "../../../package.json";
+import { EntityFinder } from "./EntityFinder";
 import { Inspector } from "./Inspector";
 import { IntegrityPanel } from "./IntegrityPanel";
 
@@ -25,9 +26,10 @@ const SchemaView = lazy(() => import("../schema/SchemaView").then((m) => ({ defa
 const SearchView = lazy(() => import("../search/SearchView").then((m) => ({ default: m.SearchView })));
 const FormationView = lazy(() => import("../formation/FormationView").then((m) => ({ default: m.FormationView })));
 const NetworkView = lazy(() => import("../network/NetworkView").then((m) => ({ default: m.NetworkView })));
+const MatrixView = lazy(() => import("../matrix/MatrixView").then((m) => ({ default: m.MatrixView })));
 
-type View = "network" | "table" | "map" | "graph" | "quality" | "schema" | "formation" | "ask";
-const VIEWS: View[] = ["network", "table", "map", "graph", "quality", "schema", "formation", "ask"];
+type View = "network" | "table" | "map" | "graph" | "quality" | "schema" | "formation" | "ask" | "matrix";
+const VIEWS: View[] = ["network", "table", "map", "graph", "quality", "schema", "formation", "ask", "matrix"];
 /** The shape of the index comes first; every other view is reached by picking something in it. */
 const DEFAULT_VIEW: View = "schema";
 type Backgrounds = "boxes" | "clouds";
@@ -97,6 +99,12 @@ export function Overview({ result, label, onReset, datasets, activeData, onOpenD
   const schema = useMemo(() => schemaGraph(dataset), [dataset]);
   // A slice of the schema carried into the data views, so a type or a triple can be followed through.
   const [spotlight, setSpotlight] = useState<Spotlight>(null);
+  const [pair, setPair] = useState<{ from: string; to: string } | null>(null);
+  // A dense triple is unreadable as arrows, so picking one opens the grid instead of the graph.
+  const openMatrix = (from: string, to: string) => {
+    setPair({ from, to });
+    setView("matrix");
+  };
   const openType = (type: string) => {
     setSpotlight(selectType(schema, type));
     setFocus(null);
@@ -227,12 +235,13 @@ export function Overview({ result, label, onReset, datasets, activeData, onOpenD
             ))}
           </select>
         )}
+        <EntityFinder dataset={dataset} onExplore={explore} />
         <LangToggle />
         <button className="btn" onClick={onReset}>{t("Open another dataset")}</button>
       </header>
 
 
-      <main className={`main${view === "map" || view === "graph" || view === "network" || view === "formation" ? " graph-mode" : ""}`}>
+      <main className={`main${view === "map" || view === "graph" || view === "network" || view === "formation" || view === "matrix" ? " graph-mode" : ""}`}>
         <div className="main-head">
           <div className="segmented" role="tablist">
             <button role="tab" aria-selected={view === "network"} className={view === "network" ? "active" : ""} title={t("Every entity and relationship; communities are an overlay you turn on")} onClick={() => setView("network")}>{t("Network")}</button>
@@ -240,6 +249,7 @@ export function Overview({ result, label, onReset, datasets, activeData, onOpenD
             <button role="tab" aria-selected={view === "map"} className={view === "map" ? "active" : ""} disabled={!realPartition} title={realPartition ? undefined : t("Needs communities.parquet")} onClick={() => setView("map")}>{t("Map")}</button>
             <button role="tab" aria-selected={view === "quality"} className={view === "quality" ? "active" : ""} disabled={!realPartition} title={realPartition ? undefined : t("Needs communities.parquet")} onClick={() => setView("quality")}>{t("Quality")}</button>
             <button role="tab" aria-selected={view === "schema"} className={view === "schema" ? "active" : ""} title={t("The tables behind the graph and the rows behind the selection")} onClick={() => setView("schema")}>{t("Schema")}</button>
+            <button role="tab" aria-selected={view === "matrix"} className={view === "matrix" ? "active" : ""} disabled={schema.edges.length === 0} title={t("Two entity types as a grid, which is the readable form of a dense block")} onClick={() => openMatrix(pair?.from ?? schema.edges[0].from, pair?.to ?? schema.edges[0].to)}>{t("Matrix")}</button>
             <button role="tab" aria-selected={view === "formation"} className={view === "formation" ? "active" : ""} title={t("Run Leiden here and watch the communities form")} onClick={() => setView("formation")}>{t("Formation")}</button>
             <button role="tab" aria-selected={view === "ask"} className={view === "ask" ? "active" : ""} title={t("Ask a question and follow the answer back to the records it cites")} onClick={() => setView("ask")}>{t("Ask")}</button>
             <button
@@ -268,6 +278,14 @@ export function Overview({ result, label, onReset, datasets, activeData, onOpenD
             onOpenCommunity={(id) => { select(id); setView("table"); }}
             onOpenEntity={explore}
           />
+        ) : view === "matrix" && pair ? (
+          <MatrixView
+            dataset={dataset}
+            pair={pair}
+            onPair={setPair}
+            onFocusEntity={(id) => setFocus({ kind: "entity", id })}
+            onExplore={explore}
+          />
         ) : view === "network" ? (
           <NetworkView
             dataset={dataset}
@@ -284,7 +302,7 @@ export function Overview({ result, label, onReset, datasets, activeData, onOpenD
         ) : view === "formation" ? (
           <FormationView dataset={dataset} partition={realPartition ?? null} selected={selected} spotlight={spotlight} onFocus={setFocus} />
         ) : view === "schema" ? (
-          <SchemaView dataset={dataset} partition={realPartition ?? null} tables={result.tables} selectedId={selectedId} focus={focus} onSelect={select} onFocus={setFocus} onOpenGraph={openGraph} onOpenType={openType} onOpenTriple={openTriple} />
+          <SchemaView dataset={dataset} partition={realPartition ?? null} tables={result.tables} selectedId={selectedId} focus={focus} onSelect={select} onFocus={setFocus} onOpenGraph={openGraph} onOpenType={openType} onOpenTriple={openTriple} onOpenMatrix={openMatrix} onExplore={explore} />
         ) : view === "quality" && realPartition ? (
           <QualityView dataset={dataset} partition={realPartition} selectedId={selectedId} onSelect={select} />
         ) : view === "map" && realPartition ? (

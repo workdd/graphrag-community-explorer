@@ -79,6 +79,11 @@ each take about half a second (`samples/generate_sample.py --scale 53 --edge-fac
 
 ## What you see
 
+Not every relationship is worth drawing as arrows. A triple that joins most of its possible pairs,
+such as a permission block, is a hairball under any layout, and one that hangs everything off a few
+hubs is really a list of counts. The schema view measures both and sends you to the form that reads:
+a grid for a dense pair, counts per hub for a star, arrows for the rest.
+
 Three pictures answer three different questions, and they are wired to each other.
 
 1. **Schema** draws the shape of the index: one node per entity type, one arrow per relationship
