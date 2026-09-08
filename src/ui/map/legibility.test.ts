@@ -1,10 +1,24 @@
 import { describe, expect, it } from "vitest";
-import { HIDE_LABEL_BELOW_PX, labelVisible, LABEL_FONT_PX, LEGIBLE_ZOOM, MIN_LABEL_PX, zoomAfterFit } from "./legibility";
+import { HIDE_LABEL_BELOW_PX, labelVisible, LABEL_FONT_PX, LEGIBLE_ZOOM, legibleZoomFor, MIN_LABEL_PX, zoomAfterFit } from "./legibility";
 
 describe("legibility thresholds", () => {
   it("keeps the first view above the hide threshold", () => {
     expect(LEGIBLE_ZOOM * LABEL_FONT_PX).toBeGreaterThan(HIDE_LABEL_BELOW_PX);
     expect(LEGIBLE_ZOOM * LABEL_FONT_PX).toBe(MIN_LABEL_PX);
+  });
+});
+
+describe("legibleZoomFor", () => {
+  it("needs more zoom for a smaller font", () => {
+    expect(legibleZoomFor(10)).toBeGreaterThan(legibleZoomFor(LABEL_FONT_PX));
+  });
+
+  it("puts any font at the minimum readable size", () => {
+    for (const font of [8, 10, 12, 16]) expect(legibleZoomFor(font) * font).toBeCloseTo(MIN_LABEL_PX);
+  });
+
+  it("does not divide by zero", () => {
+    expect(Number.isFinite(legibleZoomFor(0))).toBe(true);
   });
 });
 

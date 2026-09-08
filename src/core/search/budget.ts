@@ -2,15 +2,34 @@
 // estimate; the views label it as one and the provider's own error is what stops a run that is
 // still too large.
 
-/** Hangul, CJK ideographs and kana cost about one token each; Latin text about four characters. */
-const WIDE = /[ᄀ-ᇿ぀-ヿ㄰-㆏㐀-䶿一-鿿가-힯豈-﫿]/u;
+const WORD = /[A-Za-z0-9]/;
+const SPACE = /\s/;
 
+/** A run of letters and digits costs about one token per four characters, and never less than one. */
+const runCost = (run: number): number => (run === 0 ? 0 : Math.ceil(run / 4));
+
+/**
+ * Tokenizers split on punctuation, so braces, quotes and colons each cost roughly a token of their
+ * own, and Hangul or CJK costs about one token a character. Pricing symbols at four characters a
+ * token undercounts JSON by about half, and an index that stores raw property JSON as its entity
+ * descriptions is a quarter punctuation: measured on this data, an 8,000 token budget produced a
+ * 14,765 token prompt.
+ */
 export function estimateTokens(text: string): number {
   if (text === "") return 0;
-  let wide = 0;
-  for (const ch of text) if (WIDE.test(ch)) wide += 1;
-  const rest = [...text].length - wide;
-  return Math.ceil(wide + rest / 4);
+  let tokens = 0;
+  let run = 0;
+  for (const ch of text) {
+    if (WORD.test(ch)) {
+      run += 1;
+      continue;
+    }
+    tokens += runCost(run);
+    run = 0;
+    if (SPACE.test(ch)) continue;
+    tokens += 1; // a wide character or a symbol, both about one token
+  }
+  return tokens + runCost(run);
 }
 
 export interface Group<T> {

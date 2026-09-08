@@ -40,3 +40,10 @@
   align-self: flex-start; margin: -2px 0 1px; padding: 0 5px; border: 1px solid var(--rule); border-radius: 8px;
   background: var(--depth-1); color: var(--ink-2); font-size: 10px; font-weight: 600;
 }
+.search .examples { display: flex; flex-wrap: wrap; gap: 6px; align-items: center; }
+.search .examples .chip { max-width: 46ch; text-align: left; display: inline-flex; gap: 6px; align-items: baseline; }
+.search .examples .chip b { color: var(--ink-2); font-size: 10px; font-weight: 700; letter-spacing: .02em; }
+.search .evidence-graph { border: 1px solid var(--rule); border-radius: 6px; background: var(--surface); padding: 6px; }
+.search .evidence-graph .canvas { height: 320px; width: 100%; }
+.search .evidence-graph .muted { margin: 4px 2px 0; font-size: 12px; }
+.search .evidence-graph .row { margin: 0 0 6px; }

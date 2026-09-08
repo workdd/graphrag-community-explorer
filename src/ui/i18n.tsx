@@ -38,6 +38,23 @@ const KO: Record<string, string> = {
     "선택한 레벨의 커뮤니티 요약만 읽습니다. 그 밖의 것은 모델에 가지 않습니다.",
   "Names two summaries, so a wrong answer points at the summary rather than the retrieval.":
     "요약 두 개를 지목합니다. 답이 틀리면 검색이 아니라 요약을 짚을 수 있습니다.",
+  "If {entity} were removed or scaled down, what else would be affected?":
+    "{entity} 을(를) 삭제하거나 축소하면 무엇이 영향을 받습니까?",
+  "Impact question: the answer is only as good as the relationships the context carried.":
+    "영향도 질문입니다. 컨텍스트가 담은 관계만큼만 답이 정확합니다.",
+  "What depends on {entity}, and what does {entity} depend on?":
+    "무엇이 {entity} 에 의존하고, {entity} 은(는) 무엇에 의존합니까?",
+  "Asks for both directions of a link, which a one-sided context answers wrongly.":
+    "관계의 양방향을 묻습니다. 한쪽만 담긴 컨텍스트는 틀리게 답합니다.",
+  "Drawing the evidence…":
+    "근거 그리는 중…",
+  "This answer came from community summaries only, so there is no record graph to draw.":
+    "이 답변은 커뮤니티 요약만으로 만들어져 그릴 레코드 그래프가 없습니다.",
+  "The run carried no relationship between these records.":
+    "이 실행은 레코드 사이의 관계를 담지 않았습니다.",
+  "{nodes} records and {edges} relationships went into the prompt. Dashed nodes were not ranked; they are the far end of a link. {hover}":
+    "레코드 {nodes}개와 관계 {edges}개가 프롬프트에 들어갔습니다. 점선 노드는 순위에 들지 않았고 관계의 반대편일 뿐입니다. {hover}",
+  "Zoom in for names": "확대해서 이름 보기",
   // search
   "Reports": "보고서",
   "Ask": "질문",
@@ -213,6 +230,15 @@ const KO: Record<string, string> = {
   "Around {entity}": "{entity} 주변",
   "Fold leaves": "잎 묶기",
   "See on map": "지도에서 보기",
+  "part of the data": "데이터 일부",
+  "all of the data ({n} entities)": "전체 데이터 (엔티티 {n}개)",
+  "At most": "최대",
+  "{n} entities": "엔티티 {n}개",
+  "Whole:": "전체:",
+  "Part:": "일부:",
+  "Opening a type draws every record it has.": "유형을 열면 가진 레코드를 모두 그립니다.",
+  "Opening a type draws its busiest {n} records.": "유형을 열면 연결이 많은 레코드 {n}개를 그립니다.",
+  "The busiest are kept; switch to all of the data or raise the limit to see more.": "연결이 많은 쪽을 남깁니다. 전체 데이터로 바꾸거나 상한을 올리면 더 보입니다.",
   "one record at the centre": "레코드 하나를 가운데로",
   "centred on {title}": "중심: {title}",
   "Back to the schema": "스키마로 돌아가기",

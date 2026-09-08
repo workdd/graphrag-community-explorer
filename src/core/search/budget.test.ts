@@ -17,6 +17,24 @@ describe("estimateTokens", () => {
   it("adds the two kinds together", () => {
     expect(estimateTokens("커뮤니티abcd")).toBe(5);
   });
+
+  it("charges a token for each symbol, the way a tokenizer splits them", () => {
+    expect(estimateTokens("{}")).toBe(2);
+    expect(estimateTokens('{"a": 1}')).toBe(7); // { " a " : 1 }
+  });
+
+  it("does not charge for the spaces between words", () => {
+    expect(estimateTokens("abcd abcd")).toBe(2);
+  });
+
+  it("counts a short run as a whole token", () => {
+    expect(estimateTokens("a")).toBe(1);
+  });
+
+  it("prices property JSON well above four characters a token", () => {
+    const json = '{"id": "d980bc1e-7f3f-472c-880a-4f4a714448ee", "kind": "Cluster"}';
+    expect(estimateTokens(json)).toBeGreaterThan(json.length / 4);
+  });
 });
 
 describe("fill", () => {

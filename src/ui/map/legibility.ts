@@ -12,8 +12,11 @@ export const MIN_LABEL_PX = 9;
 /** Below this the label is hidden rather than drawn. Kept under MIN_LABEL_PX so the first view keeps its labels. */
 export const HIDE_LABEL_BELOW_PX = 8;
 
+/** Zoom at which a label of this size reaches MIN_LABEL_PX. */
+export const legibleZoomFor = (fontPx: number): number => MIN_LABEL_PX / Math.max(1, fontPx);
+
 /** Zoom at which a label reaches MIN_LABEL_PX. */
-export const LEGIBLE_ZOOM = MIN_LABEL_PX / LABEL_FONT_PX;
+export const LEGIBLE_ZOOM = legibleZoomFor(LABEL_FONT_PX);
 
 /**
  * Zoom to use after fitting. Fitting wins when it is already legible, so small maps still show

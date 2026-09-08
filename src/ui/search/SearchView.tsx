@@ -1,15 +1,19 @@
-import { useMemo, useRef, useState } from "react";
+import { lazy, Suspense, useMemo, useRef, useState } from "react";
 import type { EmbeddingIndex } from "../../core/loaders/embeddings";
 import type { Dataset, Partition } from "../../core/model";
 import { mismatches } from "../../core/search/fingerprint";
 import { DEFAULT_GLOBAL } from "../../core/search/global";
 import { DEFAULT_LOCAL } from "../../core/search/local";
 import { newTrace, plannedCalls, runGlobal, runLocal } from "../../core/search/run";
+import { suggestQuestions } from "../../core/search/suggestions";
 import { parseTraceJson, traceJson, TraceError } from "../../core/search/trace";
 import type { SearchContext, SearchMethod, SearchRun, SearchTrace } from "../../core/search/types";
 import { downloadText } from "../download";
-import { Rich, useT } from "../i18n";
+import { fill, Rich, useT } from "../i18n";
 import { Answer } from "./Answer";
+
+// Cytoscape is heavy and only the evidence graph needs it, so it loads with the first answer.
+const EvidenceGraph = lazy(() => import("./EvidenceGraph").then((m) => ({ default: m.EvidenceGraph })));
 import { fromEnvironment, isConfigured, maskKey, PRESETS, readProvider, writeProvider, clearProvider } from "./provider";
 import "./search.css";
 
@@ -67,6 +71,10 @@ export function SearchView(props: Props) {
     [props.embeddings, props.fingerprints],
   );
   const globalPlan = useMemo(() => plannedCalls(props.partition, DEFAULT_GLOBAL), [props.partition]);
+  const examples = useMemo(
+    () => suggestQuestions({ dataset: props.dataset, partition: props.partition, hasEmbeddings: props.embeddings !== undefined }),
+    [props.dataset, props.partition, props.embeddings],
+  );
   const localReady = props.embeddings !== undefined && stale.length === 0;
 
   const save = (next: typeof provider) => {
@@ -269,6 +277,26 @@ export function SearchView(props: Props) {
         </p>
       ) : null}
 
+      {examples.length > 0 && !busy ? (
+        <div className="examples">
+          <span className="muted">{t("Try one:")}</span>
+          {examples.map((example, i) => (
+            <button
+              key={i}
+              className="chip"
+              title={t(example.why)}
+              onClick={() => {
+                setQuestion(fill(t(example.template), example.vars));
+                setMethod(example.method);
+              }}
+            >
+              <b>{example.method === "local" ? t("Local") : t("Global")}</b>
+              {fill(t(example.template), example.vars)}
+            </button>
+          ))}
+        </div>
+      ) : null}
+
       <div className="ask">
         <textarea
           value={question}
@@ -328,6 +356,13 @@ export function SearchView(props: Props) {
               <span key={stage.name}>{stage.name}: <b>{stage.ms}ms</b></span>
             ))}
           </div>
+
+          <Suspense fallback={<p className="muted">{t("Drawing the evidence…")}</p>}>
+            <EvidenceGraph
+              context={run.context}
+              onOpenEntity={linked ? props.onOpenEntity : null}
+            />
+          </Suspense>
 
           <div className="used">
             {(Object.keys(KIND_LABEL) as (keyof SearchContext)[])
