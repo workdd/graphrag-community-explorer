@@ -18,7 +18,12 @@ export const CANONICAL_FILES: Record<TableName, string[]> = {
 
 export const EMBEDDINGS_FILE = "embeddings.parquet";
 
-export type FileRole = { table: TableName } | { partition: string } | { embeddings: true } | null;
+export type FileRole =
+  | { table: TableName }
+  | { partition: string }
+  | { reports: string }
+  | { embeddings: true }
+  | null;
 
 export function classifyFile(name: string): FileRole {
   const base = name.split("/").pop()!.toLowerCase();
@@ -26,6 +31,10 @@ export function classifyFile(name: string): FileRole {
   for (const [table, names] of Object.entries(CANONICAL_FILES)) {
     if (names.includes(base)) return { table: table as TableName };
   }
+  // A community set brought alongside the index, and the summaries that belong to that set.
+  // The reports pattern is tried first: "x_community_reports.parquet" also ends in "_reports".
+  const extraReports = /^(.+)_community_reports\.parquet$/.exec(base);
+  if (extraReports && extraReports[1] !== "create_final") return { reports: extraReports[1] };
   const extra = /^(.+)_communities\.parquet$/.exec(base);
   if (extra && extra[1] !== "create_final") return { partition: extra[1] };
   return null;
@@ -40,6 +49,7 @@ interface Loaded {
 async function assemble(files: Loaded[]): Promise<LoadResult> {
   const tables: Partial<Record<TableName, Row[]>> = {};
   const extraPartitions: Record<string, Row[]> = {};
+  const extraReports: Record<string, Row[]> = {};
   const used: string[] = [];
   const fingerprints: Record<string, string> = {};
   let embeddings: LoadResult["embeddings"];
@@ -64,6 +74,8 @@ async function assemble(files: Loaded[]): Promise<LoadResult> {
     if ("table" in file.role) {
       if (tables[file.role.table]) continue; // first match wins (new name before create_final_*)
       tables[file.role.table] = rows;
+    } else if ("reports" in file.role) {
+      extraReports[file.role.reports] = rows;
     } else {
       extraPartitions[file.role.partition] = rows;
     }
@@ -82,6 +94,7 @@ async function assemble(files: Loaded[]): Promise<LoadResult> {
     documents: tables.documents,
     covariates: tables.covariates,
     extraPartitions,
+    extraReports,
   };
   return { ...buildDataset(input, used), fingerprints, embeddings, embeddingsNote };
 }

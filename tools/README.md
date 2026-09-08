@@ -9,6 +9,7 @@ dependencies declared at the top of each file are installed on the fly.
 | `export_age_parquet.py` | Reads an Apache AGE graph (Resource / Community / inCommunity labels) and writes `entities`, `relationships`, `communities`, `community_reports` Parquet plus a raw snapshot of every label. |
 | `recluster_communities.py` | Runs Leiden over every connected component of an exported index at a ladder of resolutions and writes `<label>_communities.parquet` plus `entity_membership.parquet`. Clustering only the largest component leaves the rest unassigned: on the resource graph that is the difference between 64 % and 78 % coverage. |
 | `compare_community_partitions.py` | NMI / ARI between the stored communities and a Leiden run, with an overlap table. Reads the `entity_membership.parquet` the reclustering wrote. The app's Quality tab does the same on loaded files. |
+| `summarize_communities.py` | Writes `<label>_community_reports.parquet` for a community set that has none. Global search reads summaries and nothing else, so a set without them is invisible to it. |
 | `embed_index/` | Writes the entity-embedding sidecar the Ask tab needs for local search. |
 | `test_export_age_parquet.py` | Unit tests for the AGE converter (synthetic snapshot, no database). |
 
@@ -64,3 +65,29 @@ Measured on the resource graph (2,674 entities, 4,580 relationships):
 78 % is the ceiling: 585 entities (22 %) have no relationship at all and no topological method can
 place them. Raising the resolution changes granularity, not coverage: modularity peaks near 1.0 and
 falls to 0.49 by the time the count reaches 191.
+
+## Summaries for a recomputed set
+
+A community set produced by `recluster_communities.py` carries members but no summaries, and global
+search reads summaries and nothing else. Without this step the set shows in the viewer and stays
+invisible to the Ask tab.
+
+```sh
+export LLM_API_KEY=...
+uv run tools/summarize_communities.py --index local-data/age --set recluster --check
+uv run tools/summarize_communities.py --index local-data/age --set recluster
+```
+
+It writes after every community, so an interrupted run resumes where it stopped. The summary
+language follows the index's own reports unless `--language` says otherwise, and each prompt carries
+only the relationships whose two ends are both inside that community: passing the index's whole list
+made the model describe links the community does not have.
+
+Measured on the resource graph, asking the same question of each set:
+
+| Set | Reports | Batches | Calls | Tokens | Elapsed |
+| --- | --- | --- | --- | --- | --- |
+| Communities (the index's own) | 41 | 1 | 2 | 3,790 + 1,127 | 8.4 s |
+| recluster | 119 | 4 | 5 | 13,598 + 2,553 | 27.3 s |
+
+Wider coverage costs proportionally more, because global search sends every report at the level.

@@ -26,6 +26,8 @@ export interface Tables {
   covariates?: Row[];
   /** Additional community sets keyed by label, e.g. "leiden" from leiden_communities.parquet. */
   extraPartitions?: Record<string, Row[]>;
+  /** Summaries for a community set that came alongside the index, keyed by that set's label. */
+  extraReports?: Record<string, Row[]>;
 }
 
 /** Row-level problems found while normalizing. Structural checks live in metrics/integrity. */
@@ -269,7 +271,7 @@ export function buildDataset(tables: Tables, files: string[]): LoadResult {
     partitions.push(buildPartition("communities", "Communities", tables.communities, tables.community_reports ?? [], relationships, entities, notes));
   }
   for (const [label, rows] of Object.entries(tables.extraPartitions ?? {})) {
-    partitions.push(buildPartition(label, label, rows, [], relationships, entities, notes));
+    partitions.push(buildPartition(label, label, rows, tables.extraReports?.[label] ?? [], relationships, entities, notes));
   }
 
   const textUnits = new Map<string, TextUnit>();

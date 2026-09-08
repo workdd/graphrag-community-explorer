@@ -110,3 +110,37 @@ describe("buildDataset (older and other layouts)", () => {
     expect(dataset.partitions[0].levels).toEqual([3, 4]);
   });
 });
+
+describe("summaries for a community set brought alongside the index", () => {
+  const tables = {
+    entities: [
+      { id: "1", title: "A", type: "T" },
+      { id: "2", title: "B", type: "T" },
+    ],
+    relationships: [{ id: "r", source: "A", target: "B", type: "calls" }],
+    extraPartitions: { recluster: [{ community: 0n, level: 0n, parent: -1n, title: "R0", entity_ids: ["1", "2"] }] },
+  };
+
+  it("attaches them to that set and nothing else", () => {
+    const { dataset } = buildDataset({
+      ...tables,
+      extraReports: { recluster: [{ community: 0n, summary: "What R0 covers", rank: 6 }] },
+    }, ["entities.parquet", "recluster_communities.parquet", "recluster_community_reports.parquet"]);
+    const set = dataset.partitions.find((p) => p.id === "recluster")!;
+    expect(set.communities.get("0")?.report?.summary).toBe("What R0 covers");
+    expect(set.communities.get("0")?.report?.rank).toBe(6);
+  });
+
+  it("leaves the set without summaries when none came with it", () => {
+    const { dataset } = buildDataset(tables, ["entities.parquet", "recluster_communities.parquet"]);
+    expect(dataset.partitions.find((p) => p.id === "recluster")?.communities.get("0")?.report).toBeUndefined();
+  });
+
+  it("does not hand one set the summaries of another", () => {
+    const { dataset } = buildDataset({
+      ...tables,
+      extraReports: { other: [{ community: 0n, summary: "Not mine", rank: 9 }] },
+    }, ["entities.parquet", "recluster_communities.parquet"]);
+    expect(dataset.partitions.find((p) => p.id === "recluster")?.communities.get("0")?.report).toBeUndefined();
+  });
+});
