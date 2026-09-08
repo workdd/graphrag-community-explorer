@@ -79,6 +79,20 @@ each take about half a second (`samples/generate_sample.py --scale 53 --edge-fac
 
 ## What you see
 
+The app opens on the **Network** view: every entity and relationship on one canvas, with no
+communities involved. Node colour is the entity type and size is the degree. Communities are an
+overlay you add, as clouds around their members or as node colour, and they can be taken away again.
+
+`Arrange: layers` puts one column per entity type and orders the columns so that as many
+relationships as possible run forward, using a greedy feedback arc set. It reports the share that
+made it, and draws the rest dashed red. Long columns wrap into sub-columns so the picture stays
+readable. Both Apache AGE graphs we test with reach 99%.
+
+The **Formation** view runs Leiden in the browser on the entities on screen and plays the run back:
+local moving sweep by sweep, refinement, then aggregation, with the graph recolouring as communities
+appear, a modularity curve, the shrinking working graph, and NMI/ARI against the community set the
+index shipped. Resolution, seed and scope are yours to change; the loaded communities never are.
+
 The interface is available in English and Korean; the switch sits in the top bar and the choice is
 remembered in the browser.
 
