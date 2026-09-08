@@ -3,7 +3,7 @@ import cytoscape from "cytoscape";
 import { UNASSIGNED_ID, buildMapModel, communityKey, entityKey, nestingRatio } from "../../core/graph/map";
 import { typeColors } from "../../core/graph/palette";
 import { hashText } from "../../core/graph/seed";
-import { pathTo } from "../../core/hierarchy";
+import { depthOfLevel, levelsByDepth, pathTo } from "../../core/hierarchy";
 import type { Dataset, Partition } from "../../core/model";
 import { exportCytoscapePng } from "../download";
 import { fmt } from "../format";
@@ -235,7 +235,7 @@ export function CommunityMap(props: Props) {
     });
   }, [selectedId, focus, ready]);
 
-  const levels = partition.levels;
+  const levels = levelsByDepth(partition);
   const { stats } = model;
   const typeCounts = useMemo(() => {
     const counts = new Map<string, number>();
@@ -250,7 +250,7 @@ export function CommunityMap(props: Props) {
           <label className="control">{t("Show")}
             <select value={baseLevel === null ? "hierarchy" : String(baseLevel)} onChange={(e) => setBaseLevel(e.target.value === "hierarchy" ? null : Number(e.target.value))}>
               <option value="hierarchy">{nested ? t("hierarchy, open to descend") : t("all communities with parent links")}</option>
-              {levels.map((level) => <option key={level} value={level}>{t("level {level} side by side", { level })}</option>)}
+              {levels.map((level) => <option key={level} value={level}>{t("level {level} side by side", { level: depthOfLevel(partition, level) })}</option>)}
             </select>
           </label>
           <label className="control"><input type="checkbox" checked={showUnassigned} onChange={(e) => setShowUnassigned(e.target.checked)} /> {t("Entities in no community")}</label>
@@ -278,8 +278,8 @@ export function CommunityMap(props: Props) {
         <p className="map-note">
           {baseLevel === null
             ? t("{title} sits inside a closed community, so it is not drawn yet.", { title: hiddenSelection.title })
-            : t("{title} is on level {level}, not on the level shown.", { title: hiddenSelection.title, level: hiddenSelection.level })}{" "}
-          <button className="chip" onClick={revealSelection}>{baseLevel === null ? t("Open it here") : t("Show level {level}", { level: hiddenSelection.level })}</button>
+            : t("{title} is on level {level}, not on the level shown.", { title: hiddenSelection.title, level: depthOfLevel(partition, hiddenSelection.level) })}{" "}
+          <button className="chip" onClick={revealSelection}>{baseLevel === null ? t("Open it here") : t("Show level {level}", { level: depthOfLevel(partition, hiddenSelection.level) })}</button>
         </p>
       )}
       {typeCounts.length > 0 && (

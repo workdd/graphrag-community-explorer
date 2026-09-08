@@ -2,7 +2,8 @@ import { useMemo, useState } from "react";
 import { claimsForEntity, evidenceForCommunity, evidenceForEntity, evidenceForRelationship, snippet, type Evidence } from "../../core/evidence";
 import { displayTitle } from "../../core/graph/palette";
 import { relationshipsOf } from "../../core/graph/subgraph";
-import { membershipIndex, pathTo } from "../../core/hierarchy";
+import { depthOfLevel, membershipIndex, pathTo } from "../../core/hierarchy";
+import { levelLabel } from "../level";
 import type { CommunityMetrics } from "../../core/metrics/summary";
 import type { Community, Dataset, Entity, Partition } from "../../core/model";
 import type { GraphFocus } from "../graph/CommunityGraph";
@@ -60,7 +61,7 @@ function CommunityPanel({ dataset, partition, community, metrics, onFocus, onSel
       )}
       <h2>{community.title}</h2>
       <p className="facts">
-        {t("Level {level}. {entities} entities", { level: community.level, entities: fmt(members.length) })}
+        {t("Level {level}. {entities} entities", { level: depthOfLevel(partition, community.level), entities: fmt(members.length) })}
         {m && t(", {internal} internal relationships", { internal: fmt(m.internalEdges) })}
         {m && m.internalEdges + m.boundaryEdges > 0 && t(" ({share} of its edges)", { share: pct(m.internalRatio) })}
         .{community.membershipSource === "relationship_ids" && ` ${t("Members were inferred from relationship endpoints.")}`}
@@ -160,7 +161,7 @@ function EntityPanel({ dataset, partition, community, onFocus, onSelect, inGraph
         <ul className="chips">
           {memberships.map((c) => (
             <li key={c.id} className="stack">
-              <button className="chip" onClick={() => onSelect(c.id)} title={t("Select this community")}>L{c.level} {c.title} ({fmt(c.entityIds.length)})</button>
+              <button className="chip" onClick={() => onSelect(c.id)} title={t("Select this community")}>{partition ? levelLabel(partition, c.level) : `L${c.level}`} {c.title} ({fmt(c.entityIds.length)})</button>
               {inGraph && !graphIds.includes(c.id) && (
                 <button className="chip" onClick={() => onAddCommunity(c.id)} title={t("Draw this community in the same graph")}>{t("+ add to graph")}</button>
               )}

@@ -1,5 +1,6 @@
 import { useMemo, useState } from "react";
 import { depthOfLevel } from "../../core/hierarchy";
+import { LevelTag } from "../level";
 import type { CommunityMetrics } from "../../core/metrics/summary";
 import type { Community, Partition } from "../../core/model";
 import { downloadText, toCsv } from "../download";
@@ -36,7 +37,7 @@ export function CommunityTable({ partition, metrics, selectedId, onSelect }: Pro
     const m = metrics.get(c.id);
     switch (key) {
       case "title": return c.title.toLowerCase();
-      case "level": return c.level;
+      case "level": return depthOfLevel(partition, c.level);
       case "size": return c.entityIds.length;
       case "internal": return m?.internalEdges ?? 0;
       case "boundary": return m?.boundaryEdges ?? 0;
@@ -99,7 +100,7 @@ export function CommunityTable({ partition, metrics, selectedId, onSelect }: Pro
             return (
               <tr key={c.id} className={c.id === selectedId ? "selected" : undefined} onClick={() => onSelect(c.id)}>
                 <td className="title" title={c.title}>{c.title}</td>
-                <td><span className="level-tag" data-depth={Math.min(depthOfLevel(partition, c.level), 4)}>L{c.level}</span></td>
+                <td><LevelTag partition={partition} level={c.level} /></td>
                 <td className="num">{fmt(c.entityIds.length)}</td>
                 <td className="num">{fmt(m?.internalEdges ?? 0)}</td>
                 <td className="num">{fmt(m?.boundaryEdges ?? 0)}</td>

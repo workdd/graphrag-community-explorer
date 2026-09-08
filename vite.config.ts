@@ -1,5 +1,5 @@
 /// <reference types="vitest/config" />
-import { createReadStream, existsSync, realpathSync, statSync } from "node:fs";
+import { createReadStream, existsSync, readFileSync, readdirSync, realpathSync, statSync } from "node:fs";
 import { isAbsolute, relative, resolve } from "node:path";
 import { defineConfig, type Plugin } from "vite";
 import react from "@vitejs/plugin-react";
@@ -15,6 +15,26 @@ function localData(): Plugin {
     apply: "serve",
     configureServer(server) {
       server.middlewares.use("/data", (req, res, next) => {
+        // The app asks for this to offer a dataset picker; it lists folders, never their contents.
+        if ((req.url ?? "").split("?")[0] === "/index.json") {
+          const datasets = existsSync(root)
+            ? readdirSync(root, { withFileTypes: true })
+                .filter((entry) => entry.isDirectory())
+                .map((entry) => {
+                  let label = entry.name;
+                  try {
+                    const manifest = JSON.parse(readFileSync(resolve(root, entry.name, "manifest.json"), "utf8")) as { label?: string };
+                    if (typeof manifest.label === "string" && manifest.label !== "") label = manifest.label;
+                  } catch {
+                    // no manifest, or no label in it: the folder name is the label
+                  }
+                  return { path: `./data/${entry.name}`, label };
+                })
+                .sort((a, b) => a.label.localeCompare(b.label))
+            : [];
+          res.setHeader("Content-Type", "application/json");
+          return res.end(JSON.stringify({ datasets }));
+        }
         let rel: string;
         try {
           rel = decodeURIComponent((req.url ?? "/").split("?")[0]);

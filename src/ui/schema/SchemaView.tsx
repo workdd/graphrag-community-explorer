@@ -4,6 +4,7 @@ import { displayTitle } from "../../core/graph/palette";
 import type { Dataset, Partition } from "../../core/model";
 import { contextFor, describeTables, type ContextScope, type SchemaTable, type TableInfo, type TableKey } from "../../core/schema";
 import { fmt } from "../format";
+import { LevelTag } from "../level";
 import type { GraphFocus } from "../graph/CommunityGraph";
 import { useT } from "../i18n";
 
@@ -107,7 +108,7 @@ export function SchemaView({ dataset, partition, tables, selectedId, focus, onSe
               )}
               {context.communities.map((row) => (
                 <tr key={row.community.id} className={row.community.id === selectedId ? "selected" : ""} onClick={() => onSelect(row.community.id)}>
-                  <td className="title"><span className="level-tag" data-depth={row.community.level}>L{row.community.level}</span> {row.community.title}</td>
+                  <td className="title">{partition && <LevelTag partition={partition} level={row.community.level} />} {row.community.title}</td>
                   <td className="text"><span className="clamp">{row.community.report ? snippet(row.community.report.summary, 90) : "…"}</span></td>
                   <td className="num">{fmt(row.matches)}</td>
                   <td className="num">{row.rank === undefined ? "…" : row.rank}</td>

@@ -101,3 +101,27 @@ export async function loadFromUrl(base: string): Promise<LoadResult> {
   if (present.length === 0) throw new Error(`No Parquet files found under ${root}.`);
   return assemble(present);
 }
+
+export interface DatasetRef {
+  /** Path to pass to loadFromUrl, relative to the app (`./data/age`). */
+  path: string;
+  label: string;
+}
+
+/**
+ * Datasets the server offers, from `<base>data/index.json`. The dev server and `npm run serve`
+ * write it from the folders they were given; static hosting has no such file and the call is a
+ * no-op, so the load screen simply falls back to the sample and to dropped files.
+ */
+export async function listDatasets(base: string): Promise<DatasetRef[]> {
+  try {
+    const response = await fetch(`${base}data/index.json`);
+    if (!response.ok || !(response.headers.get("content-type") ?? "").includes("json")) return [];
+    const json = (await response.json()) as { datasets?: { path?: unknown; label?: unknown }[] };
+    return (json.datasets ?? [])
+      .map((entry) => ({ path: String(entry.path ?? ""), label: String(entry.label ?? entry.path ?? "") }))
+      .filter((entry) => entry.path !== "");
+  } catch {
+    return [];
+  }
+}

@@ -4,7 +4,7 @@
 //   node scripts/serve.mjs --data ~/graphrag/output          (in a checkout, after npm run build)
 // Then open http://127.0.0.1:4180/?data=./data/output
 import http from "node:http";
-import { createReadStream, existsSync, realpathSync, statSync } from "node:fs";
+import { createReadStream, existsSync, readFileSync, realpathSync, statSync } from "node:fs";
 import { basename, dirname, extname, isAbsolute, join, relative, resolve } from "node:path";
 import { fileURLToPath } from "node:url";
 
@@ -70,6 +70,21 @@ export function handler(req, res) {
       path = decodeURIComponent((req.url ?? "/").split("?")[0]);
     } catch {
       return reply(res, 400, "bad request: malformed URL encoding");
+    }
+    if (path === "/data/index.json") {
+      // Lets the app offer a picker for the folders this server was given.
+      const datasets = [...dataDirs].map(([name, dir]) => {
+        let label = name;
+        try {
+          const manifest = JSON.parse(readFileSync(join(dir, "manifest.json"), "utf8"));
+          if (typeof manifest.label === "string" && manifest.label !== "") label = manifest.label;
+        } catch {
+          // no manifest, or no label in it: the folder name is the label
+        }
+        return { path: `./data/${name}`, label };
+      });
+      res.writeHead(200, { "Content-Type": "application/json" });
+      return res.end(JSON.stringify({ datasets }));
     }
     const data = /^\/data\/([^/]+)\/(.*)$/.exec(path);
     if (data) {

@@ -88,3 +88,56 @@ def test_duplicate_community_business_id_is_rejected(snapshot):
     dup = vertex("12", "Community", id="comm-a", level=0, title="A2")
     with pytest.raises(ValueError, match="Community.id"):
         m.convert(vertices + [dup], edges, graph="g")
+
+
+@pytest.fixture
+def kind_labelled():
+    """kind 별로 정점 라벨이 나뉘고 부모를 접미사 키로 가리키는 그래프 (거버넌스 형태)."""
+    vertices = [
+        vertex("1", "User", id="u-1", name="신준영", kind="User"),
+        vertex("2", "Role", id="r-1", name="관리자", kind="Role"),
+        vertex("3", "Menu", id="m-1", name="대시보드", kind="Menu"),
+        vertex("10", "Community", id="community:gov:L0:0", level=0,
+               kinds="User 2 · Role 1", member_count=3),
+        vertex("11", "Community", id="community:gov:L1:4", level=1, parentId="L0:0",
+               kinds="Menu 1", member_count=1),
+    ]
+    edges = [
+        edge("100", "hasRole", "1", "2"),
+        edge("101", "grantsFull", "2", "3"),
+        edge("102", "inCommunity", "1", "10"),
+        edge("103", "inCommunity", "2", "10"),
+        edge("104", "inCommunity", "3", "11"),
+    ]
+    return vertices, edges
+
+
+def test_every_vertex_label_becomes_an_entity_when_there_is_no_resource(kind_labelled):
+    entities, relationships, *_ = m.convert(*kind_labelled, graph="cmp_gov")
+    assert [e["type"] for e in entities] == ["User", "Role", "Menu"]
+    assert entities[0]["title"] == "User · 신준영 [AGE:1]"
+    assert entities[0]["age_label"] == "User"
+    assert [r["type"] for r in relationships] == ["hasRole", "grantsFull"]
+
+
+def test_parent_resolves_through_a_suffix_key_and_title_falls_back_to_kinds(kind_labelled):
+    _, _, communities, _, _ = m.convert(*kind_labelled, graph="cmp_gov")
+    assert [c["community"] for c in communities] == [0, 1]
+    assert [c["parent"] for c in communities] == [-1, 0]
+    assert [c["title"] for c in communities] == ["User / Role", "Menu"]
+    assert [c["level"] for c in communities] == [0, 1]
+
+
+def test_entity_labels_can_be_named_explicitly(kind_labelled):
+    entities, relationships, *_ = m.convert(*kind_labelled, graph="cmp_gov", entity_labels="User,Role")
+    assert [e["type"] for e in entities] == ["User", "Role"]
+    # Menu is not an entity, so the edge that ends there is not a relationship.
+    assert [r["type"] for r in relationships] == ["hasRole"]
+    with pytest.raises(ValueError, match="not in the graph"):
+        m.convert(*kind_labelled, graph="cmp_gov", entity_labels="Nope")
+
+
+def test_resource_graphs_keep_the_previous_behaviour(snapshot):
+    entities, *_ = m.convert(*snapshot, graph="g")
+    # the Facet vertex is still excluded because Resource is present
+    assert [e["age_label"] for e in entities] == ["Resource"] * 3

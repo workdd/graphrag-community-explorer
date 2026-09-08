@@ -44,6 +44,16 @@ export function depthOfLevel(partition: Partition, level: number): number {
   return Math.abs(level - partition.rootLevel);
 }
 
+/** Raw levels ordered from the root down, so a file that numbers its roots highest still reads top-down. */
+export function levelsByDepth(partition: Partition): number[] {
+  return [...partition.levels].sort((a, b) => depthOfLevel(partition, a) - depthOfLevel(partition, b));
+}
+
+/** True when the file's numbering differs from the depth shown, so the difference can be explained. */
+export function levelsRenumbered(partition: Partition): boolean {
+  return partition.levels.some((level) => depthOfLevel(partition, level) !== level);
+}
+
 export function membershipIndex(partition: Partition): Map<string, Community[]> {
   const index = new Map<string, Community[]>();
   for (const community of partition.communities.values()) {

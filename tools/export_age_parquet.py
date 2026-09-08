@@ -6,7 +6,9 @@
 """Export an AGE snapshot and GraphRAG Visualizer artifacts without DB writes.
 
 Run with uv run tools/export_age_parquet.py --env-file PATH --output NEW_DIR.
-The adapter maps Resource, Community and inCommunity from this project's loader.
+Vertices become entities, the community label becomes communities, and the membership label
+joins the two. Graphs that label every vertex `Resource` and graphs that label vertices by kind
+(User, Role, Menu, ...) both work; see --entity-labels.
 All labels/properties are additionally retained under snapshot/.
 """
 from __future__ import annotations
@@ -76,26 +78,72 @@ def encode(value):
     return json.dumps(value, ensure_ascii=False, sort_keys=True)
 
 
-def convert(vertices, edges, graph):
+def pick_entity_labels(vertices, requested, community_label):
+    """`auto` keeps the historical Resource-only behaviour when that label exists, and otherwise
+    takes every vertex label except the community one, which is what kind-labelled graphs need."""
+    present = {v["label"] for v in vertices}
+    if requested and requested != "auto":
+        names = [name.strip() for name in requested.split(",") if name.strip()]
+        missing = [name for name in names if name not in present]
+        if missing:
+            raise ValueError(f"Vertex labels not in the graph: {', '.join(missing)}")
+        return set(names)
+    if "Resource" in present:
+        return {"Resource"}
+    return {label for label in present if label != community_label and not label.startswith("_ag_")}
+
+
+def community_title(properties, business_id):
+    """Existing labels only. `kinds` is a formatted census such as `User 111 · Label 60`; its
+    leading kind names make a readable title when the producer wrote no title at all."""
+    for key in ("title", "hub_name", "name"):
+        value = properties.get(key)
+        if value not in (None, ""):
+            return str(value)
+    kinds = properties.get("kinds")
+    if isinstance(kinds, str) and kinds.strip():
+        names = [part.strip().rsplit(" ", 1)[0] for part in kinds.split("·") if part.strip()]
+        if names:
+            return " / ".join(names[:3])
+    return str(business_id)
+
+
+def resolve_parent(raw, business_ids):
+    """Producers reference a parent by its full business id or by a suffix of it
+    (`L1:14` for `community:gov:L1:14`). Both resolve; anything else is an error."""
+    if raw in (None, "", -1, "-1"):
+        return None
+    key = str(raw)
+    if key in business_ids:
+        return key
+    matches = [known for known in business_ids if known.endswith(key)]
+    if len(matches) == 1:
+        return matches[0]
+    return None
+
+
+def convert(vertices, edges, graph, entity_labels="auto", community_label="Community",
+            membership_label="inCommunity"):
     by_id = {v["id"]: v for v in vertices}
     if len(by_id) != len(vertices) or len({e["id"] for e in edges}) != len(edges):
         raise ValueError("Duplicate AGE IDs")
     for edge in edges:
         if edge["source"] not in by_id or edge["target"] not in by_id:
             raise ValueError(f"Dangling edge: {edge['id']}")
-    resources = sorted((v for v in vertices if v["label"] == "Resource"), key=lambda v: int(v["id"]))
-    clusters = sorted((v for v in vertices if v["label"] == "Community"), key=lambda v: int(v["id"]))
+    wanted = pick_entity_labels(vertices, entity_labels, community_label)
+    resources = sorted((v for v in vertices if v["label"] in wanted), key=lambda v: int(v["id"]))
+    clusters = sorted((v for v in vertices if v["label"] == community_label), key=lambda v: int(v["id"]))
     if not resources:
-        raise ValueError("No Resource vertices; this adapter expects the project's Resource schema")
+        raise ValueError(f"No vertices for labels {sorted(wanted)}; nothing to export")
     entities, titles = [], {}
     for index, vertex in enumerate(resources):
         p, vid = vertex["properties"], vertex["id"]
         name = p.get("name") or p.get("title") or p.get("cmpResourceId") or p.get("id") or vid
         # The viewer joins relationships by title, so even duplicate names must be unique.
-        title = f"{p.get('kind') or 'Resource'} · {name} [AGE:{vid}]"
+        title = f"{p.get('kind') or vertex['label']} · {name} [AGE:{vid}]"
         titles[vid] = title
         entities.append(dict(id=vid, human_readable_id=index, title=title,
-            type=str(p.get("kind") or "Resource"), description=encode(p), text_unit_ids=[],
+            type=str(p.get("kind") or vertex["label"]), description=encode(p), text_unit_ids=[],
             age_label=vertex["label"], age_properties_json=encode(p)))
 
     numbers = {v["id"]: i for i, v in enumerate(clusters)}
@@ -105,12 +153,22 @@ def convert(vertices, edges, graph):
         if key is None or str(key) in business_ids:
             raise ValueError("Community.id must be present and unique")
         business_ids[str(key)] = numbers[v["id"]]
+    warnings = []
     members = defaultdict(set)
+    skipped_membership = 0
     for e in edges:
-        if e["label"] == "inCommunity":
-            if e["source"] not in titles or e["target"] not in numbers:
-                raise ValueError(f"Unexpected inCommunity endpoints: {e['id']}")
-            members[e["target"]].add(e["source"])
+        if e["label"] != membership_label:
+            continue
+        if e["target"] not in numbers:
+            raise ValueError(f"{membership_label} edge {e['id']} does not end at a {community_label}")
+        # A member outside the exported labels is dropped rather than fatal: --entity-labels may
+        # deliberately narrow the export, and the community keeps the members that were exported.
+        if e["source"] not in titles:
+            skipped_membership += 1
+            continue
+        members[e["target"]].add(e["source"])
+    if skipped_membership:
+        warnings.append(f"{skipped_membership} {membership_label} edges start outside the exported entity labels and were skipped")
 
     resource_edges = [e for e in edges if e["source"] in titles and e["target"] in titles]
     degree = Counter()
@@ -129,20 +187,21 @@ def convert(vertices, edges, graph):
             type=e["label"], age_source_id=e["source"], age_target_id=e["target"],
             age_properties_json=encode(p)))
 
-    communities, reports, warnings = [], [], []
+    communities, reports = [], []
     for v in clusters:
         p, vid = v["properties"], v["id"]
         number, membership = numbers[vid], members[vid]
-        parent_key = p.get("parent_id")
+        parent_key = p.get("parent_id", p.get("parentId"))
         parent = -1
         if parent_key not in (None, "", -1, "-1"):
-            if str(parent_key) not in business_ids:
-                raise ValueError(f"Unknown parent_id for community {p['id']}")
-            parent = business_ids[str(parent_key)]
+            resolved = resolve_parent(parent_key, business_ids)
+            if resolved is None:
+                raise ValueError(f"Unknown parent for community {p['id']}: {parent_key}")
+            parent = business_ids[resolved]
         if p.get("member_count") is not None and int(p["member_count"]) != len(membership):
             warnings.append(f"Community {p['id']}: stored member_count={p['member_count']}, actual={len(membership)}")
         level = int(p.get("level", 0))
-        title = str(p.get("title") or p.get("hub_name") or p["id"])
+        title = community_title(p, p["id"])
         internal_edges = [e["id"] for e in resource_edges
                           if e["source"] in membership and e["target"] in membership]
         cid = f"age-community:{graph}:{vid}"
@@ -189,6 +248,11 @@ def main():
     parser.add_argument("--env-file", type=Path)
     parser.add_argument("--graph", help="Defaults to AGE_GRAPH from config")
     parser.add_argument("--output", type=Path, required=True, help="New output directory; never overwrite")
+    parser.add_argument("--entity-labels", default="auto",
+                        help="Comma-separated vertex labels to export as entities. "
+                             "auto (default) uses Resource when present, otherwise every label but the community one")
+    parser.add_argument("--community-label", default="Community")
+    parser.add_argument("--membership-label", default="inCommunity")
     args = parser.parse_args()
     if args.output.exists():
         parser.error("Output already exists; choose a new directory")
@@ -197,7 +261,9 @@ def main():
     config = {**(dotenv_values(args.env_file) if args.env_file else {}), **os.environ}
     graph = args.graph or config.get("AGE_GRAPH", "cmp_gate0")
     vertices, edges = read_snapshot(config, graph)
-    entities, relationships, communities, reports, warnings = convert(vertices, edges, graph)
+    entities, relationships, communities, reports, warnings = convert(
+        vertices, edges, graph, entity_labels=args.entity_labels,
+        community_label=args.community_label, membership_label=args.membership_label)
     args.output.mkdir(parents=True, exist_ok=False)
     artifacts = args.output / "artifacts"
     snapshot = args.output / "snapshot"
@@ -223,9 +289,10 @@ def main():
         edge_labels=dict(Counter(e["label"] for e in edges)),
         artifacts=dict(entities=len(entities), relationships=len(relationships),
                        communities=len(communities), community_reports=len(reports)),
-        membership_edges=sum(e["label"] == "inCommunity" for e in edges),
+        membership_edges=sum(e["label"] == args.membership_label for e in edges),
+        entity_labels=sorted({v["label"] for v in vertices} & set(pick_entity_labels(vertices, args.entity_labels, args.community_label))),
         warnings=warnings,
-        scope="Viewer: Resource relations and Community membership. Snapshot: all labels, including Facet and Axis.",
+        scope="Viewer: relations between exported entities and community membership. Snapshot: every label.",
         viewer_adapter_required=["Preserve relationship type", "Use community entity_ids for membership", "Preserve level 0 and parent 0"])
     (args.output / "manifest.json").write_text(encode(manifest) + "\n", encoding="utf-8")
     print(json.dumps(manifest, ensure_ascii=False, indent=2))

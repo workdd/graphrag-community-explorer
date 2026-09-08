@@ -1,5 +1,6 @@
 import { useMemo, useState } from "react";
-import { buildTree, depthOfLevel, type TreeNode } from "../../core/hierarchy";
+import { buildTree, levelsRenumbered, type TreeNode } from "../../core/hierarchy";
+import { LevelTag } from "../level";
 import type { Partition } from "../../core/model";
 import { fmt } from "../format";
 import { useT } from "../i18n";
@@ -47,7 +48,7 @@ export function HierarchyTree({ partition, selectedId, onSelect }: Props) {
             <span className="caret-spacer" />
           )}
           <button className="tree-label" onClick={() => onSelect(community.id)}>
-            <span className="level-tag" data-depth={Math.min(depthOfLevel(partition, community.level), 4)}>L{community.level}</span>
+            <LevelTag partition={partition} level={community.level} />
             <span className="tree-title" title={community.title}>{community.title}</span>
             <span className="tree-size num">{fmt(community.entityIds.length)}</span>
           </button>
@@ -62,6 +63,7 @@ export function HierarchyTree({ partition, selectedId, onSelect }: Props) {
       <input className="field" placeholder={t("Find a community")} value={query} onChange={(e) => setQuery(e.target.value)} aria-label={t("Find a community")} />
       <div className="tree-meta">
         {t("{roots} top-level, {total} in total. Numbers are entity counts.", { roots: fmt(tree.length), total: fmt(partition.communities.size) })}
+        {levelsRenumbered(partition) && ` ${t("Levels are shown from the root down, so the root reads L0; this file numbers it L{source}.", { source: partition.rootLevel })}`}
       </div>
       <ul className="tree-root">{tree.map(render)}</ul>
     </div>

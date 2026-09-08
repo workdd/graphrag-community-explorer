@@ -1,11 +1,12 @@
 import { Suspense, lazy, useEffect, useMemo, useState } from "react";
 import type { LoadResult } from "../../core/loaders/graphrag";
+import type { DatasetRef } from "../../core/loaders/files";
 import { checkIntegrity } from "../../core/metrics/integrity";
 import { datasetCounts, summarizePartition } from "../../core/metrics/summary";
 import type { GraphFocus, GraphMode } from "../graph/CommunityGraph";
 import { displayTitle } from "../../core/graph/palette";
 import { nestingRatio } from "../../core/graph/map";
-import { pathTo } from "../../core/hierarchy";
+import { depthOfLevel, levelsByDepth, pathTo } from "../../core/hierarchy";
 import type { Dataset, Partition } from "../../core/model";
 import { Mark } from "../Mark";
 import { LangToggle, Rich, useT } from "../i18n";
@@ -65,9 +66,12 @@ interface Props {
   result: LoadResult;
   label: string;
   onReset: () => void;
+  datasets: DatasetRef[];
+  activeData?: string;
+  onOpenDataset: (path: string) => void;
 }
 
-export function Overview({ result, label, onReset }: Props) {
+export function Overview({ result, label, onReset, datasets, activeData, onOpenDataset }: Props) {
   const { t } = useT();
   const { dataset, notes } = result;
   const [initial] = useState(() => readHash(dataset));
@@ -89,7 +93,7 @@ export function Overview({ result, label, onReset }: Props) {
   const summary = useMemo(() => (realPartition ? summarizePartition(dataset, realPartition) : null), [dataset, realPartition]);
   const integrity = useMemo(() => (realPartition ? checkIntegrity(dataset, realPartition) : []), [dataset, realPartition]);
 
-  const levels = realPartition?.levels ?? [];
+  const levels = realPartition ? levelsByDepth(realPartition) : [];
   const selected = selectedId && realPartition ? realPartition.communities.get(selectedId) ?? null : null;
   const graphIds = useMemo(() => (selectedId ? [selectedId, ...extraIds.filter((id) => id !== selectedId)] : []), [selectedId, extraIds]);
 
@@ -186,6 +190,14 @@ export function Overview({ result, label, onReset }: Props) {
         <span className="topbar-dataset" title={dataset.source.files.join(", ")}>
           {label}: {dataset.source.files.join(", ")}
         </span>
+        {datasets.length > 1 && (
+          <select aria-label={t("Dataset")} value={activeData ?? ""} onChange={(e) => onOpenDataset(e.target.value)}>
+            {activeData === undefined && <option value="">{label}</option>}
+            {datasets.map((d) => (
+              <option key={d.path} value={d.path}>{d.label}</option>
+            ))}
+          </select>
+        )}
         {dataset.partitions.length > 1 && (
           <select aria-label={t("Community set")} value={realPartition?.id} onChange={(e) => changePartition(e.target.value)}>
             {dataset.partitions.map((p) => (
@@ -280,7 +292,7 @@ export function Overview({ result, label, onReset }: Props) {
                     communities: fmt(realPartition.communities.size),
                     levels: levels.length,
                     s: levels.length === 1 ? "" : "s",
-                    range: levels.length > 0 ? ` (L${levels[0]}${levels.length > 1 ? `–L${levels[levels.length - 1]}` : ""})` : "",
+                    range: levels.length > 0 && realPartition ? ` (L${depthOfLevel(realPartition, levels[0])}${levels.length > 1 ? `–L${depthOfLevel(realPartition, levels[levels.length - 1])}` : ""})` : "",
                     covered: fmt(summary.coveredEntities),
                     coverage: pct(summary.coverage),
                     multi: summary.multiMembership > 0 ? t(", **{n}** to more than one on the same level", { n: fmt(summary.multiMembership) }) : "",

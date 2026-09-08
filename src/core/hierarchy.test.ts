@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { buildTree, depthOfLevel, membershipIndex, pathTo, primaryCommunity } from "./hierarchy";
+import { buildTree, depthOfLevel, levelsByDepth, levelsRenumbered, membershipIndex, pathTo, primaryCommunity } from "./hierarchy";
 import type { Community, Partition } from "./model";
 
 const community = (id: string, level: number, parentId: string | null, size: number, entityIds: string[] = []): Community => ({
@@ -43,3 +43,27 @@ describe("hierarchy", () => {
     expect(primaryCommunity(index, "zzz")).toBeUndefined();
   });
 });
+
+describe("level numbering", () => {
+  // Apache AGE resource tiers number the root highest; GraphRAG numbers it 0.
+  const inverted: Partition = {
+    id: "age", label: "AGE", rootLevel: 4, levels: [2, 3, 4],
+    communities: new Map([
+      ["a", { id: "a", level: 4, parentId: null, childIds: ["b"], title: "A", entityIds: [], relationshipIds: [], size: 0, membershipSource: "entity_ids", textUnitIds: [] }],
+      ["b", { id: "b", level: 3, parentId: "a", childIds: ["c"], title: "B", entityIds: [], relationshipIds: [], size: 0, membershipSource: "entity_ids", textUnitIds: [] }],
+      ["c", { id: "c", level: 2, parentId: "b", childIds: [], title: "C", entityIds: [], relationshipIds: [], size: 0, membershipSource: "entity_ids", textUnitIds: [] }],
+    ]),
+  };
+
+  it("reads an inverted file from the root down", () => {
+    expect(levelsByDepth(inverted)).toEqual([4, 3, 2]);
+    expect(inverted.levels.map((l) => depthOfLevel(inverted, l))).toEqual([2, 1, 0]);
+    expect(levelsRenumbered(inverted)).toBe(true);
+  });
+
+  it("leaves GraphRAG numbering untouched", () => {
+    const plain: Partition = { ...inverted, rootLevel: 0, levels: [0, 1, 2] };
+    expect(levelsByDepth(plain)).toEqual([0, 1, 2]);
+    expect(levelsRenumbered(plain)).toBe(false);
+  });
+})

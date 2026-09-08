@@ -60,6 +60,14 @@ machine with Docker yet.
 | `covariates.parquet` | Claims about entities, listed on the entity panel. |
 | `<label>_communities.parquet` | Any additional community set (for example `leiden_communities.parquet`) becomes a switchable partition. |
 
+Levels are shown from the root down: the root reads L0 and children count up, which is GraphRAG's
+own numbering. A file that numbers its roots highest (Apache AGE resource tiers) or starts at one is
+renumbered for display only, with the file's own number in the tooltip and a note under the tree.
+
+Several folders can be offered at once. `npm run serve -- --data a --data b` and the dev server both
+publish `data/index.json`, and the app turns it into buttons on the load screen and a picker in the
+top bar. A folder's `manifest.json` may carry `"label"` to name it there.
+
 File names from GraphRAG 0.3 to 2.x are recognized, including the `create_final_` prefix. When an
 older output has no `entity_ids` column, members are inferred from `relationship_ids` and the
 integrity panel says so (`public/samples/legacy` is such a set). Exports from Apache AGE that

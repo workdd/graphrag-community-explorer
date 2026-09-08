@@ -1,5 +1,6 @@
 import { useRef, useState, type DragEvent } from "react";
 import type { LoadState } from "../App";
+import type { DatasetRef } from "../../core/loaders/files";
 import { Mark } from "../Mark";
 import { LangToggle, useT } from "../i18n";
 
@@ -9,6 +10,8 @@ interface Props {
   onSample: () => void;
   defaultData?: string;
   onDefault: () => void;
+  datasets: DatasetRef[];
+  onOpenDataset: (path: string) => void;
 }
 
 /** Folder drops arrive as directory entries; walk them so a whole GraphRAG output folder can be dropped. */
@@ -36,7 +39,7 @@ async function filesFromDrop(items: DataTransferItemList, fallback: FileList): P
   return out;
 }
 
-export function LoadScreen({ state, onFiles, onSample, defaultData, onDefault }: Props) {
+export function LoadScreen({ state, onFiles, onSample, defaultData, onDefault, datasets, onOpenDataset }: Props) {
   const { t } = useT();
   const input = useRef<HTMLInputElement>(null);
   const [active, setActive] = useState(false);
@@ -79,16 +82,25 @@ export function LoadScreen({ state, onFiles, onSample, defaultData, onDefault }:
           />
         </div>
 
-        {defaultData && (
+        {datasets.length > 0 ? (
+          <div className="load-actions">
+            {datasets.map((entry, index) => (
+              <button key={entry.path} className={`btn${index === 0 ? " primary" : ""}`} onClick={() => onOpenDataset(entry.path)} disabled={state.status === "loading"}>
+                {t("Open {path}", { path: entry.label })}
+              </button>
+            ))}
+            <span className="note">{t("Folders this server was started with. They stay on this machine.")}</span>
+          </div>
+        ) : defaultData ? (
           <div className="load-actions">
             <button className="btn primary" onClick={onDefault} disabled={state.status === "loading"}>
               {t("Open {path}", { path: defaultData })}
             </button>
             <span className="note">{t("Configured in .env.development.local as VITE_DEFAULT_DATA.")}</span>
           </div>
-        )}
+        ) : null}
         <div className="load-actions">
-          <button className={`btn${defaultData ? "" : " primary"}`} onClick={onSample} disabled={state.status === "loading"}>
+          <button className={`btn${defaultData || datasets.length > 0 ? "" : " primary"}`} onClick={onSample} disabled={state.status === "loading"}>
             {t("Open the sample dataset")}
           </button>
           <span className="note">{t("A synthetic e-commerce platform with three levels of communities.")}</span>

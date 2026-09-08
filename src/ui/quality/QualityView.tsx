@@ -1,5 +1,6 @@
 import { useMemo, useState } from "react";
-import { depthOfLevel } from "../../core/hierarchy";
+import { depthOfLevel, levelsByDepth } from "../../core/hierarchy";
+import { LevelTag, levelLabel } from "../level";
 import { comparePartitions } from "../../core/metrics/compare";
 import { SIZE_BUCKETS, communityQuality, levelQuality, sizeHistogram } from "../../core/metrics/quality";
 import type { Dataset, Partition } from "../../core/model";
@@ -80,7 +81,7 @@ export function QualityView({ dataset, partition, selectedId, onSelect }: Props)
           <tbody>
             {levels.map((l) => (
               <tr key={l.level} className="static">
-                <td><span className="level-tag" data-depth={Math.min(depthOfLevel(partition, l.level), 4)}>L{l.level}</span></td>
+                <td><LevelTag partition={partition} level={l.level} /></td>
                 <td className="num">{fmt(l.communities)}</td>
                 <td className="num">{fmt(l.coveredEntities)}</td>
                 <td className="num">{pct(l.coverage)}</td>
@@ -98,8 +99,8 @@ export function QualityView({ dataset, partition, selectedId, onSelect }: Props)
         <div className="hist">
           {histograms.map((h) => (
             <div key={h.level} className="hist-row">
-              <span className="level-tag" data-depth={Math.min(depthOfLevel(partition, h.level), 4)}>L{h.level}</span>
-              <svg viewBox={`0 0 ${SIZE_BUCKETS.length * 60} 70`} className="hist-svg" role="img" aria-label={t("Community sizes at level {level}", { level: h.level })}>
+              <LevelTag partition={partition} level={h.level} />
+              <svg viewBox={`0 0 ${SIZE_BUCKETS.length * 60} 70`} className="hist-svg" role="img" aria-label={t("Community sizes at level {level}", { level: depthOfLevel(partition, h.level) })}>
                 {h.counts.map((count, i) => {
                   const height = (count / maxBucket) * 48;
                   return (
@@ -147,7 +148,7 @@ export function QualityView({ dataset, partition, selectedId, onSelect }: Props)
               return (
                 <tr key={id} className={id === selectedId ? "selected" : undefined} onClick={() => onSelect(id)}>
                   <td className="title" title={c.title}>{c.title}</td>
-                  <td><span className="level-tag" data-depth={Math.min(depthOfLevel(partition, c.level), 4)}>L{c.level}</span></td>
+                  <td><LevelTag partition={partition} level={c.level} /></td>
                   <td className="num">{fmt(q.size)}</td>
                   <td className="num">{fmt(q.internalEdges)}</td>
                   <td className="num">{fmt(q.boundaryEdges)}</td>
@@ -185,11 +186,11 @@ function ComparePanel({ dataset, current }: { dataset: Dataset; current: Partiti
       <div className="compare-controls">
         <label className="control">A
           <select value={a.id} onChange={(e) => setAId(e.target.value)}>{dataset.partitions.map((p) => <option key={p.id} value={p.id}>{p.label}</option>)}</select>
-          <select value={la} onChange={(e) => setLevelA(Number(e.target.value))}>{a.levels.map((l) => <option key={l} value={l}>L{l}</option>)}</select>
+          <select value={la} onChange={(e) => setLevelA(Number(e.target.value))}>{levelsByDepth(a).map((l) => <option key={l} value={l}>{levelLabel(a, l)}</option>)}</select>
         </label>
         <label className="control">B
           <select value={b.id} onChange={(e) => setBId(e.target.value)}>{dataset.partitions.map((p) => <option key={p.id} value={p.id}>{p.label}</option>)}</select>
-          <select value={lb} onChange={(e) => setLevelB(Number(e.target.value))}>{b.levels.map((l) => <option key={l} value={l}>L{l}</option>)}</select>
+          <select value={lb} onChange={(e) => setLevelB(Number(e.target.value))}>{levelsByDepth(b).map((l) => <option key={l} value={l}>{levelLabel(b, l)}</option>)}</select>
         </label>
       </div>
       <p className="summary small">
