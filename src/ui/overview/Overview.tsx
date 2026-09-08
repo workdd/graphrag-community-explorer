@@ -311,9 +311,10 @@ export function Overview({ result, label, onReset, datasets, activeData, onOpenD
             focus={focus}
             onFocus={setFocus}
             selectedCommunityId={selectedId}
-            onSelectCommunity={(id) => { select(id); setView("map"); }}
+            onSelectCommunity={(id) => { setSelectedId(id); setFocus(null); setExtraIds([]); setGraphMode({ kind: "communities" }); }}
             onExplore={explore}
             spotlight={spotlight}
+            onOpenCommunityGraph={(id) => { select(id); setView("graph"); }}
             onClearSpotlight={() => setSpotlight(null)}
             onSpotlight={setSpotlight}
             seed={networkSeed}

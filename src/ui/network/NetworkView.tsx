@@ -23,6 +23,8 @@ interface Props {
   onFocus: (focus: GraphFocus) => void;
   selectedCommunityId: string | null;
   onSelectCommunity: (id: string) => void;
+  /** Double-clicking a community goes to its own graph. */
+  onOpenCommunityGraph: (id: string) => void;
   onExplore: (entityId: string) => void;
   /** Types picked in the schema view; the graph narrows to them until it is cleared. */
   spotlight: SchemaSelection | null;
@@ -88,7 +90,7 @@ export function bandRows(counts: number[]): number {
 }
 
 /** The whole knowledge graph: entities and relationships, with communities as something you add. */
-export function NetworkView({ dataset, partition, focus, onFocus, selectedCommunityId, onSelectCommunity, onExplore, spotlight, onClearSpotlight, onSpotlight, seed, onSeed }: Props) {
+export function NetworkView({ dataset, partition, focus, onFocus, selectedCommunityId, onSelectCommunity, onOpenCommunityGraph, onExplore, spotlight, onClearSpotlight, onSpotlight, seed, onSeed }: Props) {
   const { t } = useT();
   const [overlay, setOverlay] = useState<Overlay>("off");
   // Typed graphs read best as columns, and that arrangement is instant; a graph with one or two
@@ -535,8 +537,8 @@ export function NetworkView({ dataset, partition, focus, onFocus, selectedCommun
     };
   }, [elements, signature, cacheKey, arrange, bandPositions, focusPositions, clusters]);
 
-  const propsRef = useRef({ onFocus, onSelectCommunity, onSeed });
-  propsRef.current = { onFocus, onSelectCommunity, onSeed };
+  const propsRef = useRef({ onFocus, onSelectCommunity, onSeed, onOpenCommunityGraph });
+  propsRef.current = { onFocus, onSelectCommunity, onSeed, onOpenCommunityGraph };
 
   // A record chosen anywhere else opens centred here.
   useEffect(() => {
@@ -570,7 +572,8 @@ export function NetworkView({ dataset, partition, focus, onFocus, selectedCommun
         { selector: "edge.agg", style: { width: "data(width)", "curve-style": "bezier", "line-color": "#b6bec7", "target-arrow-shape": "triangle", "target-arrow-color": "#b6bec7", "arrow-scale": 0.8, label: "data(label)", "font-size": 9, color: "#5f6b78", "text-background-color": "#f3f4f1", "text-background-opacity": 0.85, "text-background-padding": "2px", "text-rotation": "autorotate", "min-zoomed-font-size": 8, "z-index": 2 } },
         // Invisible on purpose: it exists so the layout keeps a community together, and the cloud
         // layer is what the reader sees.
-        { selector: "node.commgroup", style: { "background-opacity": 0, "border-width": 0, label: "", padding: "26px" } },
+        { selector: "node.commgroup", style: { "background-color": "#ffffff", "background-opacity": 0.02, "border-width": 0, label: "", padding: "26px", "z-index": 0 } },
+        { selector: "node.commgroup.selected", style: { "background-opacity": 0.08, "border-width": 1.5, "border-color": "#5a6fbe", "border-style": "dashed" } },
         { selector: "node.band", style: { shape: "rectangle", width: BAND.boxWidth, height: 1, "background-opacity": 0, "border-width": 0, "z-index": 5, label: "data(label)", "text-valign": "top", "text-margin-y": -6, "font-size": 12, "font-weight": 700, color: "#3a3a36", "text-background-opacity": 0, events: "no" } },
         { selector: "node.nolabel", style: { label: "" } },
         { selector: "edge", style: { width: 1, "line-color": "#c2c9d1", "curve-style": "haystack", "haystack-radius": 0, "z-index": 1 } },
@@ -636,6 +639,10 @@ export function NetworkView({ dataset, partition, focus, onFocus, selectedCommun
       const id = (event.target.id() as string).replace(/^comm:/, "");
       propsRef.current.onSelectCommunity(id);
     });
+    cy.on("dbltap", "node.commgroup", (event) => {
+      const id = (event.target.id() as string).replace(/^comm:/, "");
+      propsRef.current.onOpenCommunityGraph(id);
+    });
     cy.on("tap", "node.record", (event) => {
       const id = event.target.id();
       propsRef.current.onFocus({ kind: "entity", id });
@@ -653,8 +660,11 @@ export function NetworkView({ dataset, partition, focus, onFocus, selectedCommun
       const key = event.target.data("groupKey") as string;
       if (key) setOpenGroups((prev) => new Set([...prev, key]));
     });
+    // Everything that is not a record has its own handler above; this one must not claim them, or a
+    // community would be read as an entity that does not exist.
+    const notARecord = ["typenode", "typebox", "record", "commgroup", "summary", "band"];
     cy.on("tap", "node", (event) => {
-      if (event.target.hasClass("typenode") || event.target.hasClass("typebox") || event.target.hasClass("record")) return;
+      if (notARecord.some((name) => event.target.hasClass(name))) return;
       propsRef.current.onFocus({ kind: "entity", id: event.target.id() });
     });
     cy.on("tap", "edge", (event) => propsRef.current.onFocus({ kind: "relationship", id: event.target.id() }));
@@ -737,6 +747,8 @@ export function NetworkView({ dataset, partition, focus, onFocus, selectedCommun
     if (!cy) return;
     cy.batch(() => {
       cy.elements().removeClass("dim focus neighbor on picked");
+      cy.nodes(".commgroup").removeClass("selected");
+      if (selectedCommunityId) cy.getElementById(`comm:${selectedCommunityId}`).addClass("selected");
       // The focus arrangement is already the neighbourhood of one record, so dimming it would only
       // hide the second ring it was drawn to show.
       if (arrange === "focus") return;
@@ -758,7 +770,7 @@ export function NetworkView({ dataset, partition, focus, onFocus, selectedCommun
         edge.addClass("picked");
       }
     });
-  }, [focus, ready, arrange]);
+  }, [focus, ready, arrange, selectedCommunityId]);
 
   const find = () => {
     const needle = query.trim().toLowerCase();

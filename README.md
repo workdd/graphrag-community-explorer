@@ -98,6 +98,10 @@ one circle per community sized by the entities it holds, and a curve from each c
 parent. Entities that no community claims are drawn as grey dots under the bands and can be switched
 off. The nested box map, where a community opens into its members, is one switch away.
 
+Clicking inside a community reads it on the right: its summary, its level, how much of its edge
+weight stays inside, its children and its members. Dragging it moves the whole group, and
+double-clicking opens its own graph.
+
 Turning the community overlay on takes you to the free layout, which keeps each community together
 already, so the hulls appear around what is on screen instead of rearranging it. Switching the
 overlay off again moves nothing. A tidier catalogue, one disc per community laid out in rows with a
