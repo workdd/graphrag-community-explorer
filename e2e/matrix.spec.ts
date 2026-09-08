@@ -23,11 +23,11 @@ test("a star-shaped triple is listed as counts per hub", async ({ page }) => {
   await expect(page.locator(".schema-graph-side")).toContainText("each on average");
 });
 
-test("the top bar finder opens one record's neighbourhood", async ({ page }) => {
+test("the top bar finder lists records and opens the one that is picked", async ({ page }) => {
   await page.goto("/?data=./samples/demo");
   await page.getByPlaceholder("Find a record").fill("Payments");
-  await expect(page.locator(".finder-hits li").first()).toBeVisible();
+  await expect(page.locator(".finder-hits li")).not.toHaveCount(0);
   await page.locator(".finder-hits li button").first().click();
-  await expect(page.getByRole("tab", { name: /Graph:/ })).toHaveAttribute("aria-selected", "true");
-  await expect(page.locator(".graph-stats")).toContainText("within 2 hops", { timeout: 30_000 });
+  await expect(page.getByRole("tab", { name: "Network" })).toHaveAttribute("aria-selected", "true");
+  await expect(page.locator(".inspector h2")).toContainText("Payments");
 });

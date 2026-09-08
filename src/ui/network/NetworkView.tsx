@@ -5,6 +5,7 @@ import { displayTitle, typeColors } from "../../core/graph/palette";
 import { hashText } from "../../core/graph/seed";
 import { forwardShare, layerGroups, layerOrder, typeFlow } from "../../core/graph/layers";
 import { exitsFrom, extendSelection, schemaGraph, selectType, type SchemaSelection, type SchemaTripleEdge } from "../../core/graph/schemaGraph";
+import { egoSummary, type EgoModel } from "../../core/graph/ego";
 import type { Dataset, Entity, Partition, Relationship } from "../../core/model";
 import { exportCytoscapePng } from "../download";
 import { fmt } from "../format";
@@ -25,13 +26,17 @@ interface Props {
   spotlight: SchemaSelection | null;
   onClearSpotlight: () => void;
   onSpotlight: (selection: SchemaSelection) => void;
+  /** The record the graph is centred on, picked here or from the finder in the top bar. */
+  seed: string | null;
+  onSeed: (entityId: string | null) => void;
 }
 
 /** How communities are laid over the plain graph. `off` is the knowledge graph on its own. */
 type Overlay = "off" | "clouds" | "colour";
 /** Free force layout, or one column per entity type with the relationships flowing forward. */
 /** The schema is the frame: types are nodes until one is opened into its records. */
-type Arrange = "schema" | "force" | "layers";
+type Arrange = "schema" | "focus" | "force" | "layers";
+const FOCUS_RADIUS = 250;
 type Order = "degree" | "name";
 type Positions = Record<string, { x: number; y: number }>;
 
@@ -64,7 +69,7 @@ export function bandRows(counts: number[]): number {
 }
 
 /** The whole knowledge graph: entities and relationships, with communities as something you add. */
-export function NetworkView({ dataset, partition, focus, onFocus, selectedCommunityId, onSelectCommunity, onExplore, spotlight, onClearSpotlight, onSpotlight }: Props) {
+export function NetworkView({ dataset, partition, focus, onFocus, selectedCommunityId, onSelectCommunity, onExplore, spotlight, onClearSpotlight, onSpotlight, seed, onSeed }: Props) {
   const { t } = useT();
   const [overlay, setOverlay] = useState<Overlay>("off");
   // Typed graphs read best as columns, and that arrangement is instant; a graph with one or two
@@ -72,6 +77,10 @@ export function NetworkView({ dataset, partition, focus, onFocus, selectedCommun
   const [arrange, setArrange] = useState<Arrange>("schema");
   // Types opened into their records; everything else stays a single node of the schema.
   const [opened, setOpened] = useState<Set<string>>(new Set());
+  // One record at the centre, its neighbours grouped: a few named and the rest kept as a count.
+  const seedId = seed;
+  const [openGroups, setOpenGroups] = useState<Set<string>>(new Set());
+  const [showAll, setShowAll] = useState(false);
   const [order, setOrder] = useState<Order>("degree");
   const [budget, setBudget] = useState(() => Math.min(BUDGETS.find((b) => b >= dataset.entities.size) ?? 800, 800));
   const [hiddenTypes, setHiddenTypes] = useState<Set<string>>(new Set());
@@ -141,6 +150,73 @@ export function NetworkView({ dataset, partition, focus, onFocus, selectedCommun
     const drawn = new Set(nodes.map((n) => n.id));
     return { nodes, edges: edges.filter((e) => drawn.has(e.sourceId) && drawn.has(e.targetId)), total, degree };
   }, [dataset, hiddenTypes, hiddenRelationships, budget, isolated]);
+
+  const ego: EgoModel | null = useMemo(
+    () => (arrange === "focus" && seedId ? egoSummary(dataset, seedId, { perGroup: showAll ? budget : 3, perOpenGroup: budget, opened: openGroups }) : null),
+    [arrange, seedId, dataset, showAll, openGroups, budget],
+  );
+
+  const focusElements = useMemo((): cytoscape.ElementDefinition[] => {
+    if (!ego) return [];
+    const nodeFor = (entity: Entity, extra: Record<string, unknown> = {}) => ({
+      group: "nodes" as const,
+      classes: "record",
+      data: {
+        id: entity.id, type: entity.type, label: displayTitle(entity),
+        size: 12 + Math.min(22, Math.sqrt(entity.degree) * 4),
+        color: colors.get(entity.type) ?? "#8c96a0", paint: colors.get(entity.type) ?? "#8c96a0",
+        ...extra,
+      },
+    });
+    const nodes: cytoscape.ElementDefinition[] = [{ ...nodeFor(ego.seed), classes: "record seed", data: { ...nodeFor(ego.seed).data, size: 46 } }];
+    const edges: cytoscape.ElementDefinition[] = [];
+    const placed = new Set([ego.seed.id]);
+    for (const group of ego.groups) {
+      for (const entity of group.shown) {
+        if (!placed.has(entity.id)) {
+          nodes.push(nodeFor(entity));
+          placed.add(entity.id);
+        }
+        const [source, target] = group.direction === "out" ? [ego.seed.id, entity.id] : [entity.id, ego.seed.id];
+        edges.push({ group: "edges" as const, classes: "flow", data: { id: `${group.key}:${entity.id}`, source, target, label: group.relationship } });
+      }
+      if (group.hidden > 0) {
+        const id = `sum:${group.key}`;
+        const colour = colors.get(group.neighbourType) ?? "#8c96a0";
+        nodes.push({
+          group: "nodes" as const,
+          classes: "summary",
+          data: { id, label: `+${fmt(group.hidden)}\n${group.neighbourType}`, size: 34 + Math.min(26, Math.log1p(group.hidden) * 7), color: colour, paint: colour, groupKey: group.key },
+        });
+        const [source, target] = group.direction === "out" ? [ego.seed.id, id] : [id, ego.seed.id];
+        edges.push({ group: "edges" as const, classes: "flow agg", data: { id: `edge:${id}`, source, target, label: `${group.relationship} ${fmt(group.total)}`, width: 2 } });
+      }
+    }
+    return [...nodes, ...edges];
+  }, [ego, colors]);
+
+  // A star reads best drawn as one: the seed in the middle, each group its own slice of the circle.
+  const focusPositions = useMemo((): Positions => {
+    if (!ego) return {};
+    const slots = ego.groups.map((group) => group.shown.length + (group.hidden > 0 ? 1 : 0));
+    const total = slots.reduce((sum, count) => sum + count, 0) || 1;
+    const radius = Math.max(FOCUS_RADIUS, total * 13);
+    const positions: Positions = { [ego.seed.id]: { x: 0, y: 0 } };
+    let angle = -Math.PI / 2;
+    ego.groups.forEach((group, index) => {
+      const span = (slots[index] / total) * Math.PI * 2;
+      group.shown.forEach((entity, i) => {
+        const a = angle + span * ((i + 0.5) / slots[index]);
+        if (!positions[entity.id]) positions[entity.id] = { x: Math.cos(a) * radius, y: Math.sin(a) * radius };
+      });
+      if (group.hidden > 0) {
+        const a = angle + span * ((group.shown.length + 0.5) / slots[index]);
+        positions[`sum:${group.key}`] = { x: Math.cos(a) * radius * 1.3, y: Math.sin(a) * radius * 1.3 };
+      }
+      angle += span;
+    });
+    return positions;
+  }, [ego]);
 
   const schemaElements = useMemo((): cytoscape.ElementDefinition[] => {
     if (arrange !== "schema") return [];
@@ -241,7 +317,7 @@ export function NetworkView({ dataset, partition, focus, onFocus, selectedCommun
     return [...nodes, ...edges];
   }, [arrange, view, colors]);
 
-  const elements = arrange === "schema" ? schemaElements : entityElements;
+  const elements = arrange === "schema" ? schemaElements : arrange === "focus" ? focusElements : entityElements;
 
   // Type-to-type edge counts drive the column order, and the share that flows forward is reported.
   const layers = useMemo(() => {
@@ -305,8 +381,8 @@ export function NetworkView({ dataset, partition, focus, onFocus, selectedCommun
 
   useEffect(() => {
     let cancelled = false;
-    if (arrange === "layers") {
-      setReady({ signature, positions: bandPositions });
+    if (arrange === "layers" || arrange === "focus") {
+      setReady({ signature, positions: arrange === "focus" ? focusPositions : bandPositions });
       setLayoutMs(0);
       return;
     }
@@ -328,10 +404,18 @@ export function NetworkView({ dataset, partition, focus, onFocus, selectedCommun
     return () => {
       cancelled = true;
     };
-  }, [elements, signature, cacheKey, arrange, bandPositions]);
+  }, [elements, signature, cacheKey, arrange, bandPositions, focusPositions]);
 
-  const propsRef = useRef({ onFocus, onSelectCommunity });
-  propsRef.current = { onFocus, onSelectCommunity };
+  const propsRef = useRef({ onFocus, onSelectCommunity, onSeed });
+  propsRef.current = { onFocus, onSelectCommunity, onSeed };
+
+  // A record chosen anywhere else opens centred here.
+  useEffect(() => {
+    if (seed) {
+      setArrange("focus");
+      setOpenGroups(new Set());
+    }
+  }, [seed]);
 
   useEffect(() => {
     if (!host.current || !wrap.current || !ready || ready.signature !== signature) return;
@@ -348,6 +432,9 @@ export function NetworkView({ dataset, partition, focus, onFocus, selectedCommun
         // The schema backbone: a type is one node until it is opened, and then a box holding its records.
         { selector: "node.typenode", style: { shape: "ellipse", "background-opacity": 0.22, "border-width": 2, "border-color": "data(color)", label: "data(label)", "text-wrap": "wrap", "text-valign": "center", "font-size": 13, "line-height": 1.25, "text-background-opacity": 0, "z-index": 12 } },
         { selector: "node.typebox", style: { shape: "round-rectangle", "background-color": "data(color)", "background-opacity": 0.07, "border-width": 1.5, "border-color": "data(color)", "border-style": "dashed", label: "data(label)", "text-valign": "top", "text-halign": "center", "text-margin-y": -6, "font-size": 12, "font-weight": 600, "text-background-opacity": 0, padding: "14px", "z-index": 2 } },
+        { selector: "node.seed", style: { "border-width": 3, "border-color": "#5a6fbe", "font-size": 13, "font-weight": 600, "text-margin-y": 8, "text-background-color": "#f3f4f1", "text-background-opacity": 0.85, "z-index": 30 } },
+        // The rest of a group, kept as one bubble rather than a hundred dots.
+        { selector: "node.summary", style: { shape: "round-rectangle", "background-opacity": 0.14, "border-width": 1.5, "border-color": "data(color)", "border-style": "dashed", label: "data(label)", "text-wrap": "wrap", "text-valign": "center", "font-size": 11, "text-background-opacity": 0, "z-index": 12 } },
         { selector: "node.record", style: { "text-valign": "bottom", "font-size": 9, "z-index": 11 } },
         { selector: "edge.agg", style: { width: "data(width)", "curve-style": "bezier", "line-color": "#b6bec7", "target-arrow-shape": "triangle", "target-arrow-color": "#b6bec7", "arrow-scale": 0.8, label: "data(label)", "font-size": 9, color: "#5f6b78", "text-background-color": "#f3f4f1", "text-background-opacity": 0.85, "text-background-padding": "2px", "text-rotation": "autorotate", "min-zoomed-font-size": 8, "z-index": 2 } },
         { selector: "node.band", style: { shape: "rectangle", width: BAND.boxWidth, height: 1, "background-opacity": 0, "border-width": 0, "z-index": 5, label: "data(label)", "text-valign": "top", "text-margin-y": -6, "font-size": 12, "font-weight": 700, color: "#3a3a36", "text-background-opacity": 0, events: "no" } },
@@ -405,7 +492,18 @@ export function NetworkView({ dataset, partition, focus, onFocus, selectedCommun
         return next;
       });
     });
-    cy.on("tap", "node.record", (event) => propsRef.current.onFocus({ kind: "entity", id: event.target.id() }));
+    cy.on("tap", "node.record", (event) => {
+      const id = event.target.id();
+      propsRef.current.onFocus({ kind: "entity", id });
+      // Clicking a record moves the centre there: a few of its neighbours by name, the rest counted.
+      propsRef.current.onSeed(id);
+      setOpenGroups(new Set());
+      setArrange("focus");
+    });
+    cy.on("tap", "node.summary", (event) => {
+      const key = event.target.data("groupKey") as string;
+      setOpenGroups((prev) => new Set([...prev, key]));
+    });
     cy.on("tap", "node", (event) => {
       if (event.target.hasClass("typenode") || event.target.hasClass("typebox") || event.target.hasClass("record")) return;
       propsRef.current.onFocus({ kind: "entity", id: event.target.id() });
@@ -518,6 +616,7 @@ export function NetworkView({ dataset, partition, focus, onFocus, selectedCommun
           <label className="control">{t("Arrange")}
             <select value={arrange} onChange={(e) => setArrange(e.target.value as Arrange)}>
               <option value="schema">{t("schema, open a type to see its records")}</option>
+              {seedId && <option value="focus">{t("one record at the centre")}</option>}
               <option value="force">{t("free")}</option>
               <option value="layers">{t("layers by entity type")}</option>
             </select>
@@ -538,6 +637,19 @@ export function NetworkView({ dataset, partition, focus, onFocus, selectedCommun
           <label className="control"><input type="checkbox" checked={isolated} onChange={(e) => setIsolated(e.target.checked)} /> {t("Entities with no relationships")}</label>
         </div>
         <div className="graph-controls">
+          {arrange === "focus" && ego && (
+            <>
+              <button className="chip static" onClick={() => { onSeed(null); setArrange("schema"); }} title={t("Back to the schema")}>
+                {t("centred on {title}", { title: displayTitle(ego.seed) })} <span className="chip-x">×</span>
+              </button>
+              <label className="control">{t("Show")}
+                <select value={showAll ? "all" : "few"} onChange={(event) => { setShowAll(event.target.value === "all"); setOpenGroups(new Set()); }}>
+                  <option value="few">{t("a few of each kind")}</option>
+                  <option value="all">{t("all of the data")}</option>
+                </select>
+              </label>
+            </>
+          )}
           {spotlight && (
             <button className="chip static" onClick={() => { setHiddenTypes(new Set()); setHiddenRelationships(new Set()); onClearSpotlight(); }} title={t("Show the whole graph again")}>
               {t("from the schema: {label}", { label: spotlight.label })} <span className="chip-x">×</span>
@@ -612,7 +724,17 @@ export function NetworkView({ dataset, partition, focus, onFocus, selectedCommun
       </div>
 
       <p className="graph-stats">
-        {arrange === "schema" ? (
+        {arrange === "focus" && ego ? (
+          <>
+            {t("{title} has {neighbours} neighbours over {relationships} relationships, in {groups} kinds.", {
+              title: displayTitle(ego.seed), neighbours: fmt(ego.neighbours), relationships: fmt(ego.relationships), groups: fmt(ego.groups.length),
+            })}{" "}
+            {ego.groups.some((group) => group.hidden > 0)
+              ? t("A few of each kind are named; click a dashed bubble to open the rest, or switch to all of the data.")
+              : t("Everything it touches is drawn.")}{" "}
+            {t("Click a record to move the centre there.")}
+          </>
+        ) : arrange === "schema" ? (
           <>
             {t("{types} types drawn; {open} opened into {records} records, {edges} relationships.", {
               types: fmt(schemaCounts.types), open: opened.size === 0 ? t("none") : [...opened].join(", "),

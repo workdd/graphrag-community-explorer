@@ -20,6 +20,24 @@ const KO: Record<string, string> = {
     "실행 전 환경변수 VITE_LLM_* 로 설정된 값입니다",
   "The key comes from the environment this app was started with. Typing one here keeps it in this browser instead. The build refuses to publish an environment key unless it is asked to.":
     "키는 앱을 실행한 환경에서 가져왔습니다. 여기에 직접 입력하면 그 값이 이 브라우저에만 저장되어 우선합니다. 빌드는 환경변수 키를 명시적으로 허용하기 전에는 배포하지 않습니다.",
+  "Try one:":
+    "예시:",
+  "What is {entity} connected to, and what do those links mean?":
+    "{entity} 은(는) 무엇과 연결되어 있고 그 연결은 무엇을 뜻합니까?",
+  "How are {entity} and {other} related?":
+    "{entity} 와(과) {other} 는 어떤 관계입니까?",
+  "What are the main themes across this index?":
+    "이 색인 전체를 관통하는 주제는 무엇입니까?",
+  "What do {community} and {other} each cover, and how do they connect?":
+    "{community} 와(과) {other} 는 각각 무엇을 다루고 서로 어떻게 이어집니까?",
+  "Ranks entities against the question, then reads their neighbours and source text.":
+    "질문과 가까운 엔티티를 고른 뒤 그 이웃과 원문을 읽습니다.",
+  "Two starting points at once: checks that the context keeps both and their shared links.":
+    "출발점이 둘입니다. 컨텍스트가 둘과 공통 연결을 모두 담는지 확인합니다.",
+  "Reads every community summary at the chosen level; nothing else reaches the model.":
+    "선택한 레벨의 커뮤니티 요약만 읽습니다. 그 밖의 것은 모델에 가지 않습니다.",
+  "Names two summaries, so a wrong answer points at the summary rather than the retrieval.":
+    "요약 두 개를 지목합니다. 답이 틀리면 검색이 아니라 요약을 짚을 수 있습니다.",
   // search
   "Reports": "보고서",
   "Ask": "질문",
@@ -195,6 +213,15 @@ const KO: Record<string, string> = {
   "Around {entity}": "{entity} 주변",
   "Fold leaves": "잎 묶기",
   "See on map": "지도에서 보기",
+  "one record at the centre": "레코드 하나를 가운데로",
+  "centred on {title}": "중심: {title}",
+  "Back to the schema": "스키마로 돌아가기",
+  "a few of each kind": "종류마다 대표만",
+  "all of the data": "전체 데이터",
+  "{title} has {neighbours} neighbours over {relationships} relationships, in {groups} kinds.": "{title}은(는) 관계 {relationships}개로 이웃 {neighbours}개와 이어져 있고, 종류는 {groups}가지입니다.",
+  "A few of each kind are named; click a dashed bubble to open the rest, or switch to all of the data.": "종류마다 대표만 이름을 답니다. 점선 묶음을 누르면 나머지가 펼쳐지고, 전체 데이터로 바꿔도 됩니다.",
+  "Everything it touches is drawn.": "닿는 것을 모두 그렸습니다.",
+  "Click a record to move the centre there.": "레코드를 누르면 중심이 그쪽으로 옮겨 갑니다.",
   "{rows} of {rowsTotal} {from} by {cols} of {colsTotal} {to}. {pairs} of {possible} cells are filled: {breakdown}.": "{from} {rowsTotal}개 중 {rows}개 × {to} {colsTotal}개 중 {cols}개. 칸 {possible}개 가운데 {pairs}개가 찼습니다: {breakdown}.",
   "Matrix": "행렬",
   "Two entity types as a grid, which is the readable form of a dense block": "두 유형을 격자로. 촘촘한 덩어리는 이 형태라야 읽힙니다",

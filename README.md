@@ -84,6 +84,11 @@ such as a permission block, is a hairball under any layout, and one that hangs e
 hubs is really a list of counts. The schema view measures both and sends you to the form that reads:
 a grid for a dense pair, counts per hub for a star, arrows for the rest.
 
+Clicking a record centres the graph on it and abstracts the rest: a few neighbours of each kind are
+drawn with their names, and everything else becomes a dashed bubble carrying a count, one per
+relationship and neighbour type. A bubble opens on click, and a switch draws all of the data when
+that is what you want. A role with 274 neighbours reads as eight names, two bubbles and four labels.
+
 Three pictures answer three different questions, and they are wired to each other.
 
 1. **Schema** draws the shape of the index: one node per entity type, one arrow per relationship

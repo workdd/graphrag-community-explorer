@@ -100,6 +100,13 @@ export function Overview({ result, label, onReset, datasets, activeData, onOpenD
   // A slice of the schema carried into the data views, so a type or a triple can be followed through.
   const [spotlight, setSpotlight] = useState<Spotlight>(null);
   const [pair, setPair] = useState<{ from: string; to: string } | null>(null);
+  const [networkSeed, setNetworkSeed] = useState<string | null>(null);
+  // One record is the way in: the graph centres on it and keeps the rest of its neighbours counted.
+  const openRecord = (entityId: string) => {
+    setNetworkSeed(entityId);
+    setFocus({ kind: "entity", id: entityId });
+    setView("network");
+  };
   // A dense triple is unreadable as arrows, so picking one opens the grid instead of the graph.
   const openMatrix = (from: string, to: string) => {
     setPair({ from, to });
@@ -235,7 +242,7 @@ export function Overview({ result, label, onReset, datasets, activeData, onOpenD
             ))}
           </select>
         )}
-        <EntityFinder dataset={dataset} onExplore={explore} />
+        <EntityFinder dataset={dataset} onExplore={openRecord} />
         <LangToggle />
         <button className="btn" onClick={onReset}>{t("Open another dataset")}</button>
       </header>
@@ -298,6 +305,8 @@ export function Overview({ result, label, onReset, datasets, activeData, onOpenD
             spotlight={spotlight}
             onClearSpotlight={() => setSpotlight(null)}
             onSpotlight={setSpotlight}
+            seed={networkSeed}
+            onSeed={setNetworkSeed}
           />
         ) : view === "formation" ? (
           <FormationView dataset={dataset} partition={realPartition ?? null} selected={selected} spotlight={spotlight} onFocus={setFocus} />
