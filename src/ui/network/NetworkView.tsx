@@ -48,8 +48,10 @@ const boxLabel = (entity: Entity) => {
 type Order = "degree" | "name";
 type Positions = Record<string, { x: number; y: number }>;
 
-/** How many records a sample draws when a whole type or the whole graph is asked for. */
+/** How many records a sample draws when the whole graph is asked for at once. */
 const SAMPLE = 800;
+/** Records named when a type or a group is opened. Everything past this is one bubble with a count. */
+const REPRESENTATIVES = 2;
 const LABEL_LIMIT = 150;
 const FAINT_EDGES = 400;
 const BAND = { width: 240, boxWidth: 190, boxHeight: 22, gap: 8, top: 46 };
@@ -86,6 +88,8 @@ export function NetworkView({ dataset, partition, focus, onFocus, selectedCommun
   const [arrange, setArrange] = useState<Arrange>("schema");
   // Types opened into their records; everything else stays a single node of the schema.
   const [opened, setOpened] = useState<Set<string>>(new Set());
+  // Types the reader asked to see in full, one bubble click at a time.
+  const [fullTypes, setFullTypes] = useState<Set<string>>(new Set());
   // One record at the centre, its neighbours grouped: a few named and the rest kept as a count.
   const seedId = seed;
   const [openGroups, setOpenGroups] = useState<Set<string>>(new Set());
@@ -164,7 +168,7 @@ export function NetworkView({ dataset, partition, focus, onFocus, selectedCommun
   }, [dataset, hiddenTypes, hiddenRelationships, cap, isolated, showAll]);
 
   const ego: EgoModel | null = useMemo(
-    () => (arrange === "focus" && seedId ? egoSummary(dataset, seedId, { perGroup: showAll ? cap : 3, perOpenGroup: cap, opened: openGroups }) : null),
+    () => (arrange === "focus" && seedId ? egoSummary(dataset, seedId, { perGroup: showAll ? cap : REPRESENTATIVES, perOpenGroup: cap, opened: openGroups }) : null),
     [arrange, seedId, dataset, showAll, openGroups, cap],
   );
 
@@ -270,13 +274,15 @@ export function NetworkView({ dataset, partition, focus, onFocus, selectedCommun
     const drawnTypes = schema.nodes.filter((node) => !hiddenTypes.has(node.type));
     const open = new Set([...opened].filter((type) => !hiddenTypes.has(type)));
     // Records of the opened types only, and the busiest first when a type is large.
-    const perType = showAll ? cap : Math.max(40, Math.floor(cap / Math.max(open.size, 1)));
     const records = new Map<string, Entity[]>();
+    const rest = new Map<string, number>();
     for (const type of open) {
-      records.set(type, [...dataset.entities.values()]
+      const all = [...dataset.entities.values()]
         .filter((entity) => entity.type === type)
-        .sort((a, b) => b.degree - a.degree || a.title.localeCompare(b.title))
-        .slice(0, perType));
+        .sort((a, b) => b.degree - a.degree || a.title.localeCompare(b.title));
+      const limit = showAll || fullTypes.has(type) ? cap : REPRESENTATIVES;
+      records.set(type, all.slice(0, limit));
+      rest.set(type, Math.max(0, all.length - limit));
     }
     const drawnIds = new Set([...records.values()].flat().map((entity) => entity.id));
     const nodes: cytoscape.ElementDefinition[] = drawnTypes.map((node) => ({
@@ -293,6 +299,15 @@ export function NetworkView({ dataset, partition, focus, onFocus, selectedCommun
       },
     }));
     for (const [type, list] of records) {
+      const hidden = rest.get(type) ?? 0;
+      if (hidden > 0) {
+        const colour = colors.get(type) ?? "#8c96a0";
+        nodes.push({
+          group: "nodes" as const,
+          classes: "summary",
+          data: { id: `sum:type:${type}`, parent: `type:${type}`, label: `+${fmt(hidden)}`, size: 30 + Math.min(24, Math.log1p(hidden) * 6), color: colour, paint: colour, fullType: type },
+        });
+      }
       for (const entity of list) {
         nodes.push({
           group: "nodes" as const,
@@ -342,7 +357,7 @@ export function NetworkView({ dataset, partition, focus, onFocus, selectedCommun
       },
     }));
     return [...nodes, ...direct, ...agg];
-  }, [arrange, schema, opened, hiddenTypes, hiddenRelationships, cap, showAll, dataset, colors]);
+  }, [arrange, schema, opened, fullTypes, hiddenTypes, hiddenRelationships, cap, showAll, dataset, colors]);
 
   const entityElements = useMemo((): cytoscape.ElementDefinition[] => {
     if (arrange === "schema") return [];
@@ -541,6 +556,12 @@ export function NetworkView({ dataset, partition, focus, onFocus, selectedCommun
         else next.add(type);
         return next;
       });
+      setFullTypes((prev) => {
+        if (!prev.has(type)) return prev;
+        const next = new Set(prev);
+        next.delete(type);
+        return next;
+      });
     });
     cy.on("tap", "node.record", (event) => {
       const id = event.target.id();
@@ -551,8 +572,13 @@ export function NetworkView({ dataset, partition, focus, onFocus, selectedCommun
       setArrange("focus");
     });
     cy.on("tap", "node.summary", (event) => {
+      const type = event.target.data("fullType") as string | undefined;
+      if (type) {
+        setFullTypes((prev) => new Set([...prev, type]));
+        return;
+      }
       const key = event.target.data("groupKey") as string;
-      setOpenGroups((prev) => new Set([...prev, key]));
+      if (key) setOpenGroups((prev) => new Set([...prev, key]));
     });
     cy.on("tap", "node", (event) => {
       if (event.target.hasClass("typenode") || event.target.hasClass("typebox") || event.target.hasClass("record")) return;
@@ -768,7 +794,7 @@ export function NetworkView({ dataset, partition, focus, onFocus, selectedCommun
 
       <div className="graph-canvas-wrap" ref={wrap}>
         <div className="graph-canvas" ref={host} />
-        {!ready && <div className="view-loading">{t("Laying out {n} entities…", { n: fmt(view.nodes.length) })}</div>}
+        {!ready && <div className="view-loading">{t("Laying out {n} nodes…", { n: fmt(elements.filter((element) => element.group === "nodes").length) })}</div>}
       </div>
 
       <p className="graph-stats">
@@ -790,7 +816,7 @@ export function NetworkView({ dataset, partition, focus, onFocus, selectedCommun
               types: fmt(schemaCounts.types), open: opened.size === 0 ? t("none") : [...opened].join(", "),
               records: fmt(schemaCounts.records), edges: fmt(schemaCounts.edges),
             })}{" "}
-            {showAll ? t("Opening a type draws every record it has.") : t("Opening a type draws its busiest records.")}{" "}
+            {showAll ? t("Opening a type draws every record it has.") : t("Opening a type names its two busiest records and counts the rest; click the bubble to open them.")}{" "}
             {t("Click a type to open or close it.")}{" "}
           </>
         ) : (

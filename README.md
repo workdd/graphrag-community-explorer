@@ -89,8 +89,11 @@ drawn with their names, everything else becomes a dashed bubble carrying a count
 shows what those neighbours reach in turn: two names and one count each. A role with 274 neighbours
 reads as twenty nodes. A bubble opens on click.
 
-Every node carries its entity type above its name, and one switch decides how much is drawn: part of
-the data, which is a readable sample, or all of it. There is no node-count dial.
+Opening a type in the schema names its two busiest records and keeps the rest as one bubble with a
+count, which opens on click. Nothing anywhere asks you to choose a number of nodes: one switch says
+part of the data or all of it, and part always means a couple of representatives plus a count.
+
+Every node carries its entity type above its name.
 
 Three pictures answer three different questions, and they are wired to each other.
 

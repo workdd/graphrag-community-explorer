@@ -230,6 +230,8 @@ const KO: Record<string, string> = {
   "Around {entity}": "{entity} 주변",
   "Fold leaves": "잎 묶기",
   "See on map": "지도에서 보기",
+  "Laying out {n} nodes…": "노드 {n}개 배치 중…",
+  "Opening a type names its two busiest records and counts the rest; click the bubble to open them.": "유형을 열면 연결이 많은 레코드 2개만 이름을 달고 나머지는 개수로 접힙니다. 묶음을 누르면 펼쳐집니다.",
   "Opening a type draws its busiest records.": "유형을 열면 연결이 많은 레코드부터 그립니다.",
   "The busiest are kept; switch to all of the data to see the rest.": "연결이 많은 쪽을 남깁니다. 나머지는 전체 데이터로 바꾸면 보입니다.",
   "The outer ring is what those neighbours reach in turn.": "바깥 고리는 그 이웃들이 다시 닿는 것입니다.",

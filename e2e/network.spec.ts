@@ -55,3 +55,12 @@ test("part and whole are the same switch in every arrangement", async ({ page })
   // Whole means whole, isolated records included.
   await expect(page.locator(".graph-stats")).toContainText("189 of 189 entities");
 });
+
+test("opening a type names two records and counts the rest", async ({ page }) => {
+  await page.goto("/?data=./samples/demo#view=network");
+  await expect(page.locator(".graph-stats")).toContainText("types drawn", { timeout: 30_000 });
+  await expect(page.locator(".graph-stats")).toContainText("names its two busiest records");
+  // Nothing on screen offers a node count to choose.
+  await expect(page.locator(".control", { hasText: "At most" })).toHaveCount(0);
+  await expect(page.locator(".graph-view")).not.toContainText("800");
+});
