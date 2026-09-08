@@ -2,7 +2,9 @@ import { useEffect, useMemo, useRef, useState } from "react";
 import cytoscape from "cytoscape";
 import fcose from "cytoscape-fcose";
 import { typeColors } from "../../core/graph/palette";
+import { nestingRatio } from "../../core/graph/map";
 import { communitiesOf, neighborhoodSubgraph } from "../../core/graph/neighborhood";
+import { pathTo } from "../../core/hierarchy";
 import { displayTitle } from "../../core/graph/palette";
 import { bundleLeaves, communitySubgraph } from "../../core/graph/subgraph";
 import type { Dataset, Partition } from "../../core/model";
@@ -30,6 +32,8 @@ interface Props {
   mode: GraphMode;
   onHopsChange: (hops: number) => void;
   onLeaveNeighborhood: () => void;
+  /** Opens the map with the parents of these communities expanded, the paper's upper plane. */
+  onShowOnMap: (communityIds: string[]) => void;
 }
 
 const NODE_LIMITS = [200, 500, 1000, 0];
@@ -41,7 +45,7 @@ const FAINT_EDGE_LIMIT = 300;
 const DOMINANT_SHARE = 0.5;
 const DOMINANT_MIN_EDGES = 150;
 
-export function CommunityGraph({ dataset, partition, communityIds: selectedIds, focus, onFocus, onRemoveCommunity, mode, onHopsChange, onLeaveNeighborhood }: Props) {
+export function CommunityGraph({ dataset, partition, communityIds: selectedIds, focus, onFocus, onRemoveCommunity, mode, onHopsChange, onLeaveNeighborhood, onShowOnMap }: Props) {
   const { t } = useT();
   const [maxNodes, setMaxNodes] = useState(500);
   const [showBoundary, setShowBoundary] = useState(true);
@@ -207,8 +211,9 @@ export function CommunityGraph({ dataset, partition, communityIds: selectedIds, 
 
     const observer = new ResizeObserver(() => cy.resize());
     observer.observe(host.current);
-    // Clouds: one per container, wrapping the rendered positions of its member nodes.
-    const groups = communityIds.map((id, i) => {
+    // Clouds: one per container, wrapping the rendered positions of its member nodes; when the hierarchy
+    // is a real containment, each ancestor gets a larger dashed cloud around everything below it.
+    const leafGroups = communityIds.map((id, i) => {
       const community = partition.communities.get(id);
       const key = parentId(id);
       return {
@@ -218,6 +223,25 @@ export function CommunityGraph({ dataset, partition, communityIds: selectedIds, 
         elementIds: elements.filter((el) => el.group === "nodes" && el.data.parent === key).map((el) => el.data.id as string),
       };
     });
+    const ancestors = new Map<string, Set<string>>();
+    if (nestingRatio(partition) >= 0.9) {
+      for (const group of leafGroups) {
+        for (const ancestor of pathTo(partition, group.id).slice(0, -1)) {
+          if (communityIds.includes(ancestor.id)) continue;
+          const set = ancestors.get(ancestor.id) ?? new Set<string>();
+          group.elementIds.forEach((id) => set.add(id));
+          ancestors.set(ancestor.id, set);
+        }
+      }
+    }
+    const outerGroups = [...ancestors.entries()]
+      .map(([id, ids], i) => {
+        const community = partition.communities.get(id);
+        return { id, label: community ? `${community.title} (${community.entityIds.length})` : id, ...cloudColors(i + 7, true), elementIds: [...ids], outer: true };
+      })
+      .sort((a, b) => (partition.communities.get(a.id)?.size ?? 0) - (partition.communities.get(b.id)?.size ?? 0))
+      .reverse();
+    const groups = [...outerGroups, ...leafGroups];
     const detachClouds = wrapRef.current ? attachClouds(cy, wrapRef.current, () => (backgroundsRef.current === "clouds" && groups.length >= 2 ? groups : [])) : () => undefined;
     cyRef.current = cy;
     // Test hook: end-to-end checks drive the canvas through it (dev builds only).
@@ -331,13 +355,19 @@ export function CommunityGraph({ dataset, partition, communityIds: selectedIds, 
                 </select>
               </label>
               <button className="btn" onClick={onLeaveNeighborhood}>{t("Back to the community")}</button>
+              <button className="btn" onClick={() => onShowOnMap(communityIds)} title={t("The communities of this graph as nodes inside their parents")}>{t("See on map")}</button>
             </>
-          ) : included.map((c, i) => (
-            <span key={c.id} className="chip static">
-              {c.title} ({fmt(c.entityIds.length)})
-              {i > 0 && <button className="chip-x" aria-label={t("Remove {title} from the graph", { title: c.title })} onClick={() => onRemoveCommunity(c.id)}>×</button>}
-            </span>
-          ))}
+          ) : (
+            <>
+              {included.map((c, i) => (
+                <span key={c.id} className="chip static">
+                  {c.title} ({fmt(c.entityIds.length)})
+                  {i > 0 && <button className="chip-x" aria-label={t("Remove {title} from the graph", { title: c.title })} onClick={() => onRemoveCommunity(c.id)}>×</button>}
+                </span>
+              ))}
+              <button className="btn" onClick={() => onShowOnMap(communityIds)} title={t("The communities of this graph as nodes inside their parents")}>{t("See on map")}</button>
+            </>
+          )}
         </div>
         <div className="graph-controls">
           <input className="field" placeholder={t("Find an entity")} aria-label={t("Find an entity")} value={query} onChange={(e) => setQuery(e.target.value)} onKeyDown={(e) => e.key === "Enter" && find()} />

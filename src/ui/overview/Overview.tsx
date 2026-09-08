@@ -4,6 +4,17 @@ import { checkIntegrity } from "../../core/metrics/integrity";
 import { datasetCounts, summarizePartition } from "../../core/metrics/summary";
 import type { GraphFocus, GraphMode } from "../graph/CommunityGraph";
 import { displayTitle } from "../../core/graph/palette";
+import { nestingRatio } from "../../core/graph/map";
+import { pathTo } from "../../core/hierarchy";
+import type { Dataset, Partition } from "../../core/model";
+import { Mark } from "../Mark";
+import { LangToggle, Rich, useT } from "../i18n";
+import { fmt, pct } from "../format";
+import { CommunityTable } from "./CommunityTable";
+import { EntityList } from "./EntityList";
+import { HierarchyTree } from "./HierarchyTree";
+import { Inspector } from "./Inspector";
+import { IntegrityPanel } from "./IntegrityPanel";
 
 // Heavy views (Cytoscape) load on demand so the overview appears before the graph code downloads.
 const CommunityGraph = lazy(() => import("../graph/CommunityGraph").then((m) => ({ default: m.CommunityGraph })));
@@ -12,20 +23,42 @@ const QualityView = lazy(() => import("../quality/QualityView").then((m) => ({ d
 
 type View = "table" | "map" | "graph" | "quality";
 const VIEWS: View[] = ["table", "map", "graph", "quality"];
+type Backgrounds = "boxes" | "clouds";
 
-/** #view=map&set=leiden&community=11 makes the current screen shareable; ?data= stays in the query. */
-function readHash(): { view?: View; set?: string; community?: string; entity?: string } {
-  const params = new URLSearchParams(window.location.hash.replace(/^#/, ""));
-  const view = params.get("view") as View | null;
-  return { view: view && VIEWS.includes(view) ? view : undefined, set: params.get("set") ?? undefined, community: params.get("community") ?? undefined, entity: params.get("entity") ?? undefined };
+interface HashState {
+  view: View;
+  set: string;
+  community: string | null;
+  entity: string | null;
+  open: string[];
+  hops: number;
 }
-import { Mark } from "../Mark";
-import { LangToggle, Rich, useT } from "../i18n";
-import { fmt, pct } from "../format";
-import { CommunityTable } from "./CommunityTable";
-import { HierarchyTree } from "./HierarchyTree";
-import { Inspector } from "./Inspector";
-import { IntegrityPanel } from "./IntegrityPanel";
+
+/**
+ * #view=map&set=leiden&community=11&open=1,4&entity=…&hops=3 makes the current screen shareable; ?data= stays in
+ * the query. Ids that the loaded dataset does not know (a link made from another index) are dropped rather than
+ * shown as broken, and views that need communities fall back to the overview when there are none.
+ */
+function readHash(dataset: Dataset): HashState {
+  const params = new URLSearchParams(window.location.hash.replace(/^#/, ""));
+  const set = params.get("set");
+  const setId = set && dataset.partitions.some((p) => p.id === set) ? set : dataset.partitions[0]?.id ?? "";
+  const partition = dataset.partitions.find((p) => p.id === setId);
+  const rawCommunity = params.get("community");
+  const community = rawCommunity && partition?.communities.has(rawCommunity) ? rawCommunity : null;
+  const rawEntity = params.get("entity");
+  const entity = rawEntity && dataset.entities.has(rawEntity) ? rawEntity : null;
+  const open = (params.get("open") ?? "").split(",").filter((id) => partition?.communities.has(id) || id === "unassigned");
+  const hops = Number(params.get("hops"));
+  const rawView = params.get("view") as View | null;
+  let view: View = rawView && VIEWS.includes(rawView) ? rawView : "table";
+  if (view === "graph" && !community && !entity) view = "table";
+  if ((view === "map" || view === "quality") && !partition) view = "table";
+  return { view, set: setId, community, entity, open, hops: [1, 2, 3].includes(hops) ? hops : 2 };
+}
+
+/** Stand-in for indexes shipped without communities.parquet: the graph still works around an entity. */
+const EMPTY_PARTITION: Partition = { id: "none", label: "none", communities: new Map(), levels: [], rootLevel: 0 };
 
 interface Props {
   result: LoadResult;
@@ -36,22 +69,27 @@ interface Props {
 export function Overview({ result, label, onReset }: Props) {
   const { t } = useT();
   const { dataset, notes } = result;
-  const [initial] = useState(readHash);
-  const [partitionId, setPartitionId] = useState(() => (initial.set && dataset.partitions.some((p) => p.id === initial.set) ? initial.set : dataset.partitions[0]?.id ?? ""));
-  const [selectedId, setSelectedId] = useState<string | null>(() => initial.community ?? null);
-  const [view, setView] = useState<View>(() => (initial.view === "graph" && !initial.community && !initial.entity ? "table" : initial.view ?? "table"));
-  const [mapExpanded, setMapExpanded] = useState<Set<string>>(new Set());
-  const [focus, setFocus] = useState<GraphFocus>(null);
+  const [initial] = useState(() => readHash(dataset));
+  const [partitionId, setPartitionId] = useState(initial.set);
+  const [selectedId, setSelectedId] = useState<string | null>(initial.community);
+  const [view, setView] = useState<View>(initial.view);
+  const [mapExpanded, setMapExpanded] = useState<Set<string>>(() => new Set(initial.open));
+  const [mapBackgrounds, setMapBackgrounds] = useState<Backgrounds>("boxes");
+  const [focus, setFocus] = useState<GraphFocus>(() => (initial.entity ? { kind: "entity", id: initial.entity } : null));
   const [extraIds, setExtraIds] = useState<string[]>([]);
-  const [graphMode, setGraphMode] = useState<GraphMode>(() => (initial.entity && dataset.entities.has(initial.entity) ? { kind: "neighborhood", entityId: initial.entity, hops: 2 } : { kind: "communities" }));
-  const partition = dataset.partitions.find((p) => p.id === partitionId) ?? dataset.partitions[0];
+  const [graphMode, setGraphMode] = useState<GraphMode>(() => (initial.entity ? { kind: "neighborhood", entityId: initial.entity, hops: initial.hops } : { kind: "communities" }));
+  const realPartition = dataset.partitions.find((p) => p.id === partitionId) ?? dataset.partitions[0];
+  const partition = realPartition ?? EMPTY_PARTITION;
+  // Only a properly nested hierarchy can open a community inside its parents on the map.
+  const nested = useMemo(() => nestingRatio(partition) >= 0.9, [partition]);
+  const ancestorsOf = (ids: string[]) => ids.flatMap((id) => pathTo(partition, id).slice(0, -1).map((c) => c.id));
 
   const counts = useMemo(() => datasetCounts(dataset), [dataset]);
-  const summary = useMemo(() => (partition ? summarizePartition(dataset, partition) : null), [dataset, partition]);
-  const integrity = useMemo(() => (partition ? checkIntegrity(dataset, partition) : []), [dataset, partition]);
+  const summary = useMemo(() => (realPartition ? summarizePartition(dataset, realPartition) : null), [dataset, realPartition]);
+  const integrity = useMemo(() => (realPartition ? checkIntegrity(dataset, realPartition) : []), [dataset, realPartition]);
 
-  const levels = partition?.levels ?? [];
-  const selected = selectedId && partition ? partition.communities.get(selectedId) ?? null : null;
+  const levels = realPartition?.levels ?? [];
+  const selected = selectedId && realPartition ? realPartition.communities.get(selectedId) ?? null : null;
   const graphIds = useMemo(() => (selectedId ? [selectedId, ...extraIds.filter((id) => id !== selectedId)] : []), [selectedId, extraIds]);
 
   // Every view or selection change is a history entry, so the browser's back button walks the trail.
@@ -59,29 +97,34 @@ export function Overview({ result, label, onReset }: Props) {
   useEffect(() => {
     const params = new URLSearchParams();
     if (view !== "table") params.set("view", view);
-    if (partition && dataset.partitions.length > 1) params.set("set", partition.id);
+    if (realPartition && dataset.partitions.length > 1) params.set("set", realPartition.id);
     if (selectedId) params.set("community", selectedId);
-    if (graphMode.kind === "neighborhood") params.set("entity", graphMode.entityId);
-    const hash = params.toString();
+    if (graphMode.kind === "neighborhood") {
+      params.set("entity", graphMode.entityId);
+      if (graphMode.hops !== 2) params.set("hops", String(graphMode.hops));
+    }
+    if (mapExpanded.size > 0) params.set("open", [...mapExpanded].join(","));
+    const hash = params.toString().replace(/%2C/g, ",");
     const target = `${window.location.pathname}${window.location.search}${hash ? `#${hash}` : ""}`;
     const current = `${window.location.pathname}${window.location.search}${window.location.hash}`;
     if (target !== current) window.history.pushState(null, "", target);
-  }, [view, partition, selectedId, graphMode, dataset]);
+  }, [view, realPartition, selectedId, graphMode, mapExpanded, dataset]);
 
   useEffect(() => {
     const onPop = () => {
-      const h = readHash();
-      setPartitionId(h.set && dataset.partitions.some((p) => p.id === h.set) ? h.set : dataset.partitions[0]?.id ?? "");
-      setSelectedId(h.community ?? null);
+      const h = readHash(dataset);
+      setPartitionId(h.set);
+      setSelectedId(h.community);
       setExtraIds([]);
-      if (h.entity && dataset.entities.has(h.entity)) {
-        setGraphMode({ kind: "neighborhood", entityId: h.entity, hops: 2 });
+      setMapExpanded(new Set(h.open));
+      if (h.entity) {
+        setGraphMode({ kind: "neighborhood", entityId: h.entity, hops: h.hops });
         setFocus({ kind: "entity", id: h.entity });
       } else {
         setGraphMode({ kind: "communities" });
         setFocus(null);
       }
-      setView(h.view === "graph" && !h.community && !h.entity ? "table" : h.view ?? "table");
+      setView(h.view);
     };
     window.addEventListener("popstate", onPop);
     return () => window.removeEventListener("popstate", onPop);
@@ -112,6 +155,27 @@ export function Overview({ result, label, onReset }: Props) {
     setExtraIds((prev) => (prev.includes(id) ? prev : [...prev, id]));
     setView("graph");
   };
+  // The paper's upper plane: the graph's communities become nodes inside their opened parents.
+  const showOnMap = (ids: string[]) => {
+    setMapExpanded(new Set(nested ? ancestorsOf(ids) : []));
+    setMapBackgrounds("clouds");
+    // Select the most specific community of the graph, not one of the ancestors it sits in.
+    const deepest = [...ids].sort((a, b) => (partition.communities.get(b)?.level ?? -1) - (partition.communities.get(a)?.level ?? -1))[0];
+    if (deepest) setSelectedId(deepest);
+    setFocus(null);
+    setView("map");
+  };
+  // Opening a community whose parent is closed would draw nothing, so its ancestors open with it.
+  const toggleInMap = () => {
+    if (!selectedId) return;
+    const next = new Set(mapExpanded);
+    if (next.has(selectedId)) next.delete(selectedId);
+    else {
+      next.add(selectedId);
+      if (nested) ancestorsOf([selectedId]).forEach((id) => next.add(id));
+    }
+    setMapExpanded(next);
+  };
 
   return (
     <div className="app">
@@ -122,7 +186,7 @@ export function Overview({ result, label, onReset }: Props) {
           {label}: {dataset.source.files.join(", ")}
         </span>
         {dataset.partitions.length > 1 && (
-          <select aria-label={t("Community set")} value={partition?.id} onChange={(e) => changePartition(e.target.value)}>
+          <select aria-label={t("Community set")} value={realPartition?.id} onChange={(e) => changePartition(e.target.value)}>
             {dataset.partitions.map((p) => (
               <option key={p.id} value={p.id}>
                 {p.label} ({p.communities.size})
@@ -146,10 +210,10 @@ export function Overview({ result, label, onReset }: Props) {
             <dd>{counts.relationshipTypes.size}</dd>
           </dl>
         </section>
-        {partition ? (
-          <HierarchyTree partition={partition} selectedId={selectedId} onSelect={select} />
+        {realPartition ? (
+          <HierarchyTree partition={realPartition} selectedId={selectedId} onSelect={select} />
         ) : (
-          <section className="rail-section muted">{t("No communities.parquet was loaded, so there is no hierarchy to show.")}</section>
+          <EntityList dataset={dataset} focusId={focus?.kind === "entity" ? focus.id : null} onFocus={(id) => setFocus({ kind: "entity", id })} />
         )}
       </aside>
 
@@ -157,8 +221,8 @@ export function Overview({ result, label, onReset }: Props) {
         <div className="main-head">
           <div className="segmented" role="tablist">
             <button role="tab" aria-selected={view === "table"} className={view === "table" ? "active" : ""} onClick={() => setView("table")}>{t("Overview")}</button>
-            <button role="tab" aria-selected={view === "map"} className={view === "map" ? "active" : ""} disabled={!partition} onClick={() => setView("map")}>{t("Map")}</button>
-            <button role="tab" aria-selected={view === "quality"} className={view === "quality" ? "active" : ""} disabled={!partition} onClick={() => setView("quality")}>{t("Quality")}</button>
+            <button role="tab" aria-selected={view === "map"} className={view === "map" ? "active" : ""} disabled={!realPartition} title={realPartition ? undefined : t("Needs communities.parquet")} onClick={() => setView("map")}>{t("Map")}</button>
+            <button role="tab" aria-selected={view === "quality"} className={view === "quality" ? "active" : ""} disabled={!realPartition} title={realPartition ? undefined : t("Needs communities.parquet")} onClick={() => setView("quality")}>{t("Quality")}</button>
             <button
               role="tab"
               aria-selected={view === "graph"}
@@ -173,20 +237,22 @@ export function Overview({ result, label, onReset }: Props) {
         </div>
 
         <Suspense fallback={<div className="view-loading">{t("Loading view…")}</div>}>
-        {view === "quality" && partition ? (
-          <QualityView dataset={dataset} partition={partition} selectedId={selectedId} onSelect={select} />
-        ) : view === "map" && partition ? (
+        {view === "quality" && realPartition ? (
+          <QualityView dataset={dataset} partition={realPartition} selectedId={selectedId} onSelect={select} />
+        ) : view === "map" && realPartition ? (
           <CommunityMap
             dataset={dataset}
-            partition={partition}
+            partition={realPartition}
             expanded={mapExpanded}
             onExpandedChange={setMapExpanded}
             selectedId={selectedId}
             onSelect={select}
             focus={focus}
             onFocus={setFocus}
+            backgrounds={mapBackgrounds}
+            onBackgroundsChange={setMapBackgrounds}
           />
-        ) : view === "graph" && partition && (selected || graphMode.kind === "neighborhood") ? (
+        ) : view === "graph" && (selected || graphMode.kind === "neighborhood") ? (
           <CommunityGraph
             dataset={dataset}
             partition={partition}
@@ -197,19 +263,20 @@ export function Overview({ result, label, onReset }: Props) {
             mode={graphMode}
             onHopsChange={(hops) => setGraphMode((m) => (m.kind === "neighborhood" ? { ...m, hops } : m))}
             onLeaveNeighborhood={() => { setGraphMode({ kind: "communities" }); if (!selectedId) setView("table"); }}
+            onShowOnMap={showOnMap}
           />
         ) : (
           <>
             <p className="summary">
               <Rich text="**{entities}** entities and **{relationships}** relationships." vars={{ entities: fmt(counts.entities), relationships: fmt(counts.relationships) }} />{" "}
-              {partition && summary ? (
+              {realPartition && summary ? (
                 <Rich
                   text="**{communities}** communities on **{levels}** level{s}{range}; **{covered}** entities ({coverage}) belong to at least one{multi}."
                   vars={{
-                    communities: fmt(partition.communities.size),
+                    communities: fmt(realPartition.communities.size),
                     levels: levels.length,
                     s: levels.length === 1 ? "" : "s",
-                    range: levels.length > 0 ? ` (L${levels[0]}${levels.length > 1 ? `\u2013L${levels[levels.length - 1]}` : ""})` : "",
+                    range: levels.length > 0 ? ` (L${levels[0]}${levels.length > 1 ? `–L${levels[levels.length - 1]}` : ""})` : "",
                     covered: fmt(summary.coveredEntities),
                     coverage: pct(summary.coverage),
                     multi: summary.multiMembership > 0 ? t(", **{n}** to more than one on the same level", { n: fmt(summary.multiMembership) }) : "",
@@ -223,8 +290,10 @@ export function Overview({ result, label, onReset }: Props) {
 
             <IntegrityPanel notes={notes} findings={integrity} />
 
-            {partition && summary && (
-              <CommunityTable partition={partition} metrics={summary.metrics} selectedId={selectedId} onSelect={select} />
+            {realPartition && summary ? (
+              <CommunityTable partition={realPartition} metrics={summary.metrics} selectedId={selectedId} onSelect={select} />
+            ) : (
+              <p className="muted">{t("No communities.parquet was loaded. Pick an entity on the left and open its neighbourhood; the map and quality views need communities.")}</p>
             )}
           </>
         )}
@@ -234,7 +303,7 @@ export function Overview({ result, label, onReset }: Props) {
       <aside className="inspector">
         <Inspector
           dataset={dataset}
-          partition={partition ?? null}
+          partition={realPartition ?? null}
           community={selected}
           metrics={summary?.metrics}
           focus={focus}
@@ -247,13 +316,7 @@ export function Overview({ result, label, onReset }: Props) {
           onExplore={explore}
           inMap={view === "map"}
           mapOpen={selectedId !== null && mapExpanded.has(selectedId)}
-          onToggleMap={() => {
-            if (!selectedId) return;
-            const next = new Set(mapExpanded);
-            if (next.has(selectedId)) next.delete(selectedId);
-            else next.add(selectedId);
-            setMapExpanded(next);
-          }}
+          onToggleMap={toggleInMap}
         />
       </aside>
     </div>

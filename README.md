@@ -54,7 +54,7 @@ machine with Docker yet.
 | --- | --- |
 | `entities.parquet` | Entity titles, types, descriptions. Required. |
 | `relationships.parquet` | Edges between entity titles. Required. |
-| `communities.parquet` | Levels, parents, members. Without it there is no hierarchy. |
+| `communities.parquet` | Levels, parents, members. Recommended: without it only the entity list and neighbourhood graphs are available (`public/samples/minimal` is such a set). |
 | `community_reports.parquet` | Summaries, findings and ranks. |
 | `text_units.parquet`, `documents.parquet` | Source chunks and documents; the inspector shows the text behind an entity, relationship or community. |
 | `covariates.parquet` | Claims about entities, listed on the entity panel. |

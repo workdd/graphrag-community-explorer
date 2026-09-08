@@ -94,6 +94,9 @@ export function LoadScreen({ state, onFiles, onSample, defaultData, onDefault }:
           <span className="note">{t("A synthetic e-commerce platform with three levels of communities.")}</span>
         </div>
 
+        {window.location.hash.length > 1 && state.status !== "loading" && (
+          <div className="load-status">{t("This link carries a view state; it is restored once the same files are chosen again. Links share the view, never the data.")}</div>
+        )}
         {state.status === "loading" && <div className="load-status">{t("Reading {label}…", { label: state.label })}</div>}
         {state.status === "error" && <div className="load-status error">{state.message}</div>}
 
@@ -107,7 +110,7 @@ export function LoadScreen({ state, onFiles, onSample, defaultData, onDefault }:
           <tbody>
             <tr><td>entities.parquet</td><td>{t("Required. Entity titles, types, descriptions.")}</td></tr>
             <tr><td>relationships.parquet</td><td>{t("Required. Edges between entity titles.")}</td></tr>
-            <tr><td>communities.parquet</td><td>{t("Hierarchy, levels and members. Without it the dataset has no partition.")}</td></tr>
+            <tr><td>communities.parquet</td><td>{t("Recommended. Hierarchy, levels and members; without it only the entity list and neighbourhood graphs are available.")}</td></tr>
             <tr><td>community_reports.parquet</td><td>{t("Summaries, findings and ranks shown in the inspector.")}</td></tr>
             <tr><td>&lt;label&gt;_communities.parquet</td><td>{t("Any extra community set (for example leiden_communities.parquet) becomes a switchable partition.")}</td></tr>
           </tbody>

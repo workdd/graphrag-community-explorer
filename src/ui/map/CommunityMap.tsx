@@ -3,6 +3,7 @@ import cytoscape from "cytoscape";
 import { UNASSIGNED_ID, buildMapModel, communityKey, entityKey, nestingRatio } from "../../core/graph/map";
 import { typeColors } from "../../core/graph/palette";
 import { hashText } from "../../core/graph/seed";
+import { pathTo } from "../../core/hierarchy";
 import type { Dataset, Partition } from "../../core/model";
 import { exportCytoscapePng } from "../download";
 import { fmt } from "../format";
@@ -22,6 +23,8 @@ interface Props {
   onSelect: (id: string) => void;
   focus: GraphFocus;
   onFocus: (focus: GraphFocus) => void;
+  backgrounds: "boxes" | "clouds";
+  onBackgroundsChange: (next: "boxes" | "clouds") => void;
 }
 
 const ENTITY_BUDGETS = [300, 800, 1500];
@@ -32,12 +35,12 @@ export function CommunityMap(props: Props) {
   const { t } = useT();
   const tRef = useRef(t);
   tRef.current = t;
-  const { dataset, partition, expanded, onExpandedChange, selectedId, focus } = props;
+  const { dataset, partition, expanded, onExpandedChange, selectedId, focus, backgrounds, onBackgroundsChange } = props;
   const [baseLevel, setBaseLevel] = useState<number | null>(null);
   const [showUnassigned, setShowUnassigned] = useState(true);
   const [maxEntities, setMaxEntities] = useState(800);
-  const [backgrounds, setBackgrounds] = useState<"boxes" | "clouds">("boxes");
   const backgroundsRef = useRef(backgrounds);
+  const selectFromCanvas = useRef(false);
   backgroundsRef.current = backgrounds;
   const wrapRef = useRef<HTMLDivElement>(null);
   const [nonce, setNonce] = useState(0);
@@ -57,6 +60,17 @@ export function CommunityMap(props: Props) {
     () => buildMapModel(dataset, partition, { baseLevel, expanded, showUnassigned, maxEntities }),
     [dataset, partition, baseLevel, expanded, showUnassigned, maxEntities],
   );
+  // A community picked in the tree or the inspector may sit inside a closed parent or on another level.
+  const hiddenSelection = useMemo(() => {
+    const community = selectedId ? partition.communities.get(selectedId) : undefined;
+    return community && !model.communities.some((c) => c.community.id === selectedId) ? community : null;
+  }, [selectedId, partition, model]);
+  const revealSelection = () => {
+    if (!hiddenSelection) return;
+    if (baseLevel === null) onExpandedChange(new Set([...expanded, ...pathTo(partition, hiddenSelection.id).slice(0, -1).map((c) => c.id)]));
+    else setBaseLevel(hiddenSelection.level);
+  };
+
   const colors = useMemo(() => typeColors(model.entities.map((e) => e.entity.type)), [model]);
   const unassignedLabel = t("Not in any community");
   const elements = useMemo(() => buildMapElements(model, partition, colors, positionsRef.current, { unassigned: unassignedLabel }), [model, partition, colors, unassignedLabel]);
@@ -125,6 +139,7 @@ export function CommunityMap(props: Props) {
     cy.on("tap", "node.collapsed, node.container", (event) => {
       const id = event.target.data("communityId") as string;
       setPicked(null);
+      selectFromCanvas.current = true;
       if (id !== UNASSIGNED_ID) propsRef.current.onSelect(id);
     });
     cy.on("dbltap", "node.collapsed, node.container", (event) => toggle(event.target.data("communityId") as string));
@@ -201,7 +216,13 @@ export function CommunityMap(props: Props) {
     if (!cy) return;
     cy.batch(() => {
       cy.elements().removeClass("selected focus neighbor in out");
-      if (selectedId) cy.getElementById(communityKey(selectedId)).addClass("selected");
+      if (selectedId) {
+        const node = cy.getElementById(communityKey(selectedId));
+        node.addClass("selected");
+        // A selection made elsewhere (tree, inspector, graph) is brought into view; a tap on the map is not.
+        if (!node.empty() && !selectFromCanvas.current) cy.animate({ center: { eles: node }, zoom: Math.max(cy.zoom(), 0.7) }, { duration: 300 });
+      }
+      selectFromCanvas.current = false;
       if (focus?.kind === "entity") {
         const node = cy.getElementById(entityKey(focus.id));
         if (node.empty()) return;
@@ -234,7 +255,7 @@ export function CommunityMap(props: Props) {
           </label>
           <label className="control"><input type="checkbox" checked={showUnassigned} onChange={(e) => setShowUnassigned(e.target.checked)} /> {t("Entities in no community")}</label>
           <label className="control">{t("Communities")}
-            <select value={backgrounds} onChange={(e) => setBackgrounds(e.target.value as "boxes" | "clouds")}>
+            <select value={backgrounds} onChange={(e) => onBackgroundsChange(e.target.value as "boxes" | "clouds")}>
               <option value="boxes">{t("boxes")}</option>
               <option value="clouds">{t("clouds")}</option>
             </select>
@@ -253,6 +274,14 @@ export function CommunityMap(props: Props) {
         </div>
       </div>
 
+      {hiddenSelection && (
+        <p className="map-note">
+          {baseLevel === null
+            ? t("{title} sits inside a closed community, so it is not drawn yet.", { title: hiddenSelection.title })
+            : t("{title} is on level {level}, not on the level shown.", { title: hiddenSelection.title, level: hiddenSelection.level })}{" "}
+          <button className="chip" onClick={revealSelection}>{baseLevel === null ? t("Open it here") : t("Show level {level}", { level: hiddenSelection.level })}</button>
+        </p>
+      )}
       {typeCounts.length > 0 && (
         <div className="graph-legend">
           <span className="legend-title">{t("Entity types")}</span>

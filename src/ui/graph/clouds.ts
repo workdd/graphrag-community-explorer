@@ -8,6 +8,8 @@ export interface CloudGroup {
   stroke: string;
   /** Cytoscape element ids whose rendered positions the cloud wraps. */
   elementIds: string[];
+  /** Ancestor communities: drawn first, larger padding, dashed outline. */
+  outer?: boolean;
 }
 
 type Point = { x: number; y: number; r: number };
@@ -84,8 +86,10 @@ export function attachClouds(cy: cytoscape.Core, wrap: HTMLElement, getGroups: (
     ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
     ctx.clearRect(0, 0, width, height);
     const zoom = cy.zoom();
-    const padding = Math.max(14, 26 * zoom);
+    const basePadding = Math.max(14, 26 * zoom);
     for (const group of getGroups()) {
+      const padding = group.outer ? basePadding * 1.9 : basePadding;
+      ctx.setLineDash(group.outer ? [6, 5] : []);
       const points: Point[] = [];
       for (const id of group.elementIds) {
         const node = cy.getElementById(id);
@@ -142,7 +146,9 @@ export function attachClouds(cy: cytoscape.Core, wrap: HTMLElement, getGroups: (
 }
 
 /** Distinct, soft colors per group: golden-angle hues, low alpha fill and a firmer stroke. */
-export function cloudColors(index: number): { fill: string; stroke: string } {
+export function cloudColors(index: number, outer = false): { fill: string; stroke: string } {
   const hue = Math.round((index * 137.508 + 90) % 360);
-  return { fill: `hsla(${hue}, 55%, 55%, 0.16)`, stroke: `hsla(${hue}, 45%, 40%, 0.55)` };
+  return outer
+    ? { fill: `hsla(${hue}, 40%, 60%, 0.07)`, stroke: `hsla(${hue}, 35%, 45%, 0.45)` }
+    : { fill: `hsla(${hue}, 55%, 55%, 0.16)`, stroke: `hsla(${hue}, 45%, 40%, 0.55)` };
 }

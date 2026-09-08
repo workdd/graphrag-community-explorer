@@ -11,8 +11,10 @@ test("interface switches to Korean and remembers it", async ({ page }) => {
   await expect(page.locator(".summary")).toContainText("엔티티 189개, 관계 233개");
   await expect(page.getByRole("tab", { name: "지도" })).toBeVisible();
 
-  // The choice survives a reload.
+  // The choice survives a reload, and so does the dataset (its folder is in the URL).
   await page.reload();
+  await expect(page.locator(".summary")).toContainText("엔티티 189개, 관계 233개");
+  await page.getByRole("button", { name: "다른 데이터셋 열기" }).click();
   await expect(page.getByRole("button", { name: "샘플 데이터셋 열기" })).toBeVisible();
   await page.getByRole("button", { name: "English" }).click();
   await expect(page.getByRole("button", { name: "Open the sample dataset" })).toBeVisible();

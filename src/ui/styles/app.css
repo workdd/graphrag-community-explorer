@@ -230,3 +230,5 @@
 .inspector-body > .btn.primary + h3 { margin-top: 18px; }
 .cloud-layer { position: absolute; inset: 0; pointer-events: none; }
 .graph-canvas { background: transparent; }
+.type-tag { flex: 0 0 auto; max-width: 96px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; color: var(--ink-2); font-size: var(--fs-0); }
+.map-note { display: flex; align-items: center; gap: 8px; margin: 0 0 6px; color: var(--warn); font-size: var(--fs-0); }
