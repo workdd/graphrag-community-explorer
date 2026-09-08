@@ -64,3 +64,11 @@ test("opening a type names two records and counts the rest", async ({ page }) =>
   await expect(page.locator(".control", { hasText: "At most" })).toHaveCount(0);
   await expect(page.locator(".graph-view")).not.toContainText("800");
 });
+
+test("communities are laid out together when the clouds are on", async ({ page }) => {
+  await page.goto("/?data=./samples/demo#view=network");
+  await page.locator(".control", { hasText: "Arrange" }).locator("select").selectOption("force");
+  await page.locator(".control", { hasText: "Communities" }).locator("select").selectOption("clouds");
+  await expect(page.locator("canvas.cloud-layer")).toHaveCount(1);
+  await expect(page.locator(".graph-stats")).toContainText("entities and", { timeout: 30_000 });
+});

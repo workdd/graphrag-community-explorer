@@ -93,6 +93,10 @@ Opening a type in the schema names its two busiest records and keeps the rest as
 count, which opens on click. Nothing anywhere asks you to choose a number of nodes: one switch says
 part of the data or all of it, and part always means a couple of representatives plus a count.
 
+With the community overlay on, the free layout keeps each community together: a community is a
+container the layout must not scatter, and a link that leaves one is given a long ideal length while
+links inside it stay short. The clouds then come out as separate petals rather than one smear.
+
 Names appear as there is room for them. On every pan and zoom the visible nodes are measured in
 screen pixels and the best are named first, so a crowded picture names its hubs and the members of a
 community, and zooming in reveals the rest instead of piling text on text. Zooming spreads the graph

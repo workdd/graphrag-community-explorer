@@ -370,9 +370,26 @@ export function NetworkView({ dataset, partition, focus, onFocus, selectedCommun
 
   const entityElements = useMemo((): cytoscape.ElementDefinition[] => {
     if (arrange === "schema") return [];
+    // A community drawn as a hull round scattered members is a smear across the picture. Making the
+    // community a container instead lets the layout pull its members together, so the hulls come out
+    // tight and side by side. Columns are already grouped by type, so this is for the free layout.
+    const grouped = arrange === "force" && partition !== null;
+    const containers = new Map<string, cytoscape.ElementDefinition>();
+    if (grouped) {
+      for (const entity of view.nodes) {
+        const community = primary.get(entity.id);
+        if (community === undefined || containers.has(community)) continue;
+        containers.set(community, {
+          group: "nodes" as const,
+          classes: "commgroup",
+          data: { id: `comm:${community}`, kind: "community", label: "", size: 1, color: "#ffffff", paint: "#ffffff", fontSize: 10 },
+        });
+      }
+    }
     const nodes = view.nodes.map((entity) => ({
       group: "nodes" as const,
       data: {
+        ...(grouped && primary.has(entity.id) ? { parent: `comm:${primary.get(entity.id)}` } : {}),
         id: entity.id,
         label: nodeLabel(entity),
         boxLabel: boxLabel(entity),
@@ -384,12 +401,20 @@ export function NetworkView({ dataset, partition, focus, onFocus, selectedCommun
         paint: colors.get(entity.type) ?? "#8c96a0",
       },
     }));
-    const edges = view.edges.map((relationship) => ({
-      group: "edges" as const,
-      data: { id: relationship.id, source: relationship.sourceId, target: relationship.targetId, label: relationship.type },
-    }));
-    return [...nodes, ...edges];
-  }, [arrange, view, colors]);
+    const edges = view.edges.map((relationship) => {
+      // A link that leaves its community is given a long ideal length, which is what pushes the
+      // groups apart; links inside one keep the short default and pull it together.
+      const between = grouped && primary.get(relationship.sourceId) !== primary.get(relationship.targetId);
+      return {
+        group: "edges" as const,
+        data: {
+          id: relationship.id, source: relationship.sourceId, target: relationship.targetId, label: relationship.type,
+          ...(between ? { kind: "agg-loose" } : {}),
+        },
+      };
+    });
+    return [...containers.values(), ...nodes, ...edges];
+  }, [arrange, view, colors, partition, primary]);
 
   const elements = arrange === "schema" ? schemaElements : arrange === "focus" ? focusElements : entityElements;
 
@@ -513,6 +538,9 @@ export function NetworkView({ dataset, partition, focus, onFocus, selectedCommun
         { selector: "edge.second", style: { "line-color": "#aeb6bf", "target-arrow-color": "#aeb6bf", width: 1.2 } },
         { selector: "node.record", style: { "text-valign": "bottom", "font-size": 9, "z-index": 11 } },
         { selector: "edge.agg", style: { width: "data(width)", "curve-style": "bezier", "line-color": "#b6bec7", "target-arrow-shape": "triangle", "target-arrow-color": "#b6bec7", "arrow-scale": 0.8, label: "data(label)", "font-size": 9, color: "#5f6b78", "text-background-color": "#f3f4f1", "text-background-opacity": 0.85, "text-background-padding": "2px", "text-rotation": "autorotate", "min-zoomed-font-size": 8, "z-index": 2 } },
+        // Invisible on purpose: it exists so the layout keeps a community together, and the cloud
+        // layer is what the reader sees.
+        { selector: "node.commgroup", style: { "background-opacity": 0, "border-width": 0, label: "", padding: "26px", events: "no" } },
         { selector: "node.band", style: { shape: "rectangle", width: BAND.boxWidth, height: 1, "background-opacity": 0, "border-width": 0, "z-index": 5, label: "data(label)", "text-valign": "top", "text-margin-y": -6, "font-size": 12, "font-weight": 700, color: "#3a3a36", "text-background-opacity": 0, events: "no" } },
         { selector: "node.nolabel", style: { label: "" } },
         { selector: "edge", style: { width: 1, "line-color": "#c2c9d1", "curve-style": "haystack", "haystack-radius": 0, "z-index": 1 } },
