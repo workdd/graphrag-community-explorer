@@ -140,3 +140,24 @@ class TestRunKeepsTheKeyOut(unittest.TestCase):
 
 if __name__ == "__main__":
     unittest.main()
+
+
+class TestBackoff(unittest.TestCase):
+    def test_honours_the_providers_retry_after(self):
+        self.assertEqual(E.wait_for(0, "12"), 12.0)
+
+    def test_ignores_a_retry_after_it_cannot_read(self):
+        self.assertEqual(E.wait_for(0, "Wed, 01 Jan 2027"), 1.0)
+
+    def test_grows_with_each_attempt(self):
+        self.assertLess(E.wait_for(0), E.wait_for(1))
+        self.assertLess(E.wait_for(1), E.wait_for(2))
+
+    def test_never_waits_a_negative_time(self):
+        self.assertEqual(E.wait_for(0, "-5"), 0.0)
+
+    def test_retries_rate_limits_and_server_errors_only(self):
+        self.assertTrue(E.should_retry(429))
+        self.assertTrue(E.should_retry(503))
+        self.assertFalse(E.should_retry(401))
+        self.assertFalse(E.should_retry(400))

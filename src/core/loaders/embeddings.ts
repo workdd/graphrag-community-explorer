@@ -30,11 +30,21 @@ export function decodeVector(bytes: Uint8Array, dim: number): Float32Array {
   return out;
 }
 
-const asBytes = (value: unknown): Uint8Array | null => {
-  if (value instanceof Uint8Array) return value;
-  if (value instanceof ArrayBuffer) return new Uint8Array(value);
+/**
+ * Two shapes are accepted. A fixed-length binary column arrives as bytes; a list-of-float column
+ * arrives as numbers. A plain variable-length binary column is not accepted: Parquet gives it no
+ * logical type, so the reader decodes it as UTF-8 and the bytes are already ruined by the time they
+ * get here. The runner writes fixed-length binary for exactly that reason.
+ */
+export function toVector(value: unknown, dim: number): Float32Array | null {
+  if (value instanceof Uint8Array) return decodeVector(value, dim);
+  if (value instanceof ArrayBuffer) return decodeVector(new Uint8Array(value), dim);
+  if (Array.isArray(value)) {
+    if (value.length !== dim) throw new Error(`Vector has ${value.length} values, expected ${dim}.`);
+    return Float32Array.from(value as number[]);
+  }
   return null;
-};
+}
 
 export function buildEmbeddingIndex(rows: Row[], meta: Record<string, string>): EmbeddingLoad {
   const model = meta.model?.trim();
@@ -57,13 +67,19 @@ export function buildEmbeddingIndex(rows: Row[], meta: Record<string, string>): 
   let malformed = 0;
   for (const row of rows) {
     const id = typeof row.id === "string" ? row.id : row.id == null ? "" : String(row.id);
-    const bytes = asBytes(row.vector);
-    if (id === "" || bytes === null) {
+    if (id === "") {
       malformed += 1;
       continue;
     }
+    if (typeof row.vector === "string") {
+      throw new Error(
+        "The vector column is variable-length binary, which this reader decodes as text. Rebuild the file with the current embed_index tool, which writes fixed-length binary.",
+      );
+    }
     try {
-      vectors.set(id, decodeVector(bytes, dim));
+      const vector = toVector(row.vector, dim);
+      if (vector === null) malformed += 1;
+      else vectors.set(id, vector);
     } catch {
       malformed += 1;
     }

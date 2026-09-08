@@ -42,8 +42,22 @@ describe("buildEmbeddingIndex", () => {
     expect(() => buildEmbeddingIndex([], { model: "m", dim: "0" })).toThrow(/dimension/);
   });
 
+  it("names the cause when the column came back as text", () => {
+    expect(() => buildEmbeddingIndex([{ id: "e1", vector: "not bytes" }], meta)).toThrow(/fixed-length binary/);
+  });
+
   it("refuses a file with nothing readable", () => {
-    expect(() => buildEmbeddingIndex([{ id: "e1", vector: "not bytes" }], meta)).toThrow(/no readable vectors/);
+    expect(() => buildEmbeddingIndex([{ id: "e1", vector: 42 }], meta)).toThrow(/no readable vectors/);
+  });
+
+  it("accepts a list-of-float column as well as bytes", () => {
+    const { index } = buildEmbeddingIndex([{ id: "e1", vector: [1, 0] }], meta);
+    expect(Array.from(index.vectors.get("e1")!)).toEqual([1, 0]);
+  });
+
+  it("skips a list whose length does not match the dimension", () => {
+    const load = buildEmbeddingIndex([{ id: "e1", vector: [1, 0] }, { id: "e2", vector: [1, 0, 0] }], meta);
+    expect(load.index.vectors.size).toBe(1);
   });
 
   it("skips broken rows and says how many", () => {

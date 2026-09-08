@@ -29,6 +29,8 @@ DEFAULT_BASE_URL = "https://api.upstage.ai/v1"
 DEFAULT_MODEL = "solar-embedding-1-large-passage"
 BATCH = 64
 TIMEOUT = 60.0
+RETRIES = 6
+BACKOFF = 2.0
 
 ENTITY_FILES = ("entities.parquet", "create_final_entities.parquet")
 FINGERPRINT_FILES = (
@@ -109,20 +111,48 @@ def read_entities(path: Path) -> list:
     return rows
 
 
-def embed_texts(texts: list, base_url: str, model: str, api_key: str) -> list:
+def wait_for(attempt: int, retry_after: str = "") -> float:
+    """다시 시도하기까지 기다릴 초. 제공자가 알려주면 그 값을 씁니다.
+
+    한 번에 수십 번 부르는 작업이라 429 는 예외가 아니라 정상 경로입니다. 재시도가
+    없으면 큰 색인에서 매번 중간에 끊깁니다.
+    """
+    if retry_after:
+        try:
+            return max(0.0, float(retry_after))
+        except ValueError:
+            pass
+    return BACKOFF ** attempt
+
+
+def should_retry(status: int) -> bool:
+    return status == 429 or status >= 500
+
+
+def embed_texts(texts: list, base_url: str, model: str, api_key: str, log=None) -> list:
     import httpx
 
-    response = httpx.post(
-        base_url.rstrip("/") + "/embeddings",
-        timeout=TIMEOUT,
-        headers={"Authorization": "Bearer " + api_key, "Content-Type": "application/json"},
-        json={"model": model, "input": texts},
-    )
-    response.raise_for_status()
-    data = response.json().get("data", [])
-    if len(data) != len(texts):
-        raise SystemExit("임베딩 %d개를 요청했는데 %d개를 받았습니다" % (len(texts), len(data)))
-    return [row["embedding"] for row in data]
+    last = ""
+    for attempt in range(RETRIES):
+        response = httpx.post(
+            base_url.rstrip("/") + "/embeddings",
+            timeout=TIMEOUT,
+            headers={"Authorization": "Bearer " + api_key, "Content-Type": "application/json"},
+            json={"model": model, "input": texts},
+        )
+        if response.status_code == 200:
+            data = response.json().get("data", [])
+            if len(data) != len(texts):
+                raise SystemExit("임베딩 %d개를 요청했는데 %d개를 받았습니다" % (len(texts), len(data)))
+            return [row["embedding"] for row in data]
+        last = "%d %s" % (response.status_code, response.text[:200])
+        if not should_retry(response.status_code):
+            raise SystemExit("제공자 오류: " + last)
+        delay = wait_for(attempt, response.headers.get("retry-after", ""))
+        if log:
+            log("  %s · %.1f초 뒤 다시 시도 (%d/%d)" % (last.split(" ")[0], delay, attempt + 1, RETRIES))
+        time.sleep(delay)
+    raise SystemExit("재시도 %d회 후에도 실패했습니다: %s" % (RETRIES, last))
 
 
 def write_parquet(out_path: Path, rows: list, model: str, dim: int, source_files: dict) -> None:
@@ -132,7 +162,9 @@ def write_parquet(out_path: Path, rows: list, model: str, dim: int, source_files
     table = pa.table(
         {
             "id": pa.array([r["id"] for r in rows], pa.string()),
-            "vector": pa.array([r["vector"] for r in rows], pa.binary()),
+            # 고정 길이입니다. 길이 없는 binary 는 브라우저 리더가 UTF-8 문자열로 읽어
+            # 바이트를 망가뜨립니다. 고정 길이는 논리 타입이 있어 그런 일이 없습니다.
+            "vector": pa.array([r["vector"] for r in rows], pa.binary(dim * 4)),
         }
     )
     # 모델과 차원을 파일 안에 둡니다. 옆에 둔 메모는 파일과 떨어져 다니다 어긋납니다.
@@ -166,7 +198,10 @@ def run(
     dim = 0
     done = 0
     for batch in batches(rows, batch_size):
-        vectors = embed([r["text"] for r in batch], base_url, model, api_key)
+        try:
+            vectors = embed([r["text"] for r in batch], base_url, model, api_key, log)
+        except TypeError:
+            vectors = embed([r["text"] for r in batch], base_url, model, api_key)
         for row, vector in zip(batch, vectors):
             if dim == 0:
                 dim = len(vector)

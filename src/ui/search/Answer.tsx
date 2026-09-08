@@ -4,7 +4,8 @@ import { useT } from "../i18n";
 
 /** Models write **bold** even when asked for plain text, so the markers are rendered rather than shown. */
 function Marked({ text }: { text: string }) {
-  const parts = text.split(/(\*\*[^*]+\*\*)/g);
+  // Heading markers at the start of a line are dropped; the line is emphasized instead.
+  const parts = text.replace(/^#{1,6}\s+(.*)$/gm, "**$1**").split(/(\*\*[^*]+\*\*)/g);
   return (
     <>
       {parts.map((part, i) =>
