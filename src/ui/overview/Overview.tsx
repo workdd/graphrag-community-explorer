@@ -6,7 +6,7 @@ import { datasetCounts, summarizePartition } from "../../core/metrics/summary";
 import type { GraphFocus, GraphMode } from "../graph/CommunityGraph";
 import { displayTitle } from "../../core/graph/palette";
 import { nestingRatio } from "../../core/graph/map";
-import { neighbourTypes, relationshipsOfType, schemaGraph, type SchemaTripleEdge } from "../../core/graph/schemaGraph";
+import { schemaGraph, selectTriple, selectType, type SchemaSelection, type SchemaTripleEdge } from "../../core/graph/schemaGraph";
 import { depthOfLevel, levelsByDepth, pathTo } from "../../core/hierarchy";
 import type { Dataset, Partition } from "../../core/model";
 import { Mark } from "../Mark";
@@ -14,8 +14,6 @@ import { LangToggle, Rich, useT } from "../i18n";
 import { fmt, pct } from "../format";
 import { CommunityTable } from "./CommunityTable";
 import { version as APP_VERSION } from "../../../package.json";
-import { EntityList } from "./EntityList";
-import { HierarchyTree } from "./HierarchyTree";
 import { Inspector } from "./Inspector";
 import { IntegrityPanel } from "./IntegrityPanel";
 
@@ -30,8 +28,8 @@ const NetworkView = lazy(() => import("../network/NetworkView").then((m) => ({ d
 
 type View = "network" | "table" | "map" | "graph" | "quality" | "schema" | "formation" | "ask";
 const VIEWS: View[] = ["network", "table", "map", "graph", "quality", "schema", "formation", "ask"];
-/** The whole graph is what the tool is for, so that is where it opens. */
-const DEFAULT_VIEW: View = "network";
+/** The shape of the index comes first; every other view is reached by picking something in it. */
+const DEFAULT_VIEW: View = "schema";
 type Backgrounds = "boxes" | "clouds";
 
 interface HashState {
@@ -69,13 +67,7 @@ function readHash(dataset: Dataset): HashState {
 /** Stand-in for indexes shipped without communities.parquet: the graph still works around an entity. */
 const EMPTY_PARTITION: Partition = { id: "none", label: "none", communities: new Map(), levels: [], rootLevel: 0 };
 
-/** Entity and relationship types picked in the schema view and shown in the data views. */
-export interface SpotlightSelection {
-  label: string;
-  types: string[];
-  relationships: string[];
-}
-type Spotlight = SpotlightSelection | null;
+type Spotlight = SchemaSelection | null;
 
 interface Props {
   result: LoadResult;
@@ -106,12 +98,12 @@ export function Overview({ result, label, onReset, datasets, activeData, onOpenD
   // A slice of the schema carried into the data views, so a type or a triple can be followed through.
   const [spotlight, setSpotlight] = useState<Spotlight>(null);
   const openType = (type: string) => {
-    setSpotlight({ label: type, types: neighbourTypes(schema, type), relationships: relationshipsOfType(schema, type) });
+    setSpotlight(selectType(schema, type));
     setFocus(null);
     setView("network");
   };
   const openTriple = (edge: SchemaTripleEdge) => {
-    setSpotlight({ label: `${edge.from} ${edge.relationship} ${edge.to}`, types: [...new Set([edge.from, edge.to])], relationships: [edge.relationship] });
+    setSpotlight(selectTriple(edge));
     setFocus(null);
     setView("network");
   };
@@ -210,11 +202,8 @@ export function Overview({ result, label, onReset, datasets, activeData, onOpenD
     setMapExpanded(next);
   };
 
-  // The graph views fill the width; the community tree belongs to the views that navigate it.
-  const showRail = view !== "network" && view !== "formation";
-
   return (
-    <div className={`app${showRail ? "" : " no-rail"}`}>
+    <div className="app no-rail">
       <header className="topbar">
         <Mark size={22} />
         <span className="topbar-title">GraphRAG Community Explorer</span>
@@ -242,26 +231,6 @@ export function Overview({ result, label, onReset, datasets, activeData, onOpenD
         <button className="btn" onClick={onReset}>{t("Open another dataset")}</button>
       </header>
 
-      {showRail && (
-      <aside className="rail">
-        <section className="rail-section">
-          <h2>{t("Dataset")}</h2>
-          <dl>
-            <dt>{t("Source")}</dt>
-            <dd>{dataset.source.kind === "age-export" ? t("Apache AGE export") : t("GraphRAG output")}</dd>
-            <dt>{t("Entity types")}</dt>
-            <dd>{counts.entityTypes.size}</dd>
-            <dt>{t("Relationship types")}</dt>
-            <dd>{counts.relationshipTypes.size}</dd>
-          </dl>
-        </section>
-        {realPartition ? (
-          <HierarchyTree partition={realPartition} selectedId={selectedId} onSelect={select} />
-        ) : (
-          <EntityList dataset={dataset} focusId={focus?.kind === "entity" ? focus.id : null} onFocus={(id) => setFocus({ kind: "entity", id })} />
-        )}
-      </aside>
-      )}
 
       <main className={`main${view === "map" || view === "graph" || view === "network" || view === "formation" ? " graph-mode" : ""}`}>
         <div className="main-head">
@@ -310,6 +279,7 @@ export function Overview({ result, label, onReset, datasets, activeData, onOpenD
             onExplore={explore}
             spotlight={spotlight}
             onClearSpotlight={() => setSpotlight(null)}
+            onSpotlight={setSpotlight}
           />
         ) : view === "formation" ? (
           <FormationView dataset={dataset} partition={realPartition ?? null} selected={selected} spotlight={spotlight} onFocus={setFocus} />
@@ -371,7 +341,7 @@ export function Overview({ result, label, onReset, datasets, activeData, onOpenD
             {realPartition && summary ? (
               <CommunityTable partition={realPartition} metrics={summary.metrics} selectedId={selectedId} onSelect={select} />
             ) : (
-              <p className="muted">{t("No communities.parquet was loaded. Pick an entity on the left and open its neighbourhood; the map and quality views need communities.")}</p>
+              <p className="muted">{t("No communities.parquet was loaded. Find an entity in the Network view and open its neighbourhood; the map and quality views need communities.")}</p>
             )}
           </>
         )}

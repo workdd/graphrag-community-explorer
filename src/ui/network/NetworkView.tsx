@@ -3,7 +3,8 @@ import cytoscape from "cytoscape";
 import { membershipIndex, primaryCommunity } from "../../core/hierarchy";
 import { displayTitle, typeColors } from "../../core/graph/palette";
 import { hashText } from "../../core/graph/seed";
-import { forwardShare, layerOrder, typeFlow } from "../../core/graph/layers";
+import { forwardShare, layerGroups, layerOrder, typeFlow } from "../../core/graph/layers";
+import { exitsFrom, extendSelection, schemaGraph, selectType, type SchemaSelection, type SchemaTripleEdge } from "../../core/graph/schemaGraph";
 import type { Dataset, Entity, Partition, Relationship } from "../../core/model";
 import { exportCytoscapePng } from "../download";
 import { fmt } from "../format";
@@ -21,14 +22,16 @@ interface Props {
   onSelectCommunity: (id: string) => void;
   onExplore: (entityId: string) => void;
   /** Types picked in the schema view; the graph narrows to them until it is cleared. */
-  spotlight: { label: string; types: string[]; relationships: string[] } | null;
+  spotlight: SchemaSelection | null;
   onClearSpotlight: () => void;
+  onSpotlight: (selection: SchemaSelection) => void;
 }
 
 /** How communities are laid over the plain graph. `off` is the knowledge graph on its own. */
 type Overlay = "off" | "clouds" | "colour";
 /** Free force layout, or one column per entity type with the relationships flowing forward. */
-type Arrange = "force" | "layers";
+/** The schema is the frame: types are nodes until one is opened into its records. */
+type Arrange = "schema" | "force" | "layers";
 type Order = "degree" | "name";
 type Positions = Record<string, { x: number; y: number }>;
 
@@ -61,12 +64,14 @@ export function bandRows(counts: number[]): number {
 }
 
 /** The whole knowledge graph: entities and relationships, with communities as something you add. */
-export function NetworkView({ dataset, partition, focus, onFocus, selectedCommunityId, onSelectCommunity, onExplore, spotlight, onClearSpotlight }: Props) {
+export function NetworkView({ dataset, partition, focus, onFocus, selectedCommunityId, onSelectCommunity, onExplore, spotlight, onClearSpotlight, onSpotlight }: Props) {
   const { t } = useT();
   const [overlay, setOverlay] = useState<Overlay>("off");
   // Typed graphs read best as columns, and that arrangement is instant; a graph with one or two
   // types has no columns worth drawing, so it opens in the force layout instead.
-  const [arrange, setArrange] = useState<Arrange>(() => (new Set([...dataset.entities.values()].map((e) => e.type)).size >= 3 ? "layers" : "force"));
+  const [arrange, setArrange] = useState<Arrange>("schema");
+  // Types opened into their records; everything else stays a single node of the schema.
+  const [opened, setOpened] = useState<Set<string>>(new Set());
   const [order, setOrder] = useState<Order>("degree");
   const [budget, setBudget] = useState(() => Math.min(BUDGETS.find((b) => b >= dataset.entities.size) ?? 800, 800));
   const [hiddenTypes, setHiddenTypes] = useState<Set<string>>(new Set());
@@ -91,6 +96,7 @@ export function NetworkView({ dataset, partition, focus, onFocus, selectedCommun
   }, [spotlight, dataset]);
 
   const colors = useMemo(() => typeColors([...dataset.entities.values()].map((e) => e.type)), [dataset]);
+  const schema = useMemo(() => schemaGraph(dataset), [dataset]);
   const primary = useMemo(() => {
     if (!partition) return new Map<string, string>();
     const index = membershipIndex(partition);
@@ -136,7 +142,87 @@ export function NetworkView({ dataset, partition, focus, onFocus, selectedCommun
     return { nodes, edges: edges.filter((e) => drawn.has(e.sourceId) && drawn.has(e.targetId)), total, degree };
   }, [dataset, hiddenTypes, hiddenRelationships, budget, isolated]);
 
-  const elements = useMemo((): cytoscape.ElementDefinition[] => {
+  const schemaElements = useMemo((): cytoscape.ElementDefinition[] => {
+    if (arrange !== "schema") return [];
+    const drawnTypes = schema.nodes.filter((node) => !hiddenTypes.has(node.type));
+    const open = new Set([...opened].filter((type) => !hiddenTypes.has(type)));
+    // Records of the opened types only, and the busiest first when a type is large.
+    const perType = Math.max(40, Math.floor(budget / Math.max(open.size, 1)));
+    const records = new Map<string, Entity[]>();
+    for (const type of open) {
+      records.set(type, [...dataset.entities.values()]
+        .filter((entity) => entity.type === type)
+        .sort((a, b) => b.degree - a.degree || a.title.localeCompare(b.title))
+        .slice(0, perType));
+    }
+    const drawnIds = new Set([...records.values()].flat().map((entity) => entity.id));
+    const nodes: cytoscape.ElementDefinition[] = drawnTypes.map((node) => ({
+      group: "nodes" as const,
+      classes: open.has(node.type) ? "typebox" : "typenode",
+      data: {
+        id: `type:${node.type}`,
+        kind: "community",
+        type: node.type,
+        label: open.has(node.type) ? `${node.type}  ${fmt(records.get(node.type)?.length ?? 0)}/${fmt(node.entities)}` : `${node.type}\n${fmt(node.entities)}`,
+        size: 40 + Math.sqrt(node.entities) * 4,
+        color: colors.get(node.type) ?? "#8c96a0",
+        paint: colors.get(node.type) ?? "#8c96a0",
+      },
+    }));
+    for (const [type, list] of records) {
+      for (const entity of list) {
+        nodes.push({
+          group: "nodes" as const,
+          classes: "record",
+          data: {
+            id: entity.id, parent: `type:${type}`, type, label: displayTitle(entity),
+            size: 10 + Math.min(20, Math.sqrt(entity.degree) * 4),
+            color: colors.get(type) ?? "#8c96a0", paint: colors.get(type) ?? "#8c96a0",
+          },
+        });
+      }
+    }
+    // A relationship is drawn between whatever is on screen: two records, or the type nodes they sit in.
+    const endpoint = (id: string): string | null => {
+      if (drawnIds.has(id)) return id;
+      const type = dataset.entities.get(id)?.type;
+      if (type === undefined || hiddenTypes.has(type)) return null;
+      return open.has(type) ? null : `type:${type}`;
+    };
+    const direct: cytoscape.ElementDefinition[] = [];
+    const aggregate = new Map<string, { source: string; target: string; count: number; names: Set<string> }>();
+    for (const relationship of dataset.relationships) {
+      if (hiddenRelationships.has(relationship.type)) continue;
+      const a = endpoint(relationship.sourceId);
+      const b = endpoint(relationship.targetId);
+      if (a === null || b === null || a === b) continue;
+      if (drawnIds.has(a) && drawnIds.has(b)) {
+        direct.push({ group: "edges" as const, data: { id: relationship.id, source: a, target: b, label: relationship.type } });
+        continue;
+      }
+      const key = `agg:${a}|${b}`;
+      const found = aggregate.get(key);
+      if (found) {
+        found.count += 1;
+        found.names.add(relationship.type);
+      } else aggregate.set(key, { source: a, target: b, count: 1, names: new Set([relationship.type]) });
+    }
+    const heaviest = Math.max(...[...aggregate.values()].map((edge) => edge.count), 1);
+    const agg = [...aggregate.entries()].map(([id, edge]) => ({
+      group: "edges" as const,
+      classes: "agg",
+      data: {
+        id, source: edge.source, target: edge.target,
+        kind: edge.source.startsWith("type:") && edge.target.startsWith("type:") ? "agg-loose" : "agg",
+        label: `${[...edge.names].slice(0, 2).join(", ")} ${fmt(edge.count)}`,
+        width: 1 + (Math.log1p(edge.count) / Math.log1p(heaviest)) * 5,
+      },
+    }));
+    return [...nodes, ...direct, ...agg];
+  }, [arrange, schema, opened, hiddenTypes, hiddenRelationships, budget, dataset, colors]);
+
+  const entityElements = useMemo((): cytoscape.ElementDefinition[] => {
+    if (arrange === "schema") return [];
     const nodes = view.nodes.map((entity) => ({
       group: "nodes" as const,
       data: {
@@ -153,7 +239,9 @@ export function NetworkView({ dataset, partition, focus, onFocus, selectedCommun
       data: { id: relationship.id, source: relationship.sourceId, target: relationship.targetId, label: relationship.type },
     }));
     return [...nodes, ...edges];
-  }, [view, colors]);
+  }, [arrange, view, colors]);
+
+  const elements = arrange === "schema" ? schemaElements : entityElements;
 
   // Type-to-type edge counts drive the column order, and the share that flows forward is reported.
   const layers = useMemo(() => {
@@ -166,18 +254,24 @@ export function NetworkView({ dataset, partition, focus, onFocus, selectedCommun
     );
     const types = [...new Set(view.nodes.map((entity) => entity.type))];
     const ordered = layerOrder(types, flow);
-    return { order: ordered, ...forwardShare(ordered, flow) };
+    // Types that nothing separates share a column heading, so a graph of twenty types does not
+    // become twenty columns.
+    return { order: ordered, groups: layerGroups(ordered, flow), ...forwardShare(ordered, flow) };
   }, [view, dataset]);
 
   const bandNodes = useMemo((): cytoscape.ElementDefinition[] => {
     if (arrange !== "layers") return [];
     const counts = new Map<string, number>();
     for (const entity of view.nodes) counts.set(entity.type, (counts.get(entity.type) ?? 0) + 1);
-    return layers.order.map((type, i) => ({
-      group: "nodes" as const,
-      classes: "band",
-      data: { id: `band:${type}`, label: `L${i}  ${type}  ${fmt(counts.get(type) ?? 0)}`, color: "#ffffff", paint: "#ffffff", size: 1 },
-    }));
+    return layers.groups.map((group) => {
+      const drawn = group.types.filter((type) => (counts.get(type) ?? 0) > 0);
+      const total = drawn.reduce((sum, type) => sum + (counts.get(type) ?? 0), 0);
+      return {
+        group: "nodes" as const,
+        classes: "band",
+        data: { id: `band:${group.layer}`, label: `L${group.layer}  ${drawn.join(" · ")}  ${fmt(total)}`, color: "#ffffff", paint: "#ffffff", size: 1 },
+      };
+    });
   }, [arrange, layers, view]);
 
   const bandPositions = useMemo((): Positions => {
@@ -191,15 +285,17 @@ export function NetworkView({ dataset, partition, focus, onFocus, selectedCommun
     const rows = bandRows(layers.order.map((type) => columns.get(type)?.length ?? 0));
     const positions: Positions = {};
     let x = 0;
-    for (const type of layers.order) {
-      const members = (columns.get(type) ?? []).sort((a, b) =>
-        order === "name" ? a.title.localeCompare(b.title) : (view.degree.get(b.id) ?? 0) - (view.degree.get(a.id) ?? 0) || a.title.localeCompare(b.title),
-      );
-      members.forEach((entity, i) => {
-        positions[entity.id] = { x: x + Math.floor(i / rows) * BAND.width, y: BAND.top + (i % rows) * (BAND.boxHeight + BAND.gap) };
-      });
-      positions[`band:${type}`] = { x, y: 0 };
-      x += Math.max(1, Math.ceil(members.length / rows)) * BAND.width;
+    for (const group of layers.groups) {
+      positions[`band:${group.layer}`] = { x, y: 0 };
+      for (const type of group.types) {
+        const members = (columns.get(type) ?? []).sort((a, b) =>
+          order === "name" ? a.title.localeCompare(b.title) : (view.degree.get(b.id) ?? 0) - (view.degree.get(a.id) ?? 0) || a.title.localeCompare(b.title),
+        );
+        members.forEach((entity, i) => {
+          positions[entity.id] = { x: x + Math.floor(i / rows) * BAND.width, y: BAND.top + (i % rows) * (BAND.boxHeight + BAND.gap) };
+        });
+        x += Math.max(1, Math.ceil(members.length / rows)) * BAND.width;
+      }
     }
     return positions;
   }, [arrange, view, layers, order]);
@@ -249,6 +345,11 @@ export function NetworkView({ dataset, partition, focus, onFocus, selectedCommun
         { selector: "node", style: { width: "data(size)", height: "data(size)", "background-color": "data(paint)", "border-width": 1, "border-color": "#ffffff", label: "data(label)", "font-size": 10, color: "#1b2430", "text-valign": "bottom", "text-margin-y": 2, "text-background-color": "#f3f4f1", "text-background-opacity": 0.75, "text-background-padding": "1px", "min-zoomed-font-size": 9, "z-index": 10 } },
         // Layer mode: one labelled box per entity, stacked in the column of its type.
         { selector: "node.box", style: { shape: "round-rectangle", width: BAND.boxWidth, height: BAND.boxHeight, "background-color": "data(paint)", "background-opacity": 0.16, "border-width": 1.5, "border-color": "data(paint)", label: "data(label)", "text-valign": "center", "text-halign": "center", "text-margin-y": 0, "font-size": 11, "text-max-width": `${BAND.boxWidth - 16}px`, "text-overflow-wrap": "anywhere", "text-background-opacity": 0 } },
+        // The schema backbone: a type is one node until it is opened, and then a box holding its records.
+        { selector: "node.typenode", style: { shape: "ellipse", "background-opacity": 0.22, "border-width": 2, "border-color": "data(color)", label: "data(label)", "text-wrap": "wrap", "text-valign": "center", "font-size": 13, "line-height": 1.25, "text-background-opacity": 0, "z-index": 12 } },
+        { selector: "node.typebox", style: { shape: "round-rectangle", "background-color": "data(color)", "background-opacity": 0.07, "border-width": 1.5, "border-color": "data(color)", "border-style": "dashed", label: "data(label)", "text-valign": "top", "text-halign": "center", "text-margin-y": -6, "font-size": 12, "font-weight": 600, "text-background-opacity": 0, padding: "14px", "z-index": 2 } },
+        { selector: "node.record", style: { "text-valign": "bottom", "font-size": 9, "z-index": 11 } },
+        { selector: "edge.agg", style: { width: "data(width)", "curve-style": "bezier", "line-color": "#b6bec7", "target-arrow-shape": "triangle", "target-arrow-color": "#b6bec7", "arrow-scale": 0.8, label: "data(label)", "font-size": 9, color: "#5f6b78", "text-background-color": "#f3f4f1", "text-background-opacity": 0.85, "text-background-padding": "2px", "text-rotation": "autorotate", "min-zoomed-font-size": 8, "z-index": 2 } },
         { selector: "node.band", style: { shape: "rectangle", width: BAND.boxWidth, height: 1, "background-opacity": 0, "border-width": 0, "z-index": 5, label: "data(label)", "text-valign": "top", "text-margin-y": -6, "font-size": 12, "font-weight": 700, color: "#3a3a36", "text-background-opacity": 0, events: "no" } },
         { selector: "node.nolabel", style: { label: "" } },
         { selector: "edge", style: { width: 1, "line-color": "#c2c9d1", "curve-style": "haystack", "haystack-radius": 0, "z-index": 1 } },
@@ -292,9 +393,23 @@ export function NetworkView({ dataset, partition, focus, onFocus, selectedCommun
     } else {
       cy.fit(cy.elements(), 40);
     }
-    if (!layered && cy.nodes().length > LABEL_LIMIT) cy.nodes().addClass("nolabel");
+    if (!layered && arrange !== "schema" && cy.nodes().length > LABEL_LIMIT) cy.nodes().addClass("nolabel");
+    if (arrange === "schema" && cy.nodes(".record").length > LABEL_LIMIT) cy.nodes(".record").addClass("nolabel");
     if (cy.edges().length > FAINT_EDGES) cy.edges().addClass("faint");
-    cy.on("tap", "node", (event) => propsRef.current.onFocus({ kind: "entity", id: event.target.id() }));
+    cy.on("tap", "node.typenode, node.typebox", (event) => {
+      const type = event.target.data("type") as string;
+      setOpened((prev) => {
+        const next = new Set(prev);
+        if (next.has(type)) next.delete(type);
+        else next.add(type);
+        return next;
+      });
+    });
+    cy.on("tap", "node.record", (event) => propsRef.current.onFocus({ kind: "entity", id: event.target.id() }));
+    cy.on("tap", "node", (event) => {
+      if (event.target.hasClass("typenode") || event.target.hasClass("typebox") || event.target.hasClass("record")) return;
+      propsRef.current.onFocus({ kind: "entity", id: event.target.id() });
+    });
     cy.on("tap", "edge", (event) => propsRef.current.onFocus({ kind: "relationship", id: event.target.id() }));
     cy.on("tap", (event) => {
       if (event.target === cy) propsRef.current.onFocus(null);
@@ -377,6 +492,15 @@ export function NetworkView({ dataset, partition, focus, onFocus, selectedCommun
     if (hit) onFocus({ kind: "entity", id: hit.id });
   };
 
+  const schemaCounts = useMemo(() => ({
+    types: schemaElements.filter((el) => el.classes === "typenode" || el.classes === "typebox").length,
+    records: schemaElements.filter((el) => el.classes === "record").length,
+    edges: schemaElements.filter((el) => el.group === "edges").length,
+  }), [schemaElements]);
+
+  // Where the current slice can still be widened, biggest first.
+  const exits = useMemo((): SchemaTripleEdge[] => (spotlight ? exitsFrom(schema, spotlight).slice(0, 6) : []), [schema, spotlight]);
+
   const focused = focus?.kind === "entity" ? dataset.entities.get(focus.id) : undefined;
   const focusedCommunity = focused && partition ? primary.get(focused.id) : undefined;
 
@@ -393,6 +517,7 @@ export function NetworkView({ dataset, partition, focus, onFocus, selectedCommun
           </label>
           <label className="control">{t("Arrange")}
             <select value={arrange} onChange={(e) => setArrange(e.target.value as Arrange)}>
+              <option value="schema">{t("schema, open a type to see its records")}</option>
               <option value="force">{t("free")}</option>
               <option value="layers">{t("layers by entity type")}</option>
             </select>
@@ -424,6 +549,35 @@ export function NetworkView({ dataset, partition, focus, onFocus, selectedCommun
           <button className="btn" onClick={() => cyRef.current && exportCytoscapePng(cyRef.current, "knowledge-graph")}>PNG</button>
         </div>
       </div>
+
+      <div className="schema-strip">
+        <span className="legend-title">{t("Schema")}</span>
+        {layers.groups.map((group) => (
+          <span key={group.layer} className="strip-band">
+            <span className="strip-layer">L{group.layer}</span>
+            {group.types.map((type) => (
+              <button
+                key={type}
+                className={`chip${spotlight?.types.includes(type) ? " on" : ""}`}
+                onClick={() => onSpotlight(selectType(schema, type))}
+                title={t("Draw this type and everything it touches")}
+              >
+                <i style={{ background: colors.get(type) }} />{type}
+              </button>
+            ))}
+          </span>
+        ))}
+      </div>
+      {spotlight && exits.length > 0 && (
+        <div className="schema-strip">
+          <span className="legend-title">{t("Follow")}</span>
+          {exits.map((edge) => (
+            <button key={edge.id} className="chip" onClick={() => onSpotlight(extendSelection(spotlight, edge))} title={t("Add this relationship and the type at its other end")}>
+              + {edge.from} <span className="muted">{edge.relationship}</span> {edge.to} <span className="num">{fmt(edge.count)}</span>
+            </button>
+          ))}
+        </div>
+      )}
 
       <div className="graph-legend">
         <span className="legend-title">{t("Entity types")}</span>
@@ -458,8 +612,20 @@ export function NetworkView({ dataset, partition, focus, onFocus, selectedCommun
       </div>
 
       <p className="graph-stats">
-        {t("{shown} of {total} entities and {edges} relationships drawn.", { shown: fmt(view.nodes.length), total: fmt(view.total), edges: fmt(view.edges.length) })}{" "}
-        {view.total > view.nodes.length && t("The busiest are kept; raise the entity budget to see more.")}{" "}
+        {arrange === "schema" ? (
+          <>
+            {t("{types} types drawn; {open} opened into {records} records, {edges} relationships.", {
+              types: fmt(schemaCounts.types), open: opened.size === 0 ? t("none") : [...opened].join(", "),
+              records: fmt(schemaCounts.records), edges: fmt(schemaCounts.edges),
+            })}{" "}
+            {t("Click a type to open or close it.")}{" "}
+          </>
+        ) : (
+          <>
+            {t("{shown} of {total} entities and {edges} relationships drawn.", { shown: fmt(view.nodes.length), total: fmt(view.total), edges: fmt(view.edges.length) })}{" "}
+            {view.total > view.nodes.length && t("The busiest are kept; raise the entity budget to see more.")}{" "}
+          </>
+        )}
         {arrange === "layers" && layers.total > 0 && t("Columns are ordered so {share} of relationships point forward; the ones that do not are dashed red.", { share: `${Math.round((layers.forward / layers.total) * 100)}%` })}{" "}
         {arrange === "force" && layoutMs !== null && layoutMs > 0 && t("Layout {ms} ms off the main thread.", { ms: Math.round(layoutMs) })}{" "}
         {t("Click a node for its neighbours, a link for its detail, the background to clear.")}

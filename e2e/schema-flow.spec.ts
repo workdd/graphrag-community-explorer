@@ -13,7 +13,7 @@ test("a triple picked in the schema view carries through to the data and the Lei
   await page.getByRole("button", { name: "Show these records in the graph" }).click();
   await expect(page.getByRole("tab", { name: "Network" })).toHaveAttribute("aria-selected", "true");
   await expect(page.locator(".chip.static")).toContainText("from the schema:");
-  await expect(page.locator(".graph-stats")).toContainText("entities and", { timeout: 30_000 });
+  await expect(page.locator(".graph-stats")).toContainText("types drawn", { timeout: 30_000 });
 
   await page.getByRole("tab", { name: "Formation" }).click();
   const scope = page.locator(".control", { hasText: "Run on" }).locator("select");

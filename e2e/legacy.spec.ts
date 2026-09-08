@@ -8,6 +8,6 @@ test("GraphRAG 0.3 create_final_* layout loads with inferred membership", async 
   await expect(page.locator(".summary")).toContainText("29 communities");
   await page.locator(".integrity summary").click();
   await expect(page.locator(".integrity")).toContainText("Members inferred from relationship endpoints");
-  await page.locator(".tree-title").first().click();
+  await page.locator(".ctable tbody tr").first().click();
   await expect(page.locator(".inspector .facts")).toContainText("inferred");
 });

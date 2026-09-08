@@ -93,19 +93,37 @@ def pick_entity_labels(vertices, requested, community_label):
     return {label for label in present if label != community_label and not label.startswith("_ag_")}
 
 
-def community_title(properties, business_id):
-    """Existing labels only. `kinds` is a formatted census such as `User 111 · Label 60`; its
-    leading kind names make a readable title when the producer wrote no title at all."""
+def community_title(properties, business_id, hub_name=None, size=None):
+    """Existing labels first. When the producer wrote none, the name is built from the `kinds`
+    census (`User 111 · Label 60`) plus the busiest member and the size, because a census alone
+    repeats: a parent and its largest child hold the same kinds and would read as the same group."""
     for key in ("title", "hub_name", "name"):
         value = properties.get(key)
         if value not in (None, ""):
             return str(value)
     kinds = properties.get("kinds")
+    parts = []
     if isinstance(kinds, str) and kinds.strip():
         names = [part.strip().rsplit(" ", 1)[0] for part in kinds.split("·") if part.strip()]
-        if names:
-            return " / ".join(names[:3])
-    return str(business_id)
+        parts.append(" / ".join(names[:2]))
+    if hub_name:
+        parts.append(str(hub_name) if size in (None, 0, 1) else f"{hub_name} +{size - 1}")
+    elif size:
+        parts.append(f"{size}")
+    return " · ".join([p for p in parts if p]) or str(business_id)
+
+
+def uniquify(rows):
+    """Two communities that ended up with the same name are told apart by their number, so a tree
+    never shows the same label twice."""
+    seen = {}
+    for row in rows:
+        seen.setdefault(row["title"], []).append(row)
+    for title, group in seen.items():
+        if len(group) > 1:
+            for row in group:
+                row["title"] = f"{title} #{row['community']}"
+    return rows
 
 
 def resolve_parent(raw, business_ids):
@@ -239,7 +257,13 @@ def convert(vertices, edges, graph, entity_labels="auto", community_label="Commu
         if p.get("member_count") is not None and int(p["member_count"]) != len(membership):
             warnings.append(f"Community {p['id']}: stored member_count={p['member_count']}, actual={len(membership)}")
         level = int(p.get("level", 0))
-        title = community_title(p, p["id"])
+        # The busiest member names the group when the producer did not.
+        hub = max(membership, key=lambda vid: (degree[vid], vid), default=None)
+        hub_name = None
+        if hub is not None:
+            hub_properties = by_id[hub]["properties"]
+            hub_name = hub_properties.get("name") or hub_properties.get("title")
+        title = community_title(p, p["id"], hub_name=hub_name, size=len(membership))
         internal_edges = [e["id"] for e in resource_edges
                           if e["source"] in membership and e["target"] in membership]
         cid = f"age-community:{graph}:{vid}"
@@ -254,6 +278,10 @@ def convert(vertices, edges, graph, entity_labels="auto", community_label="Commu
                 summary=str(p["summary"]), full_content=encode(p), rank=None,
                 rank_explanation="", findings=[], full_content_json=encode(p),
                 period="", size=len(membership)))
+    uniquify(communities)
+    titles_by_number = {row["community"]: row["title"] for row in communities}
+    for report in reports:
+        report["title"] = titles_by_number.get(report["community"], report["title"])
     return entities, relationships, communities, reports, warnings
 
 

@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { forwardShare, layerOrder, typeFlow } from "./layers";
+import { forwardShare, layerGroups, layerOrder, typeFlow } from "./layers";
 
 describe("layerOrder", () => {
   it("puts pure senders first and pure receivers last", () => {
@@ -30,5 +30,38 @@ describe("layerOrder", () => {
     const flow = typeFlow([{ from: "A", to: "A" }, { from: "A", to: "B" }]);
     expect(flow.size).toBe(1);
     expect(layerOrder(["A", "B"], flow)).toEqual(["A", "B"]);
+  });
+});
+
+describe("assignLayers", () => {
+  it("puts types nothing separates on the same layer", () => {
+    // A -> B, A -> C, B -> D, C -> D: B and C share a layer, D comes after both.
+    const flow = typeFlow([
+      { from: "A", to: "B" }, { from: "A", to: "C" }, { from: "B", to: "D" }, { from: "C", to: "D" },
+    ]);
+    const order = layerOrder(["A", "B", "C", "D"], flow);
+    expect(layerGroups(order, flow)).toEqual([
+      { layer: 0, types: ["A"] },
+      { layer: 1, types: ["B", "C"] },
+      { layer: 2, types: ["D"] },
+    ]);
+  });
+
+  it("keeps a chain one layer per step", () => {
+    const flow = typeFlow([{ from: "A", to: "B" }, { from: "B", to: "C" }]);
+    const groups = layerGroups(layerOrder(["A", "B", "C"], flow), flow);
+    expect(groups.map((g) => g.types)).toEqual([["A"], ["B"], ["C"]]);
+  });
+
+  it("leaves a type with no relationships on the first layer", () => {
+    const flow = typeFlow([{ from: "A", to: "B" }]);
+    const groups = layerGroups(layerOrder(["A", "B", "Lonely"], flow), flow);
+    expect(groups[0].types.sort()).toEqual(["A", "Lonely"]);
+    expect(groups).toHaveLength(2);
+  });
+
+  it("ignores relationships inside a type when placing it", () => {
+    const flow = typeFlow([{ from: "A", to: "B" }, { from: "B", to: "B" }]);
+    expect(layerGroups(layerOrder(["A", "B"], flow), flow).map((g) => g.types)).toEqual([["A"], ["B"]]);
   });
 });

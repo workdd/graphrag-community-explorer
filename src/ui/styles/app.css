@@ -320,3 +320,12 @@
 .formation-group-head i { width: 10px; height: 10px; border-radius: 3px; }
 .formation-members { margin-left: 4px; }
 @media (max-width: 1280px) { .schema-graph { grid-template-columns: 1fr; } .schema-graph-side { border-left: 0; border-top: 1px solid var(--rule); max-height: none; } }
+
+/* The schema strip keeps the data view attached to the shape it came from */
+.schema-strip { display: flex; flex-wrap: wrap; align-items: center; gap: 4px 8px; font-size: var(--fs-0); }
+.strip-band { display: inline-flex; align-items: center; gap: 4px; padding-right: 8px; border-right: 1px solid var(--rule); }
+.strip-band:last-child { border-right: 0; }
+.strip-layer { color: var(--ink-3); font-weight: 600; }
+.schema-strip .chip { display: inline-flex; align-items: center; gap: 5px; }
+.schema-strip .chip i { width: 8px; height: 8px; border-radius: 2px; }
+.schema-strip .chip.on { background: var(--accent-soft); border-color: var(--accent); color: var(--accent); }

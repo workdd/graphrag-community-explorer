@@ -103,3 +103,38 @@ export function samplesForType(dataset: Dataset, type: string, limit = 8): Entit
     .sort((a, b) => b.degree - a.degree || a.title.localeCompare(b.title))
     .slice(0, limit);
 }
+
+/** A slice of the schema carried into the data views. */
+export interface SchemaSelection {
+  label: string;
+  types: string[];
+  relationships: string[];
+}
+
+/** One type with everything it touches, which is the smallest slice that still shows relationships. */
+export function selectType(graph: SchemaGraph, type: string): SchemaSelection {
+  return { label: type, types: neighbourTypes(graph, type), relationships: relationshipsOfType(graph, type) };
+}
+
+/** One triple on its own: two types and the single relationship between them. */
+export function selectTriple(edge: SchemaTripleEdge): SchemaSelection {
+  return { label: `${edge.from} ${edge.relationship} ${edge.to}`, types: [...new Set([edge.from, edge.to])], relationships: [edge.relationship] };
+}
+
+/** Follows one more schema arrow out of the current slice, which is how a reader walks the schema. */
+export function extendSelection(selection: SchemaSelection, edge: SchemaTripleEdge): SchemaSelection {
+  const types = [...new Set([...selection.types, edge.from, edge.to])];
+  const relationships = [...new Set([...selection.relationships, edge.relationship])];
+  return { label: `${selection.label} + ${edge.relationship}`, types, relationships };
+}
+
+/** Schema arrows that leave the slice, so a reader can see where there is more to go. */
+export function exitsFrom(graph: SchemaGraph, selection: SchemaSelection): SchemaTripleEdge[] {
+  const inside = new Set(selection.types);
+  return graph.edges.filter((edge) => {
+    const from = inside.has(edge.from);
+    const to = inside.has(edge.to);
+    if (from === to) return from && !selection.relationships.includes(edge.relationship);
+    return true;
+  });
+}

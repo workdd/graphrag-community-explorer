@@ -165,7 +165,8 @@ def test_parent_resolves_through_a_suffix_key_and_title_falls_back_to_kinds(kind
     _, _, communities, _, _ = m.convert(*kind_labelled, graph="cmp_gov")
     assert [c["community"] for c in communities] == [0, 1]
     assert [c["parent"] for c in communities] == [-1, 0]
-    assert [c["title"] for c in communities] == ["User / Role", "Menu"]
+    # 이름이 없으면 kinds 에 가장 연결이 많은 멤버와 크기를 붙여 부모·자식이 구분된다.
+    assert [c["title"] for c in communities] == ["User / Role · 관리자 +1", "Menu · 대시보드"]
     assert [c["level"] for c in communities] == [0, 1]
 
 
@@ -182,3 +183,40 @@ def test_resource_graphs_keep_the_previous_behaviour(snapshot):
     entities, *_ = m.convert(*snapshot, graph="g")
     # the Facet vertex is still excluded because Resource is present
     assert [e["age_label"] for e in entities] == ["Resource"] * 3
+
+
+def test_derived_titles_name_the_busiest_member_and_stay_unique():
+    """커뮤니티 이름이 없을 때 kinds 만 쓰면 부모와 자식이 같은 이름이 된다."""
+    vertices = [
+        vertex("1", "Role", id="r1", name="시스템총괄관리", kind="Role"),
+        vertex("2", "Menu", id="m1", name="대시보드", kind="Menu"),
+        vertex("3", "Menu", id="m2", name="설정", kind="Menu"),
+        vertex("10", "Community", id="c:L0:0", level=0, kinds="Menu 2 · Role 1"),
+        vertex("11", "Community", id="c:L1:0", level=1, parentId="L0:0", kinds="Menu 2 · Role 1"),
+    ]
+    edges = [
+        edge("100", "grants", "1", "2"), edge("101", "grants", "1", "3"),
+        edge("102", "inCommunity", "1", "10"), edge("103", "inCommunity", "2", "10"), edge("104", "inCommunity", "3", "10"),
+        edge("105", "inCommunity", "1", "11"), edge("106", "inCommunity", "2", "11"),
+    ]
+    _, _, communities, _, _ = m.convert(vertices, edges, graph="g")
+    titles = [c["title"] for c in communities]
+    assert titles[0] == "Menu / Role · 시스템총괄관리 +2"
+    assert titles[1] == "Menu / Role · 시스템총괄관리 +1"
+    assert len(set(titles)) == 2
+
+
+def test_identical_derived_titles_get_the_community_number():
+    vertices = [
+        vertex("1", "Role", id="r1", name="같은이름", kind="Role"),
+        vertex("10", "Community", id="c:a", level=0, kinds="Role 1"),
+        vertex("11", "Community", id="c:b", level=0, kinds="Role 1"),
+    ]
+    edges = [edge("102", "inCommunity", "1", "10"), edge("103", "inCommunity", "1", "11")]
+    _, _, communities, _, _ = m.convert(vertices, edges, graph="g")
+    assert sorted(c["title"] for c in communities) == ["Role · 같은이름 #0", "Role · 같은이름 #1"]
+
+
+def test_a_producer_title_is_never_replaced(snapshot):
+    _, _, communities, _, _ = m.convert(*snapshot, graph="g")
+    assert [c["title"] for c in communities] == ["A", "B"]

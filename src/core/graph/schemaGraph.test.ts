@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 import type { Dataset, Entity, Relationship } from "../model";
-import { neighbourTypes, relationshipsOfType, samplesForTriple, samplesForType, schemaGraph, tripleId } from "./schemaGraph";
+import { exitsFrom, extendSelection, neighbourTypes, relationshipsOfType, samplesForTriple, samplesForType, schemaGraph, selectTriple, selectType, tripleId } from "./schemaGraph";
 
 const entity = (id: string, type: string, degree = 0): Entity => ({ id, title: id.toUpperCase(), type, degree, textUnitIds: [] });
 const rel = (id: string, sourceId: string, targetId: string, type: string): Relationship => ({ id, sourceId, targetId, type, textUnitIds: [] });
@@ -49,5 +49,31 @@ describe("schemaGraph", () => {
     expect(samplesForTriple(dataset, triple).map((s) => `${s.source.title}->${s.target.title}`)).toEqual(["R1->M1", "R1->M2"]);
     expect(samplesForType(dataset, "User").map((e) => e.title)).toEqual(["U1", "U2"]);
     expect(samplesForTriple(dataset, triple, 1)).toHaveLength(1);
+  });
+});
+
+describe("selections", () => {
+  const graph = schemaGraph(dataset);
+
+  it("takes a type with everything it touches", () => {
+    const selection = selectType(graph, "Role");
+    expect(selection.types.sort()).toEqual(["Menu", "Role", "User"]);
+    expect(selection.relationships.sort()).toEqual(["grants", "hasRole"]);
+    expect(selection.label).toBe("Role");
+  });
+
+  it("takes a triple on its own", () => {
+    const edge = graph.edges.find((e) => e.relationship === "hasRole")!;
+    expect(selectTriple(edge)).toEqual({ label: "User hasRole Role", types: ["User", "Role"], relationships: ["hasRole"] });
+  });
+
+  it("extends a selection along one more arrow and lists what is still outside", () => {
+    const start = selectTriple(graph.edges.find((e) => e.relationship === "hasRole")!);
+    expect(exitsFrom(graph, start).map((e) => e.relationship).sort()).toEqual(["grants"]);
+    const wider = extendSelection(start, graph.edges.find((e) => e.relationship === "grants")!);
+    expect(wider.types.sort()).toEqual(["Menu", "Role", "User"]);
+    expect(wider.relationships.sort()).toEqual(["grants", "hasRole"]);
+    // parentOf stays outside because both of its ends are already in, but its name is not
+    expect(exitsFrom(graph, wider).map((e) => e.relationship)).toEqual(["parentOf"]);
   });
 });

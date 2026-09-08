@@ -37,7 +37,7 @@ export function Inspector(props: Props) {
   if (focus?.kind === "entity") return <EntityPanel {...props} entityId={focus.id} />;
   if (focus?.kind === "relationship") return <RelationshipPanel {...props} relationshipId={focus.id} />;
   if (focus?.kind === "bundle") return <BundlePanel {...props} bundle={focus} />;
-  if (!partition) return <div className="inspector-empty"><p>{t("No community set is loaded. Pick an entity on the left to read it and explore its neighbourhood.")}</p></div>;
+  if (!partition) return <div className="inspector-empty"><p>{t("No community set is loaded. Pick an entity in the graph to read it and explore its neighbourhood.")}</p></div>;
   if (!community) return <div className="inspector-empty"><p>{t("Select a community to read its report and members.")}</p></div>;
   return <CommunityPanel {...props} partition={partition} community={community} />;
 }

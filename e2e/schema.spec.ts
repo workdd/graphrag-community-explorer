@@ -10,7 +10,9 @@ test("schema view lists the tables and the rows behind a community", async ({ pa
   await expect(page.locator(".schema-svg")).toBeVisible();
   await expect(page.locator(".ctx-table[data-kind=entities] tbody tr")).toHaveCount(15);
 
-  await page.locator(".tree-title", { hasText: "Payments" }).first().click();
+  await page.getByRole("tab", { name: "Overview" }).click();
+  await page.locator(".ctable tbody tr", { hasText: "Payments" }).first().click();
+  await page.getByRole("tab", { name: "Schema" }).click();
   await expect(page.locator(".schema-context h3")).toContainText("Rows behind Payments");
   await expect(page.locator(".ctx-table[data-kind=entities] tbody tr")).toHaveCount(9);
   await expect(page.locator(".ctx-table[data-kind=relationships] tr.group").first()).toContainText("in-network");
