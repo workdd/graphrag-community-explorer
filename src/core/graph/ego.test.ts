@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 import type { Dataset, Entity, Relationship } from "../model";
-import { egoEntities, egoSummary, groupKey } from "./ego";
+import { egoBranches, egoEntities, egoSummary, groupKey } from "./ego";
 
 const entity = (id: string, type: string, degree = 0): Entity => ({ id, title: id, type, degree, textUnitIds: [] });
 const rel = (id: string, sourceId: string, targetId: string, type: string): Relationship => ({ id, sourceId, targetId, type, textUnitIds: [] });
@@ -75,5 +75,36 @@ describe("egoSummary", () => {
     const model = egoSummary(alone, "r1")!;
     expect(model.groups).toEqual([]);
     expect(model.neighbours).toBe(0);
+  });
+});
+
+describe("egoBranches", () => {
+  it("gives each named neighbour two names and one count", () => {
+    const model = egoSummary(dataset, "u1")!;
+    const branches = egoBranches(dataset, model);
+    expect(branches.map((b) => b.entity.id)).toEqual(["r1"]);
+    expect(branches[0].shown.map((e) => e.id)).toEqual(["m0", "m1"]);
+    // r1 reaches eight menus and the other user; two are named, seven are counted
+    expect(branches[0].hidden).toBe(7);
+  });
+
+  it("never repeats what the first ring already draws", () => {
+    const model = egoSummary(dataset, "r1")!;
+    const branches = egoBranches(dataset, model);
+    const first = new Set(egoEntities(model).map((e) => e.id));
+    expect(branches.every((branch) => branch.shown.every((e) => !first.has(e.id)))).toBe(true);
+  });
+
+  it("only branches from the busiest few", () => {
+    const model = egoSummary(dataset, "r1", { perGroup: 8 })!;
+    expect(egoBranches(dataset, model, { branches: 2 }).length).toBeLessThanOrEqual(2);
+  });
+});
+
+describe("branch bubbles", () => {
+  it("say which kind the hidden ones mostly are", () => {
+    const model = egoSummary(dataset, "u1")!;
+    const branch = egoBranches(dataset, model)[0];
+    expect(branch.hiddenType).toBe("Menu");
   });
 });

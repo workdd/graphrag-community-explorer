@@ -12,10 +12,12 @@ test("a record picked in the top bar centres the graph and abstracts the rest", 
   await expect(page.locator(".graph-stats")).toContainText("neighbours over");
   await expect(page.locator(".control", { hasText: "Arrange" }).locator("select")).toHaveValue("focus");
 
-  // Everything can still be drawn on request.
+  // The same switch decides part or whole in every arrangement.
   const show = page.locator(".control", { hasText: "Show" }).locator("select");
-  await expect(show).toHaveValue("few");
+  await expect(show).toHaveValue("some");
+  await expect(page.locator(".graph-stats")).toContainText("Part:");
   await show.selectOption("all");
+  await expect(page.locator(".graph-stats")).toContainText("Whole:");
   await expect(page.locator(".graph-stats")).toContainText("Everything it touches is drawn.");
 
   // Leaving the record puts the schema back.

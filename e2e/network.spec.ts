@@ -40,3 +40,18 @@ test("the schema strip walks the data outwards one relationship at a time", asyn
   await expect(page.locator(".chip.static")).toContainText("from the schema: Service");
   await expect(page.locator(".schema-strip .chip.on").first()).toBeVisible();
 });
+
+test("part and whole are the same switch in every arrangement", async ({ page }) => {
+  await page.goto("/?data=./samples/demo#view=network");
+  const show = page.locator(".control", { hasText: "Show" }).locator("select");
+  const arrange = page.locator(".control", { hasText: "Arrange" }).locator("select");
+  await expect(show).toHaveValue("some");
+  await expect(page.locator(".graph-stats")).toContainText("Part:", { timeout: 30_000 });
+
+  await arrange.selectOption("layers");
+  await expect(page.locator(".graph-stats")).toContainText("Part:", { timeout: 30_000 });
+  await show.selectOption("all");
+  await expect(page.locator(".graph-stats")).toContainText("Whole:", { timeout: 30_000 });
+  // Whole means whole, isolated records included.
+  await expect(page.locator(".graph-stats")).toContainText("189 of 189 entities");
+});
