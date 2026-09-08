@@ -7,8 +7,9 @@ dependencies declared at the top of each file are installed on the fly.
 | Script | Purpose |
 | --- | --- |
 | `export_age_parquet.py` | Reads an Apache AGE graph (Resource / Community / inCommunity labels) and writes `entities`, `relationships`, `communities`, `community_reports` Parquet plus a raw snapshot of every label. |
-| `run_leiden_communities.py` | Projects Resource relationships to an undirected weighted graph and runs Leiden at several resolutions; writes a `communities.parquet` you can load as an extra partition (rename to `leiden_communities.parquet`). |
-| `compare_community_partitions.py` | NMI / ARI between the stored communities and a Leiden run, with an overlap table. The app's Quality tab does the same on loaded files. |
+| `recluster_communities.py` | Runs Leiden over every connected component of an exported index at a ladder of resolutions and writes `<label>_communities.parquet` plus `entity_membership.parquet`. Clustering only the largest component leaves the rest unassigned: on the resource graph that is the difference between 64 % and 78 % coverage. |
+| `compare_community_partitions.py` | NMI / ARI between the stored communities and a Leiden run, with an overlap table. Reads the `entity_membership.parquet` the reclustering wrote. The app's Quality tab does the same on loaded files. |
+| `embed_index/` | Writes the entity-embedding sidecar the Ask tab needs for local search. |
 | `test_export_age_parquet.py` | Unit tests for the AGE converter (synthetic snapshot, no database). |
 
 ## Apache AGE export
@@ -40,3 +41,26 @@ two exported entities becomes a relationship of that edge's label.
 ```sh
 uv run --with 'psycopg[binary]>=3.2,<4' --with 'pyarrow>=18,<24' --with 'python-dotenv>=1,<2' --with pytest python -m pytest tools -q
 ```
+
+## Community sets
+
+```sh
+uv run tools/recluster_communities.py --index local-data/age --report-only     # graph shape only
+uv run tools/recluster_communities.py --index local-data/age                    # write the partition
+```
+
+Add the file it writes to `manifest.json` so a hosted folder serves it; the viewer then offers it as
+a switchable community set next to the one the index shipped.
+
+Measured on the resource graph (2,674 entities, 4,580 relationships):
+
+| Approach | Communities | Assigned | Coverage | Modularity |
+| --- | --- | --- | --- | --- |
+| Pipeline that produced the index | 41 | 1,208 | 45 % | not recorded |
+| Leiden on the largest component only | 38 | 1,713 | 64 % | 0.50–0.53 |
+| Leiden over every component, hubs folded | 34–46 | 2,071 | 77 % | 0.44 |
+| Leiden over every component | 34–43 | 2,089 | 78 % | 0.59–0.60 |
+
+78 % is the ceiling: 585 entities (22 %) have no relationship at all and no topological method can
+place them. Raising the resolution changes granularity, not coverage: modularity peaks near 1.0 and
+falls to 0.49 by the time the count reaches 191.

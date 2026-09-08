@@ -30,7 +30,7 @@ def main():
     leiden={}
     for row in json.loads('[]') if False else []: pass
     import pyarrow.parquet as pq
-    for row in pq.read_table(Path(args.leiden_dir)/'entity_communities.parquet').to_pylist(): leiden[row['entity_id']]=row['community']
+    for row in pq.read_table(Path(args.leiden_dir)/'entity_membership.parquet').to_pylist(): leiden[row['entity_id']]=row['community']
     common={k for k in op if k in leiden}; result={'operational_groups':len(groups),'operational_coverage':len(op)/len(resources),'leiden_groups':len(set(leiden.values())),'leiden_coverage':len(leiden)/len(resources),'overlap':scores(op,leiden),'common_nodes':len(common)}
     pairs=Counter((op[k],leiden[k]) for k in common)
     result['top_overlaps']=[{'operational':a,'leiden':b,'intersection':n,'operational_size':len(groups[a])} for (a,b),n in pairs.most_common(20)]
