@@ -37,8 +37,8 @@ describe("suggestQuestions", () => {
   it("names the best connected entity for a local question", () => {
     const out = suggestQuestions({ dataset, partition, hasEmbeddings: true });
     const local = out.filter((s) => s.method === "local");
-    expect(local[0].vars.entity).toBe("Alpha");
-    expect(local[1].vars).toEqual({ entity: "Alpha", other: "Beta" });
+    expect(local[0].vars).toEqual({ entity: "Alpha", type: "Service" });
+    expect(local[1].vars).toEqual({ entity: "Alpha", type: "Service", other: "Beta", otherType: "Service" });
   });
 
   it("never names an entity with no relationships", () => {
@@ -139,5 +139,96 @@ describe("relational questions", () => {
     const out = suggestQuestions({ dataset: { ...dataset, entities: one }, partition, hasEmbeddings: true });
     expect(out.some((s) => s.template.includes("depends on"))).toBe(false);
     expect(out.some((s) => s.method === "local")).toBe(true);
+  });
+});
+
+describe("naming the schema type", () => {
+  it("puts the type next to the name so the reader knows what kind of thing it is", () => {
+    const out = suggestQuestions({ dataset, partition, hasEmbeddings: true });
+    const local = out.find((s) => s.method === "local")!;
+    expect(local.template).toContain("{type}");
+    expect(local.vars.type).toBe("Service");
+  });
+
+  it("asks about a compute resource when the index has one", () => {
+    const mixed = new Map(dataset.entities);
+    mixed.set("vm", { id: "vm", title: "VirtualMachine · web-01 [AGE:9]", type: "VirtualMachine", degree: 2, textUnitIds: [] });
+    const out = suggestQuestions({ dataset: { ...dataset, entities: mixed }, partition, hasEmbeddings: true });
+    const local = out.find((s) => s.method === "local")!;
+    expect(local.vars).toMatchObject({ type: "VirtualMachine", entity: "web-01" });
+  });
+
+  it("falls back to the best connected entity when no such type is present", () => {
+    const out = suggestQuestions({ dataset, partition, hasEmbeddings: true });
+    expect(out.find((s) => s.method === "local")?.vars.type).toBe("Service");
+  });
+
+  it("matches the preferred type whatever its casing", () => {
+    const mixed = new Map(dataset.entities);
+    mixed.set("vm", { id: "vm", title: "vm · box [AGE:9]", type: "VM", degree: 1, textUnitIds: [] });
+    const out = suggestQuestions({ dataset: { ...dataset, entities: mixed }, partition, hasEmbeddings: true });
+    expect(out.find((s) => s.method === "local")?.vars.type).toBe("VM");
+  });
+});
+
+describe("records that look alike", () => {
+  it("never compares a name with the same name", () => {
+    const twins = new Map([
+      ["a", { id: "a", title: "VirtualMachine · web-01 [AGE:1]", type: "VirtualMachine", degree: 9, textUnitIds: [] }],
+      ["b", { id: "b", title: "VirtualMachine · web-01 [AGE:2]", type: "VirtualMachine", degree: 8, textUnitIds: [] }],
+      ["c", { id: "c", title: "VirtualMachine · web-02 [AGE:3]", type: "VirtualMachine", degree: 7, textUnitIds: [] }],
+    ]);
+    const out = suggestQuestions({ dataset: { ...dataset, entities: twins }, partition, hasEmbeddings: true });
+    const pair = out.find((s) => s.method === "local" && s.template.includes("{other}"))!;
+    expect(pair.vars.entity).not.toBe(pair.vars.other);
+    expect(pair.vars).toMatchObject({ entity: "web-01", other: "web-02" });
+  });
+
+  it("keeps two records of different types that share a name", () => {
+    const same = new Map([
+      ["a", { id: "a", title: "VirtualMachine · core [AGE:1]", type: "VirtualMachine", degree: 9, textUnitIds: [] }],
+      ["b", { id: "b", title: "Instance · core [AGE:2]", type: "Instance", degree: 8, textUnitIds: [] }],
+    ]);
+    const out = suggestQuestions({ dataset: { ...dataset, entities: same }, partition, hasEmbeddings: true });
+    const pair = out.find((s) => s.method === "local" && s.template.includes("{other}"))!;
+    expect(pair.vars).toMatchObject({ type: "VirtualMachine", otherType: "Instance" });
+  });
+
+  it("drops the questions it can no longer fill after the duplicates are removed", () => {
+    const twins = new Map([
+      ["a", { id: "a", title: "VirtualMachine · web-01 [AGE:1]", type: "VirtualMachine", degree: 9, textUnitIds: [] }],
+      ["b", { id: "b", title: "VirtualMachine · web-01 [AGE:2]", type: "VirtualMachine", degree: 8, textUnitIds: [] }],
+    ]);
+    const out = suggestQuestions({ dataset: { ...dataset, entities: twins }, partition, hasEmbeddings: true });
+    expect(out.some((s) => s.method === "local" && s.template.includes("{other}"))).toBe(false);
+    expect(out.some((s) => s.method === "local")).toBe(true);
+  });
+});
+
+describe("records named only by a number", () => {
+  const vms = (...names: string[]) =>
+    new Map(names.map((n, i) => [String(i), {
+      id: String(i), title: `VirtualMachine · ${n} [AGE:${i}]`, type: "VirtualMachine",
+      degree: 10 - i, textUnitIds: [],
+    }]));
+
+  it("prefers a record whose name carries a word", () => {
+    const out = suggestQuestions({ dataset: { ...dataset, entities: vms("7809779", "web-frontend") }, partition, hasEmbeddings: true });
+    expect(out.find((s) => s.method === "local")?.vars.entity).toBe("web-frontend");
+  });
+
+  it("accepts a Korean name as a word", () => {
+    const out = suggestQuestions({ dataset: { ...dataset, entities: vms("7809779", "삭제금지") }, partition, hasEmbeddings: true });
+    expect(out.find((s) => s.method === "local")?.vars.entity).toBe("삭제금지");
+  });
+
+  it("still asks something when every name is a number", () => {
+    const out = suggestQuestions({ dataset: { ...dataset, entities: vms("7809779", "6112060") }, partition, hasEmbeddings: true });
+    expect(out.find((s) => s.method === "local")?.vars.entity).toBe("7809779");
+  });
+
+  it("does not treat a single letter as a word", () => {
+    const out = suggestQuestions({ dataset: { ...dataset, entities: vms("a1", "web-01") }, partition, hasEmbeddings: true });
+    expect(out.find((s) => s.method === "local")?.vars.entity).toBe("web-01");
   });
 });

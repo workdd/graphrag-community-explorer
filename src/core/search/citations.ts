@@ -35,7 +35,7 @@ const KINDS: Record<string, ContextKind> = {
   claims: "claims",
 };
 
-const BLOCK = /\[Data:([^\]]*)\]/gi;
+const BLOCK = /\[(?:Data:)?([^\]]*)\]/gi;
 const GROUP = /([A-Za-z][A-Za-z ]*?)\s*\(([^)]*)\)/g;
 
 /** Every [Data: …] block in order, with its groups resolved. */
@@ -60,6 +60,11 @@ export function parseCitations(text: string): CitationBlock[] {
         citations.push({ kind, label, ids, more });
       }
     }
+    // Models drop the "Data:" prefix often enough to matter. A bracket without it counts only when
+    // every group inside names a kind we know, so ordinary bracketed prose is left alone.
+    const labelled = /^\[Data:/i.test(m[0]);
+    const known = citations.length > 0 && citations.every((c) => c.kind !== null);
+    if (!labelled && !known) continue;
     blocks.push({ start: m.index, end: m.index + m[0].length, text: m[0], citations });
   }
   return blocks;

@@ -28,10 +28,32 @@ export const HUB_SHARE = 0.05;
 export const MIN_HUB_DEGREE = 20;
 
 /**
+ * Types an impact question is usually asked about. No structural measure picks these out: on the
+ * cloud inventory the graph ranks Subnet and VirtualNetwork just as highly, so this is a stated
+ * domain preference rather than something the data implies. An index without any of these types
+ * falls back to the structural order below, so the hint costs nothing elsewhere.
+ */
+export const PREFERRED_TYPES = ["virtualmachine", "vm", "instance", "server", "host", "container", "pod"];
+
+/**
+ * A name has to carry a word for the question to be answerable. Local search embeds the question and
+ * compares it with entity text: a bare id like "7809779" embeds to nothing in particular, so the
+ * ranking returns ten other records and the model answers, correctly, that it was told nothing about
+ * the one that was named. A named record makes the example exercise the path rather than its edge.
+ */
+const HAS_WORD = /[A-Za-z가-힣ぁ-ゟ゠-ヿ一-鿿]{2}/u;
+
+/**
  * Entities a question can name: well connected, but not the categorical hubs. Asking what the
  * default volume type is connected to returns a third of the index and tests nothing.
  */
-function topEntities(dataset: Dataset, count: number): string[] {
+export interface Subject {
+  name: string;
+  /** The schema type, named in the question so the reader knows what kind of thing this is. */
+  type: string;
+}
+
+function topEntities(dataset: Dataset, count: number): Subject[] {
   const connected = [...dataset.entities.values()]
     .filter((entity) => entity.degree > 0)
     .sort((a, b) => b.degree - a.degree || a.title.localeCompare(b.title));
@@ -39,7 +61,22 @@ function topEntities(dataset: Dataset, count: number): string[] {
   const withoutHubs = connected.filter((entity) => entity.degree <= cap);
   // On a small index every node looks like a hub. Dropping the cap there beats offering nothing.
   const chosen = withoutHubs.length > 0 ? withoutHubs : connected;
-  return chosen.map(displayTitle).filter((title) => title.trim() !== "").slice(0, count);
+  const preferred = chosen.filter((entity) => PREFERRED_TYPES.includes(entity.type.toLowerCase()));
+  // Two records can share a display name once the id suffix is stripped. Asking how a thing relates
+  // to a thing of the same name is meaningless, and the reader could not tell them apart anyway.
+  const pool = preferred.length > 0 ? preferred : chosen;
+  const named = pool.filter((entity) => HAS_WORD.test(displayTitle(entity)));
+  const seen = new Set<string>();
+  const subjects: Subject[] = [];
+  for (const entity of named.length > 0 ? named : pool) {
+    const name = displayTitle(entity);
+    const label = `${entity.type}\u0000${name}`;
+    if (name.trim() === "" || seen.has(label)) continue;
+    seen.add(label);
+    subjects.push({ name, type: entity.type });
+    if (subjects.length === count) break;
+  }
+  return subjects;
 }
 
 /**
@@ -73,30 +110,30 @@ export function suggestQuestions(input: SuggestionInput): Suggestion[] {
 
   if (input.hasEmbeddings && entities.length > 0) {
     out.push({
-      template: "What is {entity} connected to, and what do those links mean?",
-      vars: { entity: entities[0] },
+      template: "What is {type} {entity} connected to, and what do those links mean?",
+      vars: { entity: entities[0].name, type: entities[0].type },
       method: "local",
       why: "Ranks entities against the question, then reads their neighbours and source text.",
     });
   }
   if (input.hasEmbeddings && entities.length > 1) {
     out.push({
-      template: "How are {entity} and {other} related?",
-      vars: { entity: entities[0], other: entities[1] },
+      template: "How are {type} {entity} and {otherType} {other} related?",
+      vars: { entity: entities[0].name, type: entities[0].type, other: entities[1].name, otherType: entities[1].type },
       method: "local",
       why: "Two starting points at once: checks that the context keeps both and their shared links.",
     });
     out.push({
-      template: "If {entity} were removed or scaled down, what else would be affected?",
-      vars: { entity: entities[1] },
+      template: "If {type} {entity} were removed or scaled down, what else would be affected?",
+      vars: { entity: entities[1].name, type: entities[1].type },
       method: "local",
       why: "Impact question: the answer is only as good as the relationships the context carried.",
     });
   }
   if (input.hasEmbeddings && entities.length > 2) {
     out.push({
-      template: "What depends on {entity}, and what does {entity} depend on?",
-      vars: { entity: entities[2] },
+      template: "What depends on {type} {entity}, and what does it depend on?",
+      vars: { entity: entities[2].name, type: entities[2].type },
       method: "local",
       why: "Asks for both directions of a link, which a one-sided context answers wrongly.",
     });

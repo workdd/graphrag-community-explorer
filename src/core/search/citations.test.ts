@@ -67,3 +67,36 @@ describe("splitByCitations", () => {
     expect(splitByCitations("")).toEqual([]);
   });
 });
+
+describe("a citation written without the Data prefix", () => {
+  it("is read when every group names a kind we know", () => {
+    const [block] = parseCitations("영향 [Entities (2); Relationships (1)] 있습니다");
+    expect(block.citations.map((c) => c.kind)).toEqual(["entities", "relationships"]);
+    expect(block.citations[1].ids).toEqual(["1"]);
+  });
+
+  it("is read for a single known group", () => {
+    expect(parseCitations("x [Relationships (3)]")[0].citations[0].kind).toBe("relationships");
+  });
+
+  it("leaves ordinary bracketed prose alone", () => {
+    expect(parseCitations("문장 [참고 (1)] 끝")).toEqual([]);
+    expect(parseCitations("코드 [see note] 끝")).toEqual([]);
+    expect(parseCitations("배열 [1, 2, 3]")).toEqual([]);
+  });
+
+  it("leaves a bracket alone when only some groups are known", () => {
+    expect(parseCitations("x [Entities (1); Widgets (2)]")).toEqual([]);
+  });
+
+  it("still reads a labelled block whose kind is unknown", () => {
+    const [block] = parseCitations("x [Data: Widgets (4)]");
+    expect(block.citations[0].label).toBe("Widgets");
+  });
+
+  it("splits a paragraph that mixes both forms", () => {
+    const blocks = parseCitations("a [Data: Entities (1)] b [Reports (2)] c");
+    expect(blocks).toHaveLength(2);
+    expect(blocks[1].citations[0].kind).toBe("reports");
+  });
+});
