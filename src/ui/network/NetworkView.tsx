@@ -132,6 +132,7 @@ export function NetworkView({ dataset, partition, focus, onFocus, selectedCommun
         type: entity.type,
         size: 10 + Math.min(26, Math.sqrt(view.degree.get(entity.id) ?? 0) * 5),
         color: colors.get(entity.type) ?? "#8c96a0",
+        paint: colors.get(entity.type) ?? "#8c96a0",
       },
     }));
     const edges = view.edges.map((relationship) => ({
@@ -162,7 +163,7 @@ export function NetworkView({ dataset, partition, focus, onFocus, selectedCommun
     return layers.order.map((type, i) => ({
       group: "nodes" as const,
       classes: "band",
-      data: { id: `band:${type}`, label: `L${i}  ${type}  ${fmt(counts.get(type) ?? 0)}`, color: "#ffffff", size: 1 },
+      data: { id: `band:${type}`, label: `L${i}  ${type}  ${fmt(counts.get(type) ?? 0)}`, color: "#ffffff", paint: "#ffffff", size: 1 },
     }));
   }, [arrange, layers, view]);
 
@@ -232,22 +233,24 @@ export function NetworkView({ dataset, partition, focus, onFocus, selectedCommun
       container: host.current,
       elements: placed,
       style: [
-        { selector: "node", style: { width: "data(size)", height: "data(size)", "background-color": "data(color)", "border-width": 1, "border-color": "#ffffff", label: "data(label)", "font-size": 10, color: "#1b2430", "text-valign": "bottom", "text-margin-y": 2, "text-background-color": "#f3f4f1", "text-background-opacity": 0.75, "text-background-padding": "1px", "min-zoomed-font-size": 9 } },
+        { selector: "node", style: { width: "data(size)", height: "data(size)", "background-color": "data(paint)", "border-width": 1, "border-color": "#ffffff", label: "data(label)", "font-size": 10, color: "#1b2430", "text-valign": "bottom", "text-margin-y": 2, "text-background-color": "#f3f4f1", "text-background-opacity": 0.75, "text-background-padding": "1px", "min-zoomed-font-size": 9, "z-index": 10 } },
         // Layer mode: one labelled box per entity, stacked in the column of its type.
-        { selector: "node.box", style: { shape: "round-rectangle", width: BAND.boxWidth, height: BAND.boxHeight, "background-opacity": 0.16, "border-width": 1.5, "border-color": "data(color)", label: "data(label)", "text-valign": "center", "text-halign": "center", "text-margin-y": 0, "font-size": 11, "text-max-width": `${BAND.boxWidth - 16}px`, "text-overflow-wrap": "anywhere", "text-background-opacity": 0 } },
-        { selector: "node.band", style: { shape: "rectangle", width: BAND.boxWidth, height: 1, "background-opacity": 0, "border-width": 0, label: "data(label)", "text-valign": "top", "text-margin-y": -6, "font-size": 12, "font-weight": 700, color: "#3a3a36", "text-background-opacity": 0, events: "no" } },
+        { selector: "node.box", style: { shape: "round-rectangle", width: BAND.boxWidth, height: BAND.boxHeight, "background-color": "data(paint)", "background-opacity": 0.16, "border-width": 1.5, "border-color": "data(paint)", label: "data(label)", "text-valign": "center", "text-halign": "center", "text-margin-y": 0, "font-size": 11, "text-max-width": `${BAND.boxWidth - 16}px`, "text-overflow-wrap": "anywhere", "text-background-opacity": 0 } },
+        { selector: "node.band", style: { shape: "rectangle", width: BAND.boxWidth, height: 1, "background-opacity": 0, "border-width": 0, "z-index": 5, label: "data(label)", "text-valign": "top", "text-margin-y": -6, "font-size": 12, "font-weight": 700, color: "#3a3a36", "text-background-opacity": 0, events: "no" } },
         { selector: "node.nolabel", style: { label: "" } },
-        { selector: "edge", style: { width: 1, "line-color": "#c2c9d1", "curve-style": "haystack", "haystack-radius": 0 } },
+        { selector: "edge", style: { width: 1, "line-color": "#c2c9d1", "curve-style": "haystack", "haystack-radius": 0, "z-index": 1 } },
         { selector: "edge.flow", style: { "curve-style": "bezier", "control-point-step-size": 60, "target-arrow-shape": "triangle", "target-arrow-color": "#b6bec7", "arrow-scale": 0.7 } },
         { selector: "edge.back", style: { "line-color": "#b4453a", "target-arrow-color": "#b4453a", "line-style": "dashed", opacity: 0.7 } },
         { selector: "edge.same", style: { "line-style": "dashed", opacity: 0.45 } },
         { selector: "edge.faint", style: { opacity: 0.35 } },
         { selector: "node.dim", style: { opacity: 0.15 } },
         { selector: "edge.dim", style: { opacity: 0.06 } },
-        { selector: "node.focus", style: { "border-width": 3, "border-color": "#3d5afe", label: "data(label)", "font-size": 12, "z-index": 20 } },
-        { selector: "node.neighbor", style: { "border-width": 2, "border-color": "#5f6b78", label: "data(label)", "z-index": 15 } },
-        { selector: "edge.on", style: { width: 2.5, "line-color": "#3d5afe", opacity: 1, label: "data(label)", "font-size": 10, color: "#3d5afe", "text-background-color": "#ffffff", "text-background-opacity": 0.85, "z-index": 20 } },
-        { selector: "edge.picked", style: { width: 3, "line-color": "#9a4a06", opacity: 1, "z-index": 25 } },
+        { selector: "node.focus", style: { "border-width": 3, "border-color": "#5a6fbe", label: "data(label)", "font-size": 12, "z-index": 30 } },
+        { selector: "node.neighbor", style: { "border-width": 2, "border-color": "#7b8794", label: "data(label)", "z-index": 20 } },
+        { selector: "edge.on", style: { width: 2, "line-color": "#8b9dd4", "target-arrow-color": "#8b9dd4", opacity: 1, label: "data(label)", "font-size": 10, color: "#5a6fbe", "text-background-color": "#ffffff", "text-background-opacity": 0.85, "z-index": 3 } },
+        // A hub with hundreds of links would drown the picture in repeated labels.
+        { selector: "edge.on.many", style: { label: "", width: 1.2, opacity: 0.5 } },
+        { selector: "edge.picked", style: { width: 2.5, "line-color": "#c08a4e", "target-arrow-color": "#c08a4e", opacity: 1, "z-index": 4 } },
       ],
       layout: { name: "preset" },
       minZoom: 0.02,
@@ -312,9 +315,7 @@ export function NetworkView({ dataset, partition, focus, onFocus, selectedCommun
       cy.nodes(".band").absoluteComplement().forEach((node) => {
         const community = primary.get(node.id());
         const index = community === undefined ? -1 : groupOrder.indexOf(community);
-        const colour = overlay === "colour" && index >= 0 ? cloudColors(index).stroke : (node.data("color") as string);
-        node.style(arrange === "layers" ? "border-color" : "background-color", colour);
-        if (arrange === "layers") node.style("background-color", colour);
+        node.data("paint", overlay === "colour" && index >= 0 ? cloudColors(index).stroke : (node.data("color") as string));
       });
     });
     cloudsRef.current = overlay === "clouds"
@@ -343,7 +344,9 @@ export function NetworkView({ dataset, partition, focus, onFocus, selectedCommun
         cy.elements().not(near).addClass("dim");
         node.addClass("focus");
         near.nodes().not(node).addClass("neighbor");
-        node.connectedEdges().addClass("on");
+        const links = node.connectedEdges();
+        links.addClass("on");
+        if (links.length > 30) links.addClass("many");
         cy.animate({ center: { eles: node }, zoom: Math.max(cy.zoom(), 0.9) }, { duration: 250 });
       } else if (focus?.kind === "relationship") {
         const edge = cy.getElementById(focus.id);
