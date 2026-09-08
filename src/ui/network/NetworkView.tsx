@@ -6,6 +6,7 @@ import { hashText } from "../../core/graph/seed";
 import { forwardShare, layerGroups, layerOrder, typeFlow } from "../../core/graph/layers";
 import { exitsFrom, extendSelection, schemaGraph, selectType, type SchemaSelection, type SchemaTripleEdge } from "../../core/graph/schemaGraph";
 import { egoBranches, egoSummary, type EgoModel } from "../../core/graph/ego";
+import { clusterLayout } from "../../core/graph/clusterLayout";
 import type { Dataset, Entity, Partition, Relationship } from "../../core/model";
 import { exportCytoscapePng } from "../download";
 import { fmt } from "../format";
@@ -36,8 +37,10 @@ interface Props {
 type Overlay = "off" | "clouds" | "colour";
 /** Free force layout, or one column per entity type with the relationships flowing forward. */
 /** The schema is the frame: types are nodes until one is opened into its records. */
-type Arrange = "schema" | "focus" | "force" | "layers";
+type Arrange = "schema" | "focus" | "communities" | "force" | "layers";
 const FOCUS_RADIUS = 250;
+/** The pile of records no community claims, drawn as one more disc. */
+const LOOSE = "loose";
 
 /** The type belongs on every node: a name alone does not say what kind of thing it is. */
 const nodeLabel = (entity: Entity) => `${displayTitle(entity)}\n${entity.type}`;
@@ -280,6 +283,27 @@ export function NetworkView({ dataset, partition, focus, onFocus, selectedCommun
     return positions;
   }, [ego, branches]);
 
+  // Every community in its own disc, laid out in rows. Computed rather than simulated, so two
+  // communities that talk to each other constantly still get to sit apart.
+  const clusters = useMemo(() => {
+    if (arrange !== "communities" || !partition) return null;
+    const members = new Map<string, string[]>();
+    const loose: string[] = [];
+    for (const entity of view.nodes) {
+      const community = primary.get(entity.id);
+      if (community === undefined) loose.push(entity.id);
+      else {
+        const list = members.get(community);
+        if (list) list.push(entity.id);
+        else members.set(community, [entity.id]);
+      }
+    }
+    const order = (ids: string[]) => [...ids].sort((a, b) => (view.degree.get(b) ?? 0) - (view.degree.get(a) ?? 0) || a.localeCompare(b));
+    const groups = [...members.entries()].map(([id, ids]) => ({ id, members: order(ids) }));
+    if (loose.length > 0) groups.push({ id: LOOSE, members: order(loose) });
+    return clusterLayout(groups);
+  }, [arrange, partition, view, primary]);
+
   const schemaElements = useMemo((): cytoscape.ElementDefinition[] => {
     if (arrange !== "schema") return [];
     const drawnTypes = schema.nodes.filter((node) => !hiddenTypes.has(node.type));
@@ -483,8 +507,11 @@ export function NetworkView({ dataset, partition, focus, onFocus, selectedCommun
 
   useEffect(() => {
     let cancelled = false;
-    if (arrange === "layers" || arrange === "focus") {
-      setReady({ signature, positions: arrange === "focus" ? focusPositions : bandPositions });
+    if (arrange === "layers" || arrange === "focus" || (arrange === "communities" && clusters)) {
+      setReady({
+        signature,
+        positions: arrange === "focus" ? focusPositions : arrange === "communities" ? clusters!.positions : bandPositions,
+      });
       setLayoutMs(0);
       return;
     }
@@ -506,7 +533,7 @@ export function NetworkView({ dataset, partition, focus, onFocus, selectedCommun
     return () => {
       cancelled = true;
     };
-  }, [elements, signature, cacheKey, arrange, bandPositions, focusPositions]);
+  }, [elements, signature, cacheKey, arrange, bandPositions, focusPositions, clusters]);
 
   const propsRef = useRef({ onFocus, onSelectCommunity, onSeed });
   propsRef.current = { onFocus, onSelectCommunity, onSeed };
@@ -566,6 +593,7 @@ export function NetworkView({ dataset, partition, focus, onFocus, selectedCommun
       boxSelectionEnabled: false,
       autounselectify: true,
     });
+    if (arrange === "communities") cy.edges().addClass("faint");
     if (layered) {
       const rank = new Map(layers.order.map((type, i) => [type, i]));
       cy.batch(() => {
@@ -684,18 +712,24 @@ export function NetworkView({ dataset, partition, focus, onFocus, selectedCommun
         }
       });
     });
+    const radii = new Map((clusters?.groups ?? []).map((group) => [group.id, group.radius]));
     cloudsRef.current = overlay === "clouds"
       ? [...groups.entries()]
           .filter(([, ids]) => ids.length >= 2)
-          .map(([community, ids]) => ({
-            id: community,
-            label: partition?.communities.get(community)?.title ?? community,
-            ...cloudColors(groupOrder.indexOf(community)),
-            elementIds: ids,
-          }))
+          .map(([community, ids]) => {
+            const title = partition?.communities.get(community)?.title ?? community;
+            const room = radii.get(community);
+            const limit = room === undefined ? 40 : Math.max(8, Math.round(room / 4.5));
+            return {
+              id: community,
+              label: title.length > limit ? `${title.slice(0, limit - 1)}…` : title,
+              ...cloudColors(groupOrder.indexOf(community)),
+              elementIds: ids,
+            };
+          })
       : [];
     cy.forceRender();
-  }, [overlay, partition, primary, ready, arrange, selectedCommunityId]);
+  }, [overlay, partition, primary, ready, arrange, selectedCommunityId, clusters]);
 
   // Focus dims everything that is not the selected entity and its neighbours.
   useEffect(() => {
@@ -750,7 +784,17 @@ export function NetworkView({ dataset, partition, focus, onFocus, selectedCommun
       <div className="graph-toolbar">
         <div className="graph-controls">
           <label className="control">{t("Communities")}
-            <select value={overlay} onChange={(e) => setOverlay(e.target.value as Overlay)} disabled={!partition} title={partition ? undefined : t("Needs communities.parquet")}>
+            <select
+              value={overlay}
+              onChange={(event) => {
+                const next = event.target.value as Overlay;
+                setOverlay(next);
+                // Asking for communities should show them, and the schema view has none to show.
+                if (next !== "off" && partition && (arrange === "schema" || arrange === "focus")) setArrange("communities");
+              }}
+              disabled={!partition}
+              title={partition ? undefined : t("Needs communities.parquet")}
+            >
               <option value="off">{t("off")}</option>
               <option value="clouds">{t("clouds")}</option>
               <option value="colour">{t("node colour")}</option>
@@ -760,6 +804,7 @@ export function NetworkView({ dataset, partition, focus, onFocus, selectedCommun
             <select value={arrange} onChange={(e) => setArrange(e.target.value as Arrange)}>
               <option value="schema">{t("schema, open a type to see its records")}</option>
               {seedId && <option value="focus">{t("one record at the centre")}</option>}
+              {partition && <option value="communities">{t("one blob per community")}</option>}
               <option value="force">{t("free")}</option>
               <option value="layers">{t("layers by entity type")}</option>
             </select>
@@ -866,7 +911,15 @@ export function NetworkView({ dataset, partition, focus, onFocus, selectedCommun
 
       <p className="graph-stats">
         <strong>{showAll ? t("Whole:") : t("Part:")}</strong>{" "}
-        {arrange === "focus" && ego ? (
+        {arrange === "communities" && clusters ? (
+          <>
+            {t("{groups} communities, each packed into its own blob with a gap around it. {loose} records belong to none.", {
+              groups: fmt(clusters.groups.filter((group) => group.id !== LOOSE).length),
+              loose: fmt(clusters.groups.find((group) => group.id === LOOSE)?.members ?? 0),
+            })}{" "}
+            {t("Click a record to centre on it.")}{" "}
+          </>
+        ) : arrange === "focus" && ego ? (
           <>
             {t("{title} has {neighbours} neighbours over {relationships} relationships, in {groups} kinds.", {
               title: displayTitle(ego.seed), neighbours: fmt(ego.neighbours), relationships: fmt(ego.relationships), groups: fmt(ego.groups.length),

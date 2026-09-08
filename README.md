@@ -98,7 +98,13 @@ one circle per community sized by the entities it holds, and a curve from each c
 parent. Entities that no community claims are drawn as grey dots under the bands and can be switched
 off. The nested box map, where a community opens into its members, is one switch away.
 
-With the community overlay on, the free layout keeps each community together: a community is a
+Turning the community overlay on switches the whole graph to one blob per community: each community
+is packed into its own disc and the discs are laid out in rows with a gap around every one. The
+positions are computed rather than simulated, so two communities that talk to each other constantly
+still sit apart, and the picture is the same every time. Records no community claims form one more
+disc of their own.
+
+The free layout also keeps each community together: a community is a
 container the layout must not scatter, and a link that leaves one is given a long ideal length while
 links inside it stay short. The clouds then come out as separate petals rather than one smear.
 

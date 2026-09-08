@@ -72,3 +72,13 @@ test("communities are laid out together when the clouds are on", async ({ page }
   await expect(page.locator("canvas.cloud-layer")).toHaveCount(1);
   await expect(page.locator(".graph-stats")).toContainText("entities and", { timeout: 30_000 });
 });
+
+test("turning communities on lays them out as separate blobs", async ({ page }) => {
+  await page.goto("/?data=./samples/demo#view=network");
+  await expect(page.locator(".graph-stats")).toContainText("types drawn", { timeout: 30_000 });
+  // Asking for communities from the schema view has to show them, not do nothing.
+  await page.locator(".control", { hasText: "Communities" }).locator("select").selectOption("clouds");
+  await expect(page.locator(".control", { hasText: "Arrange" }).locator("select")).toHaveValue("communities");
+  await expect(page.locator(".graph-stats")).toContainText("packed into its own blob", { timeout: 30_000 });
+  await expect(page.locator("canvas.cloud-layer")).toHaveCount(1);
+});
