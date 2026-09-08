@@ -14,10 +14,10 @@ type View = "table" | "map" | "graph" | "quality";
 const VIEWS: View[] = ["table", "map", "graph", "quality"];
 
 /** #view=map&set=leiden&community=11 makes the current screen shareable; ?data= stays in the query. */
-function readHash(): { view?: View; set?: string; community?: string } {
+function readHash(): { view?: View; set?: string; community?: string; entity?: string } {
   const params = new URLSearchParams(window.location.hash.replace(/^#/, ""));
   const view = params.get("view") as View | null;
-  return { view: view && VIEWS.includes(view) ? view : undefined, set: params.get("set") ?? undefined, community: params.get("community") ?? undefined };
+  return { view: view && VIEWS.includes(view) ? view : undefined, set: params.get("set") ?? undefined, community: params.get("community") ?? undefined, entity: params.get("entity") ?? undefined };
 }
 import { Mark } from "../Mark";
 import { LangToggle, Rich, useT } from "../i18n";
@@ -39,11 +39,11 @@ export function Overview({ result, label, onReset }: Props) {
   const [initial] = useState(readHash);
   const [partitionId, setPartitionId] = useState(() => (initial.set && dataset.partitions.some((p) => p.id === initial.set) ? initial.set : dataset.partitions[0]?.id ?? ""));
   const [selectedId, setSelectedId] = useState<string | null>(() => initial.community ?? null);
-  const [view, setView] = useState<View>(() => (initial.view === "graph" && !initial.community ? "table" : initial.view ?? "table"));
+  const [view, setView] = useState<View>(() => (initial.view === "graph" && !initial.community && !initial.entity ? "table" : initial.view ?? "table"));
   const [mapExpanded, setMapExpanded] = useState<Set<string>>(new Set());
   const [focus, setFocus] = useState<GraphFocus>(null);
   const [extraIds, setExtraIds] = useState<string[]>([]);
-  const [graphMode, setGraphMode] = useState<GraphMode>({ kind: "communities" });
+  const [graphMode, setGraphMode] = useState<GraphMode>(() => (initial.entity && dataset.entities.has(initial.entity) ? { kind: "neighborhood", entityId: initial.entity, hops: 2 } : { kind: "communities" }));
   const partition = dataset.partitions.find((p) => p.id === partitionId) ?? dataset.partitions[0];
 
   const counts = useMemo(() => datasetCounts(dataset), [dataset]);
@@ -54,14 +54,38 @@ export function Overview({ result, label, onReset }: Props) {
   const selected = selectedId && partition ? partition.communities.get(selectedId) ?? null : null;
   const graphIds = useMemo(() => (selectedId ? [selectedId, ...extraIds.filter((id) => id !== selectedId)] : []), [selectedId, extraIds]);
 
+  // Every view or selection change is a history entry, so the browser's back button walks the trail.
+  // After a popstate the URL already matches the restored state, so nothing is pushed twice.
   useEffect(() => {
     const params = new URLSearchParams();
     if (view !== "table") params.set("view", view);
     if (partition && dataset.partitions.length > 1) params.set("set", partition.id);
     if (selectedId) params.set("community", selectedId);
+    if (graphMode.kind === "neighborhood") params.set("entity", graphMode.entityId);
     const hash = params.toString();
-    window.history.replaceState(null, "", `${window.location.pathname}${window.location.search}${hash ? `#${hash}` : ""}`);
-  }, [view, partition, selectedId, dataset]);
+    const target = `${window.location.pathname}${window.location.search}${hash ? `#${hash}` : ""}`;
+    const current = `${window.location.pathname}${window.location.search}${window.location.hash}`;
+    if (target !== current) window.history.pushState(null, "", target);
+  }, [view, partition, selectedId, graphMode, dataset]);
+
+  useEffect(() => {
+    const onPop = () => {
+      const h = readHash();
+      setPartitionId(h.set && dataset.partitions.some((p) => p.id === h.set) ? h.set : dataset.partitions[0]?.id ?? "");
+      setSelectedId(h.community ?? null);
+      setExtraIds([]);
+      if (h.entity && dataset.entities.has(h.entity)) {
+        setGraphMode({ kind: "neighborhood", entityId: h.entity, hops: 2 });
+        setFocus({ kind: "entity", id: h.entity });
+      } else {
+        setGraphMode({ kind: "communities" });
+        setFocus(null);
+      }
+      setView(h.view === "graph" && !h.community && !h.entity ? "table" : h.view ?? "table");
+    };
+    window.addEventListener("popstate", onPop);
+    return () => window.removeEventListener("popstate", onPop);
+  }, [dataset]);
 
   const select = (id: string | null) => {
     setSelectedId(id);

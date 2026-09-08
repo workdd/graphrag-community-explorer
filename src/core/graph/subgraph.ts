@@ -11,12 +11,25 @@ export interface SubgraphOptions {
   relationshipTypes?: Set<string>;
 }
 
+export interface LeafBundle {
+  /** Entities folded into this node. */
+  entityIds: string[];
+  type: string;
+  relationshipType: string;
+  /** The node they all hang off. */
+  hubId: string;
+  /** True when the leaves were the source of their relationship. */
+  outgoing: boolean;
+}
+
 export interface SubgraphNode {
   entity: Entity;
   /** True for outside entities that only appear because a boundary relationship reaches them. */
   ghost: boolean;
   /** Most specific community of the entity in the partition, when it has one. */
   community?: Community;
+  /** Set when the node stands for several degree-one leaves of the same type on the same hub. */
+  bundle?: LeafBundle;
 }
 
 export interface SubgraphEdge {
@@ -104,6 +117,77 @@ export function communitySubgraph(dataset: Dataset, partition: Partition, commun
     edges,
     stats: { members: members.length, shownMembers: shown.length, internalEdges: internal.length, boundaryEdges, ghostNodes, hiddenBoundaryEdges },
     typeCounts,
+  };
+}
+
+export const BUNDLE_PREFIX = "bundle:";
+
+/**
+ * Folds degree-one leaves that share a hub, an entity type and a relationship type into one node
+ * each, so a hub with 40 attached volumes shows one "40 x BlockStorage" instead of 40 spokes.
+ * Ghost nodes and the `keep` entity are never folded. Groups below `minGroup` stay as they are.
+ */
+export function bundleLeaves(subgraph: Subgraph, options: { minGroup?: number; keep?: string } = {}): Subgraph {
+  const minGroup = options.minGroup ?? 3;
+  const internal = subgraph.edges.filter((e) => !e.boundary);
+  const degree = new Map<string, number>();
+  const only = new Map<string, SubgraphEdge>();
+  for (const edge of subgraph.edges) {
+    for (const id of [edge.relationship.sourceId, edge.relationship.targetId]) {
+      degree.set(id, (degree.get(id) ?? 0) + 1);
+      only.set(id, edge);
+    }
+  }
+  const byId = new Map(subgraph.nodes.map((n) => [n.entity.id, n]));
+  const groups = new Map<string, { hubId: string; type: string; relationshipType: string; outgoing: boolean; members: SubgraphNode[]; edge: SubgraphEdge[] }>();
+  for (const node of subgraph.nodes) {
+    const id = node.entity.id;
+    if (node.ghost || node.bundle || id === options.keep || degree.get(id) !== 1) continue;
+    const edge = only.get(id)!;
+    if (edge.boundary || !internal.includes(edge)) continue;
+    const outgoing = edge.relationship.sourceId === id;
+    const hubId = outgoing ? edge.relationship.targetId : edge.relationship.sourceId;
+    if (hubId === id || !byId.has(hubId)) continue;
+    const key = `${hubId}|${node.entity.type}|${edge.relationship.type}|${outgoing ? "out" : "in"}`;
+    const group = groups.get(key) ?? { hubId, type: node.entity.type, relationshipType: edge.relationship.type, outgoing, members: [], edge: [] };
+    group.members.push(node);
+    group.edge.push(edge);
+    groups.set(key, group);
+  }
+  const folded = new Set<string>();
+  const removedEdges = new Set<SubgraphEdge>();
+  const bundles: SubgraphNode[] = [];
+  const bundleEdges: SubgraphEdge[] = [];
+  for (const [key, group] of groups) {
+    if (group.members.length < minGroup) continue;
+    const entityIds = group.members.map((m) => m.entity.id);
+    group.members.forEach((m) => folded.add(m.entity.id));
+    group.edge.forEach((e) => removedEdges.add(e));
+    const id = `${BUNDLE_PREFIX}${key}`;
+    const degreeSum = group.members.reduce((s, m) => s + m.entity.degree, 0);
+    bundles.push({
+      entity: { id, title: `${entityIds.length} × ${group.type}`, type: group.type, degree: degreeSum, textUnitIds: [] },
+      ghost: false,
+      community: group.members[0].community,
+      bundle: { entityIds, type: group.type, relationshipType: group.relationshipType, hubId: group.hubId, outgoing: group.outgoing },
+    });
+    bundleEdges.push({
+      relationship: {
+        id: `${BUNDLE_PREFIX}edge:${key}`,
+        sourceId: group.outgoing ? id : group.hubId,
+        targetId: group.outgoing ? group.hubId : id,
+        type: group.relationshipType,
+        textUnitIds: [],
+        description: `${entityIds.length} relationships of type ${group.relationshipType}`,
+      },
+      boundary: false,
+    });
+  }
+  if (bundles.length === 0) return subgraph;
+  return {
+    ...subgraph,
+    nodes: [...subgraph.nodes.filter((n) => !folded.has(n.entity.id)), ...bundles],
+    edges: [...subgraph.edges.filter((e) => !removedEdges.has(e)), ...bundleEdges],
   };
 }
 

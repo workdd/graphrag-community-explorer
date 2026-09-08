@@ -36,6 +36,7 @@ export function Inspector(props: Props) {
   if (!partition) return <div className="inspector-empty"><p>{t("No community set is loaded.")}</p></div>;
   if (focus?.kind === "entity") return <EntityPanel {...props} entityId={focus.id} />;
   if (focus?.kind === "relationship") return <RelationshipPanel {...props} relationshipId={focus.id} />;
+  if (focus?.kind === "bundle") return <BundlePanel {...props} bundle={focus} />;
   if (!community) return <div className="inspector-empty"><p>{t("Select a community to read its report and members.")}</p></div>;
   return <CommunityPanel {...props} partition={partition} community={community} />;
 }
@@ -283,6 +284,35 @@ function Description({ text }: { text?: string }) {
     }
   }
   return <p className="desc">{text}</p>;
+}
+
+function BundlePanel({ dataset, community, onFocus, bundle }: Props & { bundle: Extract<GraphFocus, { kind: "bundle" }> }) {
+  const { t } = useT();
+  const hub = dataset.entities.get(bundle.hubId);
+  const members = bundle.entityIds.map((id) => dataset.entities.get(id)).filter((e): e is Entity => e !== undefined);
+  return (
+    <div className="inspector-body">
+      <nav className="crumbs">
+        <button className="crumb" onClick={() => onFocus(null)}>{community ? community.title : t("Back")}</button>
+      </nav>
+      <h2>{bundle.label}</h2>
+      <p className="facts">
+        {t("{count} entities of type {type}, each linked to {hub} by {relationship}.", { count: fmt(members.length), type: members[0]?.type ?? "", hub: hub ? displayTitle(hub) : bundle.hubId, relationship: bundle.relationshipType })}
+      </p>
+      {hub && <button className="chip" onClick={() => onFocus({ kind: "entity", id: hub.id })}>{t("Hub: {name}", { name: displayTitle(hub) })}</button>}
+      <h3>{t("Entities")}</h3>
+      <ul className="members">
+        {members.map((e) => (
+          <li key={e.id}>
+            <button className="member-btn" onClick={() => onFocus({ kind: "entity", id: e.id })} title={e.title}>
+              <span className="type">{e.type}</span>
+              <span className="name">{displayTitle(e)}</span>
+            </button>
+          </li>
+        ))}
+      </ul>
+    </div>
+  );
 }
 
 function RelationshipPanel({ dataset, community, onFocus, relationshipId }: Props & { relationshipId: string }) {

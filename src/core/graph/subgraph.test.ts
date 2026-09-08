@@ -1,7 +1,7 @@
 import { describe, expect, it } from "vitest";
 import type { Community, Dataset, Entity, Partition, Relationship } from "../model";
 import { displayTitle, typeColors } from "./palette";
-import { communitySubgraph, relationshipsOf } from "./subgraph";
+import { bundleLeaves, communitySubgraph, relationshipsOf } from "./subgraph";
 
 const entity = (id: string, degree: number, type = "Service"): Entity => ({ id, title: id, type, degree, textUnitIds: [] });
 const rel = (id: string, sourceId: string, targetId: string, type = "calls"): Relationship => ({ id, sourceId, targetId, type, textUnitIds: [] });
@@ -47,6 +47,33 @@ describe("communitySubgraph", () => {
     expect(g.nodes.filter((n) => !n.ghost).map((n) => n.entity.id)).toEqual(["a", "b", "x", "c", "y"]);
     expect(g.stats.internalEdges).toBe(5);
     expect(g.nodes.filter((n) => n.ghost).map((n) => n.entity.id)).toEqual(["z"]);
+  });
+});
+
+describe("bundleLeaves", () => {
+  const hubData: Dataset = {
+    ...dataset,
+    entities: new Map([entity("hub", 5), entity("l1", 1, "Vol"), entity("l2", 1, "Vol"), entity("l3", 1, "Vol"), entity("l4", 1, "Disk"), entity("m", 2)].map((e) => [e.id, e])),
+    relationships: [rel("h1", "l1", "hub", "attached"), rel("h2", "l2", "hub", "attached"), rel("h3", "l3", "hub", "attached"), rel("h4", "l4", "hub", "attached"), rel("hm", "hub", "m"), rel("ml", "m", "l3")],
+  };
+  const hubPartition: Partition = { ...partition, communities: new Map([["1", community("1", ["hub", "l1", "l2", "l3", "l4", "m"])]]) };
+
+  it("folds degree-one leaves of one type on one hub into a single node with one edge", () => {
+    const raw = communitySubgraph(hubData, hubPartition, ["1"], { maxNodes: 500, includeBoundary: false, maxBoundaryNodes: 0 });
+    const folded = bundleLeaves(raw, { minGroup: 2 });
+    const bundle = folded.nodes.find((n) => n.bundle);
+    // l3 has two edges, so it stays; l1 and l2 fold; l4 is a different type and alone.
+    expect(bundle?.bundle).toMatchObject({ entityIds: ["l1", "l2"], type: "Vol", relationshipType: "attached", hubId: "hub", outgoing: true });
+    expect(bundle?.entity.title).toBe("2 × Vol");
+    expect(folded.nodes.map((n) => n.entity.id).sort()).toEqual(["bundle:hub|Vol|attached|out", "hub", "l3", "l4", "m"]);
+    expect(folded.edges).toHaveLength(raw.edges.length - 1);
+    expect(folded.edges.find((e) => e.relationship.id.startsWith("bundle:"))?.relationship).toMatchObject({ sourceId: "bundle:hub|Vol|attached|out", targetId: "hub", type: "attached" });
+  });
+
+  it("keeps a protected entity and small groups untouched", () => {
+    const raw = communitySubgraph(hubData, hubPartition, ["1"], { maxNodes: 500, includeBoundary: false, maxBoundaryNodes: 0 });
+    expect(bundleLeaves(raw, { minGroup: 2, keep: "l1" })).toBe(raw);
+    expect(bundleLeaves(raw, { minGroup: 3 })).toBe(raw);
   });
 });
 

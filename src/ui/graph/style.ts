@@ -28,6 +28,9 @@ export const GRAPH_STYLE = [
     },
   },
   { selector: "node[size]", style: { width: "data(size)", height: "data(size)" } },
+  { selector: "node.bundle", style: { shape: "round-rectangle", "background-opacity": 0.35, "border-width": 2, "border-style": "double", "border-color": "data(color)", "font-weight": 600 } },
+  { selector: "edge.faint", style: { opacity: 0.35 } },
+  { selector: "edge.faint.in, edge.faint.out, edge.faint.picked, edge.faint.hover", style: { opacity: 1 } },
   { selector: "node.ghost", style: { "background-color": "#ffffff", "border-color": "data(color)", "border-width": 1.5, "border-style": "dashed", color: "#5f6b78" } },
   {
     selector: "node:parent",
@@ -85,6 +88,8 @@ export const GRAPH_STYLE = [
   { selector: "edge.in", style: { "line-color": "#6b7784", "target-arrow-color": "#6b7784", width: 1.8, label: "data(type)", "z-index": 9 } },
   { selector: "edge.picked", style: { "line-color": "#3d5afe", "target-arrow-color": "#3d5afe", width: 2.5, label: "data(type)", "z-index": 10 } },
   { selector: "edge.hover", style: { label: "data(type)", width: 2, "line-color": "#5f6b78", "target-arrow-color": "#5f6b78" } },
+  // Last so it wins over node:parent: with clouds on, the compound box is invisible but still shapes the layout.
+  { selector: "node:parent.cloud", style: { "background-opacity": 0, "border-opacity": 0, label: "", "text-opacity": 0 } },
 ] as unknown as cytoscape.StylesheetStyle[];
 
 export const DEPTH_FILL = ["#eef2ea", "#e2e8dc", "#d5ddcd", "#c8d2bf"];

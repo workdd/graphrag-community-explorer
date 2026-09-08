@@ -1,5 +1,12 @@
 # Changelog
 
+## Unreleased
+
+- Browser back and forward move between views and selections; neighbourhood mode is in the URL.
+- Big communities start with their dominant hub relationship type hidden; leaves of one type on
+  one hub fold into a single node; dense graphs draw links fainter until one is selected.
+- Communities can be shown as clouds around their members (graph, neighbourhood, map).
+
 ## 0.2.0 (2026-09-08)
 
 - Korean interface with a switch in the top bar; the choice is remembered.

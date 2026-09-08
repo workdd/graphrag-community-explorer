@@ -92,6 +92,10 @@ remembered in the browser.
   index shipped them; claims from `covariates.parquet` on the entity panel.
 - Neighbourhood exploration: from any entity, everything within 1, 2 or 3 hops across community
   boundaries, drawn inside the communities it belongs to.
+- Readable at scale: a hub-and-spoke relationship type that owns most of a big community's links
+  starts hidden (one click brings it back), degree-one leaves of one type on the same hub fold into
+  a single node, and communities can be drawn as translucent clouds around their members instead of
+  boxes. Every view and selection is a browser history entry, so the back button works.
 - The community graph: members drawn inside the community container, colored by entity type and
   sized by degree, with labels that stay readable. Outside links reach dashed ghost nodes, and any
   neighbouring community can be added to the same picture. Click a node for its neighbourhood and

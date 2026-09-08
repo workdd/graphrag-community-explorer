@@ -58,10 +58,10 @@ export function buildElements({ subgraph, partition, communityIds, colors, posit
         title: entity.title,
         type: entity.type,
         color: colors.get(entity.type) ?? "#8c96a0",
-        size: node.ghost ? 12 : size(entity.degree),
+        size: node.ghost ? 12 : node.bundle ? Math.round(18 + 10 * Math.sqrt(node.bundle.entityIds.length)) : size(entity.degree),
         parent: owner ? parentId(owner.id) : undefined,
       },
-      classes: node.ghost ? "ghost" : "",
+      classes: node.ghost ? "ghost" : node.bundle ? "bundle" : "",
       position: positions.get(entity.id) ?? { x: radius * Math.cos(angle), y: radius * Math.sin(angle) },
     });
   });

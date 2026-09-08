@@ -10,6 +10,7 @@ import { Rich, useT } from "../i18n";
 import type { GraphFocus } from "../graph/CommunityGraph";
 import { loadCachedLayout, requestLayout, saveCachedLayout } from "../graph/layoutClient";
 import { MAP_STYLE } from "../graph/style";
+import { attachClouds, cloudColors } from "../graph/clouds";
 import { buildMapElements, layoutInput, type Positions } from "./mapElements";
 
 interface Props {
@@ -35,6 +36,10 @@ export function CommunityMap(props: Props) {
   const [baseLevel, setBaseLevel] = useState<number | null>(null);
   const [showUnassigned, setShowUnassigned] = useState(true);
   const [maxEntities, setMaxEntities] = useState(800);
+  const [backgrounds, setBackgrounds] = useState<"boxes" | "clouds">("boxes");
+  const backgroundsRef = useRef(backgrounds);
+  backgroundsRef.current = backgrounds;
+  const wrapRef = useRef<HTMLDivElement>(null);
   const [nonce, setNonce] = useState(0);
   const [layout, setLayout] = useState<LayoutStatus>({ status: "idle" });
   const [ready, setReady] = useState<{ signature: string; positions: Positions } | null>(null);
@@ -154,15 +159,41 @@ export function CommunityMap(props: Props) {
     });
     const observer = new ResizeObserver(() => cy.resize());
     observer.observe(host.current);
+    // Clouds wrap everything drawn inside an open container, nested containers included.
+    const containers = current.filter((el) => el.group === "nodes" && String(el.classes ?? "").includes("container"));
+    const groups = containers.map((container, i) => {
+      const inside = new Set<string>();
+      let frontier = [container.data.id as string];
+      while (frontier.length > 0) {
+        const next: string[] = [];
+        for (const el of current) {
+          if (el.group === "nodes" && el.data.parent && frontier.includes(el.data.parent as string) && !inside.has(el.data.id as string)) {
+            inside.add(el.data.id as string);
+            next.push(el.data.id as string);
+          }
+        }
+        frontier = next;
+      }
+      return { id: container.data.id as string, label: String(container.data.label), ...cloudColors(i), elementIds: [...inside].filter((id) => !String(current.find((el) => el.data.id === id)?.classes ?? "").includes("container")) };
+    });
+    const detachClouds = wrapRef.current ? attachClouds(cy, wrapRef.current, () => (backgroundsRef.current === "clouds" ? groups : [])) : () => undefined;
     cyRef.current = cy;
     if (import.meta.env.DEV) (window as unknown as { __cy?: cytoscape.Core }).__cy = cy;
     return () => {
+      detachClouds();
       observer.disconnect();
       cy.destroy();
       cyRef.current = undefined;
     };
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [ready]);
+
+  useEffect(() => {
+    const cy = cyRef.current;
+    if (!cy) return;
+    cy.nodes(":parent").toggleClass("cloud", backgrounds === "clouds");
+    cy.forceRender();
+  }, [backgrounds, ready]);
 
   // Selection and entity focus are class changes only.
   useEffect(() => {
@@ -202,6 +233,12 @@ export function CommunityMap(props: Props) {
             </select>
           </label>
           <label className="control"><input type="checkbox" checked={showUnassigned} onChange={(e) => setShowUnassigned(e.target.checked)} /> {t("Entities in no community")}</label>
+          <label className="control">{t("Communities")}
+            <select value={backgrounds} onChange={(e) => setBackgrounds(e.target.value as "boxes" | "clouds")}>
+              <option value="boxes">{t("boxes")}</option>
+              <option value="clouds">{t("clouds")}</option>
+            </select>
+          </label>
           <label className="control">{t("Entity budget")}
             <select value={maxEntities} onChange={(e) => setMaxEntities(Number(e.target.value))}>
               {ENTITY_BUDGETS.map((n) => <option key={n} value={n}>{fmt(n)}</option>)}
@@ -225,7 +262,7 @@ export function CommunityMap(props: Props) {
         </div>
       )}
 
-      <div className="graph-canvas-wrap">
+      <div className="graph-canvas-wrap" ref={wrapRef}>
         <div className="graph-canvas" ref={host} role="img" aria-label="Community map" />
         {layout.status === "running" && <div className="layout-overlay">{t("Computing layout…")}</div>}
         {hover && (

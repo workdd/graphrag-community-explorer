@@ -228,3 +228,5 @@
 .claim-text { line-height: 1.45; }
 .claims .chip { justify-self: start; }
 .inspector-body > .btn.primary + h3 { margin-top: 18px; }
+.cloud-layer { position: absolute; inset: 0; pointer-events: none; }
+.graph-canvas { background: transparent; }
