@@ -90,6 +90,47 @@ def test_duplicate_community_business_id_is_rejected(snapshot):
         m.convert(vertices + [dup], edges, graph="g")
 
 
+def test_duplicate_report_names_the_nodes_so_the_loader_can_be_fixed(snapshot):
+    """어느 id 가 겹쳤는지 말하지 않으면 적재기를 고칠 수가 없다."""
+    vertices, edges = snapshot
+    dup = vertex("12", "Community", id="comm-a", level=0, title="A2")
+    with pytest.raises(ValueError) as caught:
+        m.convert(vertices + [dup], edges, graph="g")
+    message = str(caught.value)
+    assert "comm-a" in message
+    assert "node 12" in message
+    assert "'A2'" in message
+    assert "--allow-duplicate-ids" in message
+
+
+def test_missing_community_id_names_the_node(snapshot):
+    vertices, edges = snapshot
+    blank = vertex("12", "Community", level=0, title="No id")
+    with pytest.raises(ValueError, match="missing on nodes: 12"):
+        m.convert(vertices + [blank], edges, graph="g")
+
+
+def test_allowing_duplicates_keeps_the_first_node_and_warns(snapshot):
+    vertices, edges = snapshot
+    dup = vertex("12", "Community", id="comm-a", level=0, title="A2")
+    before = m.convert(vertices, edges, graph="g")
+    after = m.convert(vertices + [dup], edges, graph="g", allow_duplicate_ids=True)
+    assert len(after[2]) == len(before[2])
+    assert [c["title"] for c in after[2]] == [c["title"] for c in before[2]]
+    warning = " ".join(after[4])
+    assert "comm-a" in warning and "dropped 1" in warning
+
+
+def test_allowing_duplicates_keeps_membership_of_the_node_that_stays(snapshot):
+    vertices, edges = snapshot
+    dup = vertex("12", "Community", id="comm-a", level=0, title="A2")
+    stray = edge("e-dup", "inCommunity", "1", "12")
+    communities = m.convert(vertices + [dup], edges + [stray], graph="g", allow_duplicate_ids=True)[2]
+    kept = [c for c in communities if c["title"] == "A"]
+    assert len(kept) == 1
+    assert kept[0]["entity_ids"] == m.convert(vertices, edges, graph="g")[2][0]["entity_ids"]
+
+
 @pytest.fixture
 def kind_labelled():
     """kind 별로 정점 라벨이 나뉘고 부모를 접미사 키로 가리키는 그래프 (거버넌스 형태)."""

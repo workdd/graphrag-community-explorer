@@ -122,8 +122,47 @@ def resolve_parent(raw, business_ids):
     return None
 
 
+def resolve_duplicate_communities(clusters, allow_duplicate_ids, warnings):
+    """Community.id 가 유일한지 확인합니다.
+
+    한 건이라도 중복이면 내보내기가 통째로 멈춥니다. 어느 id 가 겹쳤는지 말하지 않으면
+    적재기를 고칠 수가 없으므로, 중복된 id 와 노드를 모두 이름으로 적습니다.
+    허용 모드에서는 노드 id 가 작은 쪽(먼저 적재된 쪽)만 남기고 경고를 남깁니다.
+    """
+    missing = [v["id"] for v in clusters if v["properties"].get("id") in (None, "")]
+    if missing:
+        raise ValueError("Community.id is missing on nodes: " + ", ".join(missing))
+
+    seen = defaultdict(list)
+    for v in clusters:
+        seen[str(v["properties"]["id"])].append(v)
+    duplicates = {k: vs for k, vs in seen.items() if len(vs) > 1}
+    if not duplicates:
+        return clusters, []
+
+    lines = []
+    for key, vs in sorted(duplicates.items()):
+        detail = "; ".join(
+            f"node {v['id']} level={v['properties'].get('level')} title={v['properties'].get('title')!r}"
+            for v in sorted(vs, key=lambda v: int(v["id"])))
+        lines.append(f"  {key}: {detail}")
+    report = f"{len(duplicates)} duplicated Community.id values:\n" + "\n".join(lines)
+    if not allow_duplicate_ids:
+        raise ValueError(
+            report + "\n  Fix the loader so each community keeps one node, or pass "
+            "--allow-duplicate-ids to export the first node of each and record the rest as a warning.")
+
+    kept, dropped = [], []
+    for v in clusters:
+        key = str(v["properties"]["id"])
+        first = min(seen[key], key=lambda x: int(x["id"]))
+        (kept if v is first else dropped).append(v)
+    warnings.append(report.replace("\n", " ") + f" -- kept the first node of each, dropped {len(dropped)}")
+    return kept, dropped
+
+
 def convert(vertices, edges, graph, entity_labels="auto", community_label="Community",
-            membership_label="inCommunity"):
+            membership_label="inCommunity", allow_duplicate_ids=False):
     by_id = {v["id"]: v for v in vertices}
     if len(by_id) != len(vertices) or len({e["id"] for e in edges}) != len(edges):
         raise ValueError("Duplicate AGE IDs")
@@ -146,19 +185,18 @@ def convert(vertices, edges, graph, entity_labels="auto", community_label="Commu
             type=str(p.get("kind") or vertex["label"]), description=encode(p), text_unit_ids=[],
             age_label=vertex["label"], age_properties_json=encode(p)))
 
-    numbers = {v["id"]: i for i, v in enumerate(clusters)}
-    business_ids = {}
-    for v in clusters:
-        key = v["properties"].get("id")
-        if key is None or str(key) in business_ids:
-            raise ValueError("Community.id must be present and unique")
-        business_ids[str(key)] = numbers[v["id"]]
     warnings = []
+    clusters, dropped = resolve_duplicate_communities(clusters, allow_duplicate_ids, warnings)
+    dropped_ids = {v["id"] for v in dropped}
+    numbers = {v["id"]: i for i, v in enumerate(clusters)}
+    business_ids = {str(v["properties"]["id"]): numbers[v["id"]] for v in clusters}
     members = defaultdict(set)
     skipped_membership = 0
     for e in edges:
         if e["label"] != membership_label:
             continue
+        if e["target"] in dropped_ids:
+            continue          # 중복으로 걸러낸 커뮤니티로 가는 멤버십
         if e["target"] not in numbers:
             raise ValueError(f"{membership_label} edge {e['id']} does not end at a {community_label}")
         # A member outside the exported labels is dropped rather than fatal: --entity-labels may
@@ -253,6 +291,9 @@ def main():
                              "auto (default) uses Resource when present, otherwise every label but the community one")
     parser.add_argument("--community-label", default="Community")
     parser.add_argument("--membership-label", default="inCommunity")
+    parser.add_argument("--allow-duplicate-ids", action="store_true",
+                        help="Export the first node of each duplicated Community.id and record the rest "
+                             "as a warning, instead of stopping")
     args = parser.parse_args()
     if args.output.exists():
         parser.error("Output already exists; choose a new directory")
@@ -263,7 +304,8 @@ def main():
     vertices, edges = read_snapshot(config, graph)
     entities, relationships, communities, reports, warnings = convert(
         vertices, edges, graph, entity_labels=args.entity_labels,
-        community_label=args.community_label, membership_label=args.membership_label)
+        community_label=args.community_label, membership_label=args.membership_label,
+        allow_duplicate_ids=args.allow_duplicate_ids)
     args.output.mkdir(parents=True, exist_ok=False)
     artifacts = args.output / "artifacts"
     snapshot = args.output / "snapshot"
