@@ -271,3 +271,31 @@
 .ctx-table tr.group td { background: color-mix(in srgb, var(--tcolor) 10%, white); color: var(--ink-2); font-weight: 600; }
 .ctx-table tr.empty td { color: var(--ink-3); }
 @media (max-width: 1500px) { .ctx-grid { grid-template-columns: 1fr; } }
+
+/* Formation view: a Leiden run played back on the graph it was computed from */
+.formation { flex: 1; min-height: 0; display: grid; grid-template-columns: minmax(0, 1fr) 320px; gap: 12px; }
+.formation .graph-canvas-wrap { min-height: 0; }
+.formation-side { overflow-y: auto; display: flex; flex-direction: column; gap: 10px; }
+.formation-side .muted { margin: 0; }
+.formation-bar { display: flex; align-items: center; gap: 10px; }
+.formation-bar input[type="range"] { flex: 1; }
+.formation-count { color: var(--ink-2); font-size: var(--fs-0); white-space: nowrap; }
+.phase { display: flex; align-items: baseline; justify-content: space-between; gap: 8px; padding: 6px 10px; border-radius: var(--radius); background: var(--depth-1); }
+.phase-name { font-weight: 600; }
+.phase-round { color: var(--ink-2); font-size: var(--fs-0); }
+.phase-refinement { background: #efe6f6; }
+.phase-aggregation { background: #e6eef6; }
+.phase-done { background: var(--accent-soft); }
+.formation-stats { display: grid; grid-template-columns: 1fr auto; gap: 3px 10px; }
+.formation-stats dt { color: var(--ink-2); }
+.formation-stats dd { text-align: right; font-variant-numeric: tabular-nums; }
+.formation-chart { width: 100%; height: 60px; border: 1px solid var(--rule); border-radius: var(--radius); background: var(--surface); }
+.field.seed { width: 76px; }
+@media (max-width: 1280px) { .formation { grid-template-columns: 1fr; grid-template-rows: minmax(280px, 1fr) auto; } }
+
+/* Graph-first views use the full width: the community tree belongs to the views that navigate it. */
+.app.no-rail { grid-template-columns: minmax(0, 1fr) var(--inspector-w); }
+.legend-item.off { opacity: 0.4; text-decoration: line-through; }
+.graph-legend button.legend-item { border: none; background: none; cursor: pointer; font: inherit; padding: 0 2px; }
+.field.find { width: 180px; }
+@media (max-width: 1100px) { .app.no-rail { grid-template-columns: 1fr; } }

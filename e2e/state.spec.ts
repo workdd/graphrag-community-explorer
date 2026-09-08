@@ -4,8 +4,10 @@ import { expect, test } from "@playwright/test";
 test("url keeps the dataset and the view; back button walks the trail", async ({ page }) => {
   await page.goto("/");
   await page.getByRole("button", { name: "Open the sample dataset" }).click();
+  await page.getByRole("tab", { name: "Overview" }).click();
   await expect(page.locator(".summary")).toContainText("189 entities");
   expect(page.url()).toContain("data=./samples/demo");
+  expect(page.url()).toContain("#view=table");
 
   await page.locator(".tree-title", { hasText: "Payments" }).first().click();
   await page.locator(".inspector .member-btn", { hasText: "Payments worker" }).first().click();
@@ -41,6 +43,7 @@ test("map opens a nested community inside its closed parents", async ({ page }) 
 
 test("entities and relationships alone still give an entity list and neighbourhoods", async ({ page }) => {
   await page.goto("/?data=./samples/minimal");
+  await page.getByRole("tab", { name: "Overview" }).click();
   await expect(page.locator(".summary")).toContainText("No community set loaded");
   await expect(page.getByRole("tab", { name: "Map" })).toBeDisabled();
   await page.getByPlaceholder("Find an entity").fill("gateway");
@@ -52,7 +55,9 @@ test("entities and relationships alone still give an entity list and neighbourho
 
 test("ids from another dataset in the link are ignored", async ({ page }) => {
   await page.goto("/?data=./samples/demo#view=graph&community=nope-999&entity=nope-1&open=zzz");
+  // The unknown ids leave nothing to draw a community graph from, so the default view opens instead.
+  await expect(page.getByRole("tab", { name: "Network" })).toHaveAttribute("aria-selected", "true");
+  await page.getByRole("tab", { name: "Overview" }).click();
   await expect(page.locator(".summary")).toContainText("189 entities");
-  await expect(page.getByRole("tab", { name: "Overview" })).toHaveAttribute("aria-selected", "true");
   expect(page.url()).not.toContain("nope");
 });

@@ -8,6 +8,7 @@ test("interface switches to Korean and remembers it", async ({ page }) => {
   await page.getByRole("button", { name: "한국어" }).click();
   await expect(page.getByRole("button", { name: "샘플 데이터셋 열기" })).toBeVisible();
   await page.getByRole("button", { name: "샘플 데이터셋 열기" }).click();
+  await page.getByRole("tab", { name: "개요" }).click();
   await expect(page.locator(".summary")).toContainText("엔티티 189개, 관계 233개");
   await expect(page.getByRole("tab", { name: "지도" })).toBeVisible();
 

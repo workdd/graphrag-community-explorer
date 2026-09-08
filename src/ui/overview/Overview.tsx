@@ -22,9 +22,13 @@ const CommunityGraph = lazy(() => import("../graph/CommunityGraph").then((m) => 
 const CommunityMap = lazy(() => import("../map/CommunityMap").then((m) => ({ default: m.CommunityMap })));
 const QualityView = lazy(() => import("../quality/QualityView").then((m) => ({ default: m.QualityView })));
 const SchemaView = lazy(() => import("../schema/SchemaView").then((m) => ({ default: m.SchemaView })));
+const FormationView = lazy(() => import("../formation/FormationView").then((m) => ({ default: m.FormationView })));
+const NetworkView = lazy(() => import("../network/NetworkView").then((m) => ({ default: m.NetworkView })));
 
-type View = "table" | "map" | "graph" | "quality" | "schema";
-const VIEWS: View[] = ["table", "map", "graph", "quality", "schema"];
+type View = "network" | "table" | "map" | "graph" | "quality" | "schema" | "formation";
+const VIEWS: View[] = ["network", "table", "map", "graph", "quality", "schema", "formation"];
+/** The whole graph is what the tool is for, so that is where it opens. */
+const DEFAULT_VIEW: View = "network";
 type Backgrounds = "boxes" | "clouds";
 
 interface HashState {
@@ -53,9 +57,9 @@ function readHash(dataset: Dataset): HashState {
   const open = (params.get("open") ?? "").split(",").filter((id) => partition?.communities.has(id) || id === "unassigned");
   const hops = Number(params.get("hops"));
   const rawView = params.get("view") as View | null;
-  let view: View = rawView && VIEWS.includes(rawView) ? rawView : "table";
-  if (view === "graph" && !community && !entity) view = "table";
-  if ((view === "map" || view === "quality") && !partition) view = "table";
+  let view: View = rawView && VIEWS.includes(rawView) ? rawView : DEFAULT_VIEW;
+  if (view === "graph" && !community && !entity) view = DEFAULT_VIEW;
+  if ((view === "map" || view === "quality") && !partition) view = DEFAULT_VIEW;
   return { view, set: setId, community, entity, open, hops: [1, 2, 3].includes(hops) ? hops : 2 };
 }
 
@@ -101,7 +105,7 @@ export function Overview({ result, label, onReset, datasets, activeData, onOpenD
   // After a popstate the URL already matches the restored state, so nothing is pushed twice.
   useEffect(() => {
     const params = new URLSearchParams();
-    if (view !== "table") params.set("view", view);
+    if (view !== DEFAULT_VIEW) params.set("view", view);
     if (realPartition && dataset.partitions.length > 1) params.set("set", realPartition.id);
     if (selectedId) params.set("community", selectedId);
     if (graphMode.kind === "neighborhood") {
@@ -182,8 +186,11 @@ export function Overview({ result, label, onReset, datasets, activeData, onOpenD
     setMapExpanded(next);
   };
 
+  // The graph views fill the width; the community tree belongs to the views that navigate it.
+  const showRail = view !== "network" && view !== "formation";
+
   return (
-    <div className="app">
+    <div className={`app${showRail ? "" : " no-rail"}`}>
       <header className="topbar">
         <Mark size={22} />
         <span className="topbar-title">GraphRAG Community Explorer</span>
@@ -211,6 +218,7 @@ export function Overview({ result, label, onReset, datasets, activeData, onOpenD
         <button className="btn" onClick={onReset}>{t("Open another dataset")}</button>
       </header>
 
+      {showRail && (
       <aside className="rail">
         <section className="rail-section">
           <h2>{t("Dataset")}</h2>
@@ -229,14 +237,17 @@ export function Overview({ result, label, onReset, datasets, activeData, onOpenD
           <EntityList dataset={dataset} focusId={focus?.kind === "entity" ? focus.id : null} onFocus={(id) => setFocus({ kind: "entity", id })} />
         )}
       </aside>
+      )}
 
-      <main className={`main${view === "map" || view === "graph" ? " graph-mode" : ""}`}>
+      <main className={`main${view === "map" || view === "graph" || view === "network" || view === "formation" ? " graph-mode" : ""}`}>
         <div className="main-head">
           <div className="segmented" role="tablist">
+            <button role="tab" aria-selected={view === "network"} className={view === "network" ? "active" : ""} title={t("Every entity and relationship; communities are an overlay you turn on")} onClick={() => setView("network")}>{t("Network")}</button>
             <button role="tab" aria-selected={view === "table"} className={view === "table" ? "active" : ""} onClick={() => setView("table")}>{t("Overview")}</button>
             <button role="tab" aria-selected={view === "map"} className={view === "map" ? "active" : ""} disabled={!realPartition} title={realPartition ? undefined : t("Needs communities.parquet")} onClick={() => setView("map")}>{t("Map")}</button>
             <button role="tab" aria-selected={view === "quality"} className={view === "quality" ? "active" : ""} disabled={!realPartition} title={realPartition ? undefined : t("Needs communities.parquet")} onClick={() => setView("quality")}>{t("Quality")}</button>
             <button role="tab" aria-selected={view === "schema"} className={view === "schema" ? "active" : ""} title={t("The tables behind the graph and the rows behind the selection")} onClick={() => setView("schema")}>{t("Schema")}</button>
+            <button role="tab" aria-selected={view === "formation"} className={view === "formation" ? "active" : ""} title={t("Run Leiden here and watch the communities form")} onClick={() => setView("formation")}>{t("Formation")}</button>
             <button
               role="tab"
               aria-selected={view === "graph"}
@@ -251,7 +262,19 @@ export function Overview({ result, label, onReset, datasets, activeData, onOpenD
         </div>
 
         <Suspense fallback={<div className="view-loading">{t("Loading view…")}</div>}>
-        {view === "schema" ? (
+        {view === "network" ? (
+          <NetworkView
+            dataset={dataset}
+            partition={realPartition ?? null}
+            focus={focus}
+            onFocus={setFocus}
+            selectedCommunityId={selectedId}
+            onSelectCommunity={(id) => { select(id); setView("map"); }}
+            onExplore={explore}
+          />
+        ) : view === "formation" ? (
+          <FormationView dataset={dataset} partition={realPartition ?? null} selected={selected} />
+        ) : view === "schema" ? (
           <SchemaView dataset={dataset} partition={realPartition ?? null} tables={result.tables} selectedId={selectedId} focus={focus} onSelect={select} onFocus={setFocus} onOpenGraph={openGraph} />
         ) : view === "quality" && realPartition ? (
           <QualityView dataset={dataset} partition={realPartition} selectedId={selectedId} onSelect={select} />
