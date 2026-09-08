@@ -8,6 +8,60 @@ type Vars = Record<string, string | number>;
  * <Rich>. Anything missing falls back to English, so a new screen is never blank.
  */
 const KO: Record<string, string> = {
+  "The Ask tab is the exception: a question sends the evidence it selected to the model provider you configure.":
+    "Ask 탭은 예외입니다. 질문하면 선택된 근거가 설정한 모델 제공자에게 전송됩니다.",
+  "Optional sidecar of entity vectors. Local search in the Ask tab needs it; the embed_index tool writes one.":
+    "선택 사항. 엔티티 벡터 사이드카입니다. Ask 탭의 Local 검색에 필요하며 embed_index 도구가 만듭니다.",
+  "Upstage splits its embedding model in two. Build the file with …-passage and ask with …-query.":
+    "Upstage 는 임베딩 모델이 저장용과 질문용으로 나뉩니다. 파일은 …-passage 로 만들고 질문은 …-query 로 합니다.",
+  // search
+  "Reports": "보고서",
+  "Ask": "질문",
+  "Ask a question and follow the answer back to the records it cites":
+    "질문하고 답변이 인용한 레코드로 되짚어 갑니다",
+  "Local": "Local",
+  "Global": "Global",
+  "Asking…": "묻는 중…",
+  "Stop": "중단",
+  "Needs embeddings.parquet": "embeddings.parquet 이 필요합니다",
+  "Needs community_reports.parquet": "community_reports.parquet 이 필요합니다",
+  "Provider: {key}": "제공자: {key}",
+  "Set up a provider": "제공자 설정",
+  "Open a trace": "저장된 실행 열기",
+  "Save this run": "이 실행 저장",
+  "Browsing stays in this tab. **Asking a question sends the selected evidence to the provider you configure.**":
+    "탐색은 이 탭 안에서만 이루어집니다. **질문하면 선택된 근거가 설정한 제공자에게 전송됩니다.**",
+  "Provider": "제공자",
+  "Forget the key": "키 지우기",
+  "Base URL": "기준 주소",
+  "API key": "API 키",
+  "Chat model": "채팅 모델",
+  "Embedding model": "임베딩 모델",
+  "The key is kept in this browser only. It is never written into a saved run. Clear it on a shared computer.":
+    "키는 이 브라우저에만 보관되며 저장한 실행 파일에는 들어가지 않습니다. 공용 컴퓨터에서는 지우세요.",
+  "The embeddings file was made from a different index ({files}). Local search is off.":
+    "임베딩 파일이 다른 색인에서 만들어졌습니다({files}). Local 검색을 끕니다.",
+  "Local search needs an embeddings.parquet next to the index. The embed_index tool writes one.":
+    "Local 검색은 색인 옆의 embeddings.parquet 이 필요합니다. embed_index 도구가 만들어 줍니다.",
+  "Global reads {reports} reports in {batches} batches, so this question costs about {calls} model calls.":
+    "Global 은 보고서 {reports}건을 {batches}개 배치로 읽으므로 이 질문에 모델 호출이 약 {calls}회 듭니다.",
+  "Ask about this index": "이 색인에 대해 질문하세요",
+  "Showing a saved run from {tool} {version}, made on {when}.": "{tool} {version} 이 {when} 에 저장한 실행입니다.",
+  "This trace was made from another index ({files}), so its citations are not linked.":
+    "다른 색인에서 만들어진 실행이라({files}) 인용을 레코드에 연결하지 않습니다.",
+  "Nothing in this index was close enough to the question to answer it.":
+    "질문에 가까운 내용이 이 색인에 없어 답을 만들지 않았습니다.",
+  "Engine": "엔진",
+  "Method": "방식",
+  "Model calls": "모델 호출",
+  "Tokens": "토큰",
+  "not reported": "수집되지 않음",
+  "Elapsed": "경과",
+  "Used as evidence": "근거로 사용됨",
+  "Score": "점수",
+  "The answer cited a number that is not in the context.": "컨텍스트에 없는 번호를 인용했습니다.",
+  "Sources": "원문",
+  "English": "한국어",
   // load screen
   "Read a GraphRAG index the way it is organized: communities first, then the entities and relationships inside each one. Files are parsed in this tab and never uploaded.":
     "GraphRAG 인덱스를 구성된 순서대로 읽습니다. 커뮤니티가 먼저, 그 안의 엔티티와 관계는 그다음입니다. 파일은 이 탭 안에서만 처리되며 어디에도 업로드되지 않습니다.",

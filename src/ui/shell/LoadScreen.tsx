@@ -56,6 +56,7 @@ export function LoadScreen({ state, onFiles, onSample, defaultData, onDefault, d
         <div className="load-top"><Mark size={44} /><LangToggle /></div>
         <h1>GraphRAG Community Explorer</h1>
         <p className="lede">{t("Read a GraphRAG index the way it is organized: communities first, then the entities and relationships inside each one. Files are parsed in this tab and never uploaded.")}</p>
+        <p className="lede-note">{t("The Ask tab is the exception: a question sends the evidence it selected to the model provider you configure.")}</p>
 
         <div
           className={`dropzone${active ? " active" : ""}`}
@@ -124,6 +125,7 @@ export function LoadScreen({ state, onFiles, onSample, defaultData, onDefault, d
             <tr><td>relationships.parquet</td><td>{t("Required. Edges between entity titles.")}</td></tr>
             <tr><td>communities.parquet</td><td>{t("Recommended. Hierarchy, levels and members; without it only the entity list and neighbourhood graphs are available.")}</td></tr>
             <tr><td>community_reports.parquet</td><td>{t("Summaries, findings and ranks shown in the inspector.")}</td></tr>
+            <tr><td>embeddings.parquet</td><td>{t("Optional sidecar of entity vectors. Local search in the Ask tab needs it; the embed_index tool writes one.")}</td></tr>
             <tr><td>&lt;label&gt;_communities.parquet</td><td>{t("Any extra community set (for example leiden_communities.parquet) becomes a switchable partition.")}</td></tr>
           </tbody>
         </table>

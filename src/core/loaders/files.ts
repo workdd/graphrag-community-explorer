@@ -1,3 +1,5 @@
+import { sha256 } from "../search/fingerprint";
+import { readEmbeddings } from "./embeddings";
 import { buildDataset, type LoadResult, type Tables } from "./graphrag";
 import { readParquet, type Row } from "./parquet";
 
@@ -14,10 +16,13 @@ export const CANONICAL_FILES: Record<TableName, string[]> = {
   covariates: ["covariates.parquet", "create_final_covariates.parquet"],
 };
 
-export type FileRole = { table: TableName } | { partition: string } | null;
+export const EMBEDDINGS_FILE = "embeddings.parquet";
+
+export type FileRole = { table: TableName } | { partition: string } | { embeddings: true } | null;
 
 export function classifyFile(name: string): FileRole {
   const base = name.split("/").pop()!.toLowerCase();
+  if (base === EMBEDDINGS_FILE) return { embeddings: true };
   for (const [table, names] of Object.entries(CANONICAL_FILES)) {
     if (names.includes(base)) return { table: table as TableName };
   }
@@ -36,8 +41,25 @@ async function assemble(files: Loaded[]): Promise<LoadResult> {
   const tables: Partial<Record<TableName, Row[]>> = {};
   const extraPartitions: Record<string, Row[]> = {};
   const used: string[] = [];
+  const fingerprints: Record<string, string> = {};
+  let embeddings: LoadResult["embeddings"];
+  let embeddingsNote: string | undefined;
   for (const file of files) {
     if (!file.role) continue;
+    const base = file.name.split("/").pop()!;
+    fingerprints[base] = await sha256(file.buffer);
+    if ("embeddings" in file.role) {
+      // A broken sidecar disables local search; it never stops the index itself from opening.
+      try {
+        const load = await readEmbeddings(file.buffer);
+        embeddings = load.index;
+        if (load.notes.length > 0) embeddingsNote = load.notes.join(" ");
+      } catch (error) {
+        embeddingsNote = error instanceof Error ? error.message : String(error);
+      }
+      used.push(base);
+      continue;
+    }
     const rows = await readParquet(file.buffer);
     if ("table" in file.role) {
       if (tables[file.role.table]) continue; // first match wins (new name before create_final_*)
@@ -45,7 +67,7 @@ async function assemble(files: Loaded[]): Promise<LoadResult> {
     } else {
       extraPartitions[file.role.partition] = rows;
     }
-    used.push(file.name.split("/").pop()!);
+    used.push(base);
   }
   if (!tables.entities || !tables.relationships) {
     const found = used.length ? used.join(", ") : "none";
@@ -61,7 +83,7 @@ async function assemble(files: Loaded[]): Promise<LoadResult> {
     covariates: tables.covariates,
     extraPartitions,
   };
-  return buildDataset(input, used);
+  return { ...buildDataset(input, used), fingerprints, embeddings, embeddingsNote };
 }
 
 export async function loadFromFiles(files: File[]): Promise<LoadResult> {
@@ -79,7 +101,7 @@ export async function loadFromFiles(files: File[]): Promise<LoadResult> {
  */
 export async function loadFromUrl(base: string): Promise<LoadResult> {
   const root = base.replace(/\/+$/, "");
-  const names = new Set<string>(Object.values(CANONICAL_FILES).flat());
+  const names = new Set<string>([...Object.values(CANONICAL_FILES).flat(), EMBEDDINGS_FILE]);
   try {
     const manifest = await fetch(`${root}/manifest.json`);
     if (manifest.ok && (manifest.headers.get("content-type") ?? "").includes("json")) {

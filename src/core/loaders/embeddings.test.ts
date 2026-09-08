@@ -1,0 +1,86 @@
+import { describe, expect, it } from "vitest";
+import { buildEmbeddingIndex, decodeVector, fingerprintMatches } from "./embeddings";
+
+const bytesOf = (values: number[]): Uint8Array => {
+  const buffer = new ArrayBuffer(values.length * 4);
+  const view = new DataView(buffer);
+  values.forEach((v, i) => view.setFloat32(i * 4, v, true));
+  return new Uint8Array(buffer);
+};
+
+const meta = { model: "embed-1", dim: "2" };
+
+describe("decodeVector", () => {
+  it("reads little-endian floats", () => {
+    expect(Array.from(decodeVector(bytesOf([1, -2]), 2))).toEqual([1, -2]);
+  });
+
+  it("rejects a length that does not match the dimension", () => {
+    expect(() => decodeVector(bytesOf([1, 2]), 3)).toThrow(/expected/);
+  });
+
+  it("reads a vector that starts partway into a shared buffer", () => {
+    const whole = bytesOf([9, 9, 1, 2]);
+    const slice = whole.subarray(8);
+    expect(Array.from(decodeVector(slice, 2))).toEqual([1, 2]);
+  });
+});
+
+describe("buildEmbeddingIndex", () => {
+  it("keys the vectors by entity id", () => {
+    const { index } = buildEmbeddingIndex([{ id: "e1", vector: bytesOf([1, 0]) }], meta);
+    expect(index.model).toBe("embed-1");
+    expect(index.dim).toBe(2);
+    expect(Array.from(index.vectors.get("e1")!)).toEqual([1, 0]);
+  });
+
+  it("refuses a file with no model", () => {
+    expect(() => buildEmbeddingIndex([], { dim: "2" })).toThrow(/which model/);
+  });
+
+  it("refuses a file with no usable dimension", () => {
+    expect(() => buildEmbeddingIndex([], { model: "m", dim: "0" })).toThrow(/dimension/);
+  });
+
+  it("refuses a file with nothing readable", () => {
+    expect(() => buildEmbeddingIndex([{ id: "e1", vector: "not bytes" }], meta)).toThrow(/no readable vectors/);
+  });
+
+  it("skips broken rows and says how many", () => {
+    const load = buildEmbeddingIndex(
+      [{ id: "e1", vector: bytesOf([1, 0]) }, { id: "e2", vector: bytesOf([1, 0, 0]) }],
+      meta,
+    );
+    expect(load.index.vectors.size).toBe(1);
+    expect(load.notes[0]).toMatch(/1 embedding rows/);
+  });
+
+  it("reads the source fingerprints", () => {
+    const load = buildEmbeddingIndex([{ id: "e1", vector: bytesOf([1, 0]) }], {
+      ...meta,
+      source_files: JSON.stringify({ "entities.parquet": "sha256:aa" }),
+    });
+    expect(load.index.sourceFiles).toEqual({ "entities.parquet": "sha256:aa" });
+  });
+
+  it("survives a damaged fingerprint block", () => {
+    const load = buildEmbeddingIndex([{ id: "e1", vector: bytesOf([1, 0]) }], { ...meta, source_files: "{oops" });
+    expect(load.index.sourceFiles).toEqual({});
+  });
+});
+
+describe("fingerprintMatches", () => {
+  const index = { model: "m", dim: 2, vectors: new Map(), sourceFiles: { "entities.parquet": "sha256:aa" } };
+
+  it("accepts the same index", () => {
+    expect(fingerprintMatches(index, { "entities.parquet": "sha256:aa" })).toBe(true);
+  });
+
+  it("rejects a different index", () => {
+    expect(fingerprintMatches(index, { "entities.parquet": "sha256:bb" })).toBe(false);
+  });
+
+  it("accepts when the runner recorded nothing", () => {
+    expect(fingerprintMatches({ ...index, sourceFiles: {} }, { "entities.parquet": "sha256:bb" })).toBe(true);
+  });
+});

@@ -1,3 +1,4 @@
+import type { EmbeddingIndex } from "./embeddings";
 import type { TableInfo } from "../schema";
 import type {
   Community,
@@ -40,6 +41,12 @@ export interface LoadResult {
   notes: LoaderNote[];
   /** Raw tables as loaded: name, row count, column names. The schema view reads these. */
   tables: TableInfo[];
+  /** File name to sha256 of the bytes that were read. Search traces name the same digests. */
+  fingerprints?: Record<string, string>;
+  /** Entity vectors from an embeddings.parquet dropped alongside the index, when one was. */
+  embeddings?: EmbeddingIndex;
+  /** Why an embeddings file that was present is not usable. */
+  embeddingsNote?: string;
 }
 
 export const str = (v: unknown): string | undefined => {

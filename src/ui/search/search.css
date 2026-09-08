@@ -1,0 +1,37 @@
+/* The chat view. Its own file so the shared stylesheet stays out of the way of other work. */
+.search { display: flex; flex-direction: column; gap: 14px; padding: 4px 2px 24px; max-width: 100ch; }
+.search h3 { margin: 0 0 6px; font-size: 14px; }
+.search .row { display: flex; flex-wrap: wrap; gap: 8px; align-items: center; }
+.search .ask { display: flex; gap: 8px; align-items: flex-start; }
+.search .ask textarea {
+  flex: 1; min-height: 62px; padding: 8px 10px; border: 1px solid var(--rule); border-radius: 6px;
+  background: var(--surface); color: var(--ink); font: inherit; resize: vertical;
+}
+.search .ask textarea:focus { border-color: var(--accent); outline: none; }
+.search .notice { border: 1px solid var(--rule); border-left-width: 3px; border-radius: 6px; padding: 8px 10px; }
+.search .notice.warn { border-left-color: #b8860b; }
+.search .notice.stop { border-left-color: #a3423c; }
+.search .notice.info { border-left-color: var(--ink-3); }
+.search .settings { border: 1px solid var(--rule); border-radius: 6px; padding: 10px 12px; background: var(--surface); }
+.search .settings .grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 8px; }
+.search .settings label { display: flex; flex-direction: column; gap: 3px; font-size: 12px; color: var(--ink-2); }
+.search .answer { border: 1px solid var(--rule); border-radius: 6px; padding: 12px 14px; background: var(--surface); }
+.search .answer p { margin: 0 0 8px; line-height: 1.65; white-space: pre-wrap; }
+.search .cite {
+  display: inline-flex; gap: 4px; align-items: center; margin: 0 2px; padding: 1px 7px;
+  border: 1px solid var(--rule); border-radius: 11px; background: var(--depth-1); font-size: 12px;
+}
+.search .cite button { border: 0; background: none; padding: 0; color: var(--accent); cursor: pointer; font: inherit; }
+.search .cite button:hover { text-decoration: underline; }
+.search .cite .dead { color: var(--ink-3); cursor: default; }
+.search .used { display: grid; gap: 10px; }
+.search .used table { width: 100%; border-collapse: collapse; font-size: 12px; }
+.search .used th, .search .used td { text-align: left; padding: 4px 6px; border-bottom: 1px solid var(--rule); vertical-align: top; }
+.search .used th { color: var(--ink-2); font-weight: 600; }
+.search .used td.n { width: 34px; color: var(--ink-3); }
+.search .used td.s { width: 62px; color: var(--ink-2); text-align: right; }
+.search .stats { display: flex; flex-wrap: wrap; gap: 14px; font-size: 12px; color: var(--ink-2); }
+.search .stats b { font-weight: 600; color: var(--ink); }
+.search .linklike { border: 0; background: none; padding: 0; color: var(--accent); font: inherit; font-weight: 600; cursor: pointer; }
+.search .linklike:hover { text-decoration: underline; }
+.search .used .muted { margin: 2px 0 0; }

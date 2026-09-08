@@ -12,6 +12,7 @@ import { Mark } from "../Mark";
 import { LangToggle, Rich, useT } from "../i18n";
 import { fmt, pct } from "../format";
 import { CommunityTable } from "./CommunityTable";
+import { version as APP_VERSION } from "../../../package.json";
 import { EntityList } from "./EntityList";
 import { HierarchyTree } from "./HierarchyTree";
 import { Inspector } from "./Inspector";
@@ -22,11 +23,12 @@ const CommunityGraph = lazy(() => import("../graph/CommunityGraph").then((m) => 
 const CommunityMap = lazy(() => import("../map/CommunityMap").then((m) => ({ default: m.CommunityMap })));
 const QualityView = lazy(() => import("../quality/QualityView").then((m) => ({ default: m.QualityView })));
 const SchemaView = lazy(() => import("../schema/SchemaView").then((m) => ({ default: m.SchemaView })));
+const SearchView = lazy(() => import("../search/SearchView").then((m) => ({ default: m.SearchView })));
 const FormationView = lazy(() => import("../formation/FormationView").then((m) => ({ default: m.FormationView })));
 const NetworkView = lazy(() => import("../network/NetworkView").then((m) => ({ default: m.NetworkView })));
 
-type View = "network" | "table" | "map" | "graph" | "quality" | "schema" | "formation";
-const VIEWS: View[] = ["network", "table", "map", "graph", "quality", "schema", "formation"];
+type View = "network" | "table" | "map" | "graph" | "quality" | "schema" | "formation" | "ask";
+const VIEWS: View[] = ["network", "table", "map", "graph", "quality", "schema", "formation", "ask"];
 /** The whole graph is what the tool is for, so that is where it opens. */
 const DEFAULT_VIEW: View = "network";
 type Backgrounds = "boxes" | "clouds";
@@ -248,6 +250,7 @@ export function Overview({ result, label, onReset, datasets, activeData, onOpenD
             <button role="tab" aria-selected={view === "quality"} className={view === "quality" ? "active" : ""} disabled={!realPartition} title={realPartition ? undefined : t("Needs communities.parquet")} onClick={() => setView("quality")}>{t("Quality")}</button>
             <button role="tab" aria-selected={view === "schema"} className={view === "schema" ? "active" : ""} title={t("The tables behind the graph and the rows behind the selection")} onClick={() => setView("schema")}>{t("Schema")}</button>
             <button role="tab" aria-selected={view === "formation"} className={view === "formation" ? "active" : ""} title={t("Run Leiden here and watch the communities form")} onClick={() => setView("formation")}>{t("Formation")}</button>
+            <button role="tab" aria-selected={view === "ask"} className={view === "ask" ? "active" : ""} title={t("Ask a question and follow the answer back to the records it cites")} onClick={() => setView("ask")}>{t("Ask")}</button>
             <button
               role="tab"
               aria-selected={view === "graph"}
@@ -262,7 +265,19 @@ export function Overview({ result, label, onReset, datasets, activeData, onOpenD
         </div>
 
         <Suspense fallback={<div className="view-loading">{t("Loading view…")}</div>}>
-        {view === "network" ? (
+        {view === "ask" ? (
+          <SearchView
+            dataset={dataset}
+            partition={realPartition ?? null}
+            embeddings={result.embeddings}
+            embeddingsNote={result.embeddingsNote}
+            fingerprints={result.fingerprints ?? {}}
+            label={label}
+            version={APP_VERSION}
+            onOpenCommunity={(id) => { select(id); setView("table"); }}
+            onOpenEntity={explore}
+          />
+        ) : view === "network" ? (
           <NetworkView
             dataset={dataset}
             partition={realPartition ?? null}
