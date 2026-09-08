@@ -14,6 +14,12 @@ const KO: Record<string, string> = {
     "선택 사항. 엔티티 벡터 사이드카입니다. Ask 탭의 Local 검색에 필요하며 embed_index 도구가 만듭니다.",
   "Upstage splits its embedding model in two. Build the file with …-passage and ask with …-query.":
     "Upstage 는 임베딩 모델이 저장용과 질문용으로 나뉩니다. 파일은 …-passage 로 만들고 질문은 …-query 로 합니다.",
+  "preset":
+    "사전 설정",
+  "Set before start by VITE_LLM_* in the environment":
+    "실행 전 환경변수 VITE_LLM_* 로 설정된 값입니다",
+  "The key comes from the environment this app was started with. Typing one here keeps it in this browser instead. The build refuses to publish an environment key unless it is asked to.":
+    "키는 앱을 실행한 환경에서 가져왔습니다. 여기에 직접 입력하면 그 값이 이 브라우저에만 저장되어 우선합니다. 빌드는 환경변수 키를 명시적으로 허용하기 전에는 배포하지 않습니다.",
   // search
   "Reports": "보고서",
   "Ask": "질문",

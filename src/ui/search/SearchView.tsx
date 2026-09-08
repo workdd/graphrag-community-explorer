@@ -10,7 +10,7 @@ import type { SearchContext, SearchMethod, SearchRun, SearchTrace } from "../../
 import { downloadText } from "../download";
 import { Rich, useT } from "../i18n";
 import { Answer } from "./Answer";
-import { isConfigured, maskKey, PRESETS, readProvider, writeProvider, clearProvider } from "./provider";
+import { fromEnvironment, isConfigured, maskKey, PRESETS, readProvider, writeProvider, clearProvider } from "./provider";
 import "./search.css";
 
 interface Props {
@@ -33,6 +33,12 @@ const KIND_LABEL: Record<keyof SearchContext, string> = {
   claims: "Claims",
 };
 
+/** Marks a field the environment already filled in, so nobody hunts for where a value came from. */
+function FromEnv() {
+  const { t } = useT();
+  return <span className="from-env" title={t("Set before start by VITE_LLM_* in the environment")}>{t("preset")}</span>;
+}
+
 const store = (): Storage | null => {
   try {
     return window.localStorage;
@@ -44,6 +50,7 @@ const store = (): Storage | null => {
 export function SearchView(props: Props) {
   const { t } = useT();
   const [provider, setProvider] = useState(() => readProvider(store()));
+  const preset = useMemo(() => fromEnvironment(), []);
   const [showSettings, setShowSettings] = useState(() => !isConfigured(readProvider(store())));
   const [method, setMethod] = useState<SearchMethod>(props.embeddings ? "local" : "global");
   const [question, setQuestion] = useState("");
@@ -210,11 +217,11 @@ export function SearchView(props: Props) {
           </div>
           <div className="grid">
             <label>
-              {t("Base URL")}
+              {t("Base URL")}{preset.fromEnv.includes("baseUrl") ? <FromEnv /> : null}
               <input className="field" value={provider.baseUrl} onChange={(e) => save({ ...provider, baseUrl: e.target.value })} />
             </label>
             <label>
-              {t("API key")}
+              {t("API key")}{preset.fromEnv.includes("apiKey") ? <FromEnv /> : null}
               <input
                 className="field"
                 type="password"
@@ -224,16 +231,18 @@ export function SearchView(props: Props) {
               />
             </label>
             <label>
-              {t("Chat model")}
+              {t("Chat model")}{preset.fromEnv.includes("chatModel") ? <FromEnv /> : null}
               <input className="field" value={provider.chatModel} onChange={(e) => save({ ...provider, chatModel: e.target.value })} />
             </label>
             <label>
-              {t("Embedding model")}
+              {t("Embedding model")}{preset.fromEnv.includes("embedModel") ? <FromEnv /> : null}
               <input className="field" value={provider.embedModel} onChange={(e) => save({ ...provider, embedModel: e.target.value })} />
             </label>
           </div>
           <p className="muted">
-            {t("The key is kept in this browser only. It is never written into a saved run. Clear it on a shared computer.")}
+            {preset.fromEnv.includes("apiKey")
+              ? t("The key comes from the environment this app was started with. Typing one here keeps it in this browser instead. The build refuses to publish an environment key unless it is asked to.")
+              : t("The key is kept in this browser only. It is never written into a saved run. Clear it on a shared computer.")}
           </p>
           {PRESETS[0].note && provider.baseUrl.includes("upstage") ? <p className="muted">{t(PRESETS[0].note)}</p> : null}
         </div>

@@ -1,5 +1,5 @@
-import { describe, expect, it, vi } from "vitest";
-import { clearProvider, emptyProvider, isConfigured, maskKey, readProvider, STORAGE_KEY, writeProvider } from "./provider";
+import { afterEach, describe, expect, it, vi } from "vitest";
+import { clearProvider, emptyProvider, fromEnvironment, isConfigured, maskKey, readProvider, STORAGE_KEY, writeProvider , PRESETS } from "./provider";
 
 const store = (value: string | null) => ({
   getItem: vi.fn(() => value),
@@ -7,7 +7,55 @@ const store = (value: string | null) => ({
   removeItem: vi.fn(),
 });
 
+describe("fromEnvironment", () => {
+  afterEach(() => vi.unstubAllEnvs());
+
+  it("uses the first preset when nothing is set", () => {
+    const { provider, fromEnv } = fromEnvironment();
+    expect(provider.apiKey).toBe("");
+    expect(provider.baseUrl).toBe(PRESETS[0].baseUrl);
+    expect(fromEnv).toEqual([]);
+  });
+
+  it("takes every field the environment supplies", () => {
+    vi.stubEnv("VITE_LLM_BASE_URL", "https://env.test/v1");
+    vi.stubEnv("VITE_LLM_API_KEY", "sk-from-env");
+    vi.stubEnv("VITE_LLM_CHAT_MODEL", "chat-env");
+    vi.stubEnv("VITE_LLM_EMBED_MODEL", "embed-env");
+    const { provider, fromEnv } = fromEnvironment();
+    expect(provider).toEqual({
+      baseUrl: "https://env.test/v1", apiKey: "sk-from-env", chatModel: "chat-env", embedModel: "embed-env",
+    });
+    expect(fromEnv.sort()).toEqual(["apiKey", "baseUrl", "chatModel", "embedModel"]);
+  });
+
+  it("ignores a blank variable", () => {
+    vi.stubEnv("VITE_LLM_API_KEY", "   ");
+    const { provider, fromEnv } = fromEnvironment();
+    expect(provider.apiKey).toBe("");
+    expect(fromEnv).toEqual([]);
+  });
+
+  it("makes a preconfigured provider ready without anyone typing", () => {
+    vi.stubEnv("VITE_LLM_API_KEY", "sk-from-env");
+    expect(isConfigured(readProvider(store(null)))).toBe(true);
+  });
+});
+
 describe("readProvider", () => {
+  afterEach(() => vi.unstubAllEnvs());
+
+  it("prefers what was typed in this browser over the environment", () => {
+    vi.stubEnv("VITE_LLM_API_KEY", "sk-from-env");
+    const saved = JSON.stringify({ apiKey: "sk-typed-here" });
+    expect(readProvider(store(saved)).apiKey).toBe("sk-typed-here");
+  });
+
+  it("falls back to the environment for fields the browser has not set", () => {
+    vi.stubEnv("VITE_LLM_CHAT_MODEL", "chat-env");
+    expect(readProvider(store(JSON.stringify({ apiKey: "k" }))).chatModel).toBe("chat-env");
+  });
+
   it("falls back to the first preset with no key", () => {
     expect(readProvider(store(null))).toEqual(emptyProvider());
     expect(readProvider(null).apiKey).toBe("");

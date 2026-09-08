@@ -35,3 +35,8 @@
 .search .linklike { border: 0; background: none; padding: 0; color: var(--accent); font: inherit; font-weight: 600; cursor: pointer; }
 .search .linklike:hover { text-decoration: underline; }
 .search .used .muted { margin: 2px 0 0; }
+.search .from-env {
+  /* The label is a column, so the badge must not stretch into a bar of its own. */
+  align-self: flex-start; margin: -2px 0 1px; padding: 0 5px; border: 1px solid var(--rule); border-radius: 8px;
+  background: var(--depth-1); color: var(--ink-2); font-size: 10px; font-weight: 600;
+}

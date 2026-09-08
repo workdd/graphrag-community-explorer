@@ -32,15 +32,44 @@ export const PRESETS: Preset[] = [
   },
 ];
 
-export const emptyProvider = (): Provider => ({
-  baseUrl: PRESETS[0].baseUrl,
-  apiKey: "",
-  chatModel: PRESETS[0].chatModel,
-  embedModel: PRESETS[0].embedModel,
-});
+/**
+ * Values set before the app starts, from .env.development.local or the build environment:
+ * VITE_LLM_BASE_URL, VITE_LLM_API_KEY, VITE_LLM_CHAT_MODEL, VITE_LLM_EMBED_MODEL.
+ *
+ * Vite inlines these into the bundle, so a key put here is readable by anyone who can read the
+ * built files. The build refuses to ship one unless the person building says so explicitly.
+ */
+export interface Configured {
+  provider: Provider;
+  /** Fields the environment supplied, so the settings panel can say where a value came from. */
+  fromEnv: (keyof Provider)[];
+}
+
+const env = (name: string): string => {
+  const value = (import.meta.env as Record<string, unknown>)[name];
+  return typeof value === "string" ? value.trim() : "";
+};
+
+export function fromEnvironment(): Configured {
+  const provider: Provider = {
+    baseUrl: env("VITE_LLM_BASE_URL") || PRESETS[0].baseUrl,
+    apiKey: env("VITE_LLM_API_KEY"),
+    chatModel: env("VITE_LLM_CHAT_MODEL") || PRESETS[0].chatModel,
+    embedModel: env("VITE_LLM_EMBED_MODEL") || PRESETS[0].embedModel,
+  };
+  const fromEnv: (keyof Provider)[] = [];
+  if (env("VITE_LLM_BASE_URL")) fromEnv.push("baseUrl");
+  if (env("VITE_LLM_API_KEY")) fromEnv.push("apiKey");
+  if (env("VITE_LLM_CHAT_MODEL")) fromEnv.push("chatModel");
+  if (env("VITE_LLM_EMBED_MODEL")) fromEnv.push("embedModel");
+  return { provider, fromEnv };
+}
+
+export const emptyProvider = (): Provider => fromEnvironment().provider;
 
 const text = (v: unknown, fallback: string): string => (typeof v === "string" && v.trim() !== "" ? v.trim() : fallback);
 
+/** The environment supplies the defaults; anything typed in this browser wins over them. */
 export function readProvider(store: Pick<Storage, "getItem"> | null): Provider {
   const blank = emptyProvider();
   if (!store) return blank;
@@ -55,7 +84,7 @@ export function readProvider(store: Pick<Storage, "getItem"> | null): Provider {
     const saved = JSON.parse(raw) as Record<string, unknown>;
     return {
       baseUrl: text(saved.baseUrl, blank.baseUrl),
-      apiKey: text(saved.apiKey, ""),
+      apiKey: text(saved.apiKey, blank.apiKey),
       chatModel: text(saved.chatModel, blank.chatModel),
       embedModel: text(saved.embedModel, blank.embedModel),
     };
