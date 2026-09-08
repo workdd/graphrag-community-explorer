@@ -106,6 +106,8 @@ export function NetworkView({ dataset, partition, focus, onFocus, selectedCommun
   const [hiddenTypes, setHiddenTypes] = useState<Set<string>>(new Set());
   const [hiddenRelationships, setHiddenRelationships] = useState<Set<string>>(new Set());
   const [isolated, setIsolated] = useState(false);
+  // Records in no community at all: shown in grey by default, and hidden on request.
+  const [loose, setLoose] = useState(true);
   const [query, setQuery] = useState("");
   const host = useRef<HTMLDivElement>(null);
   const wrap = useRef<HTMLDivElement>(null);
@@ -165,6 +167,7 @@ export function NetworkView({ dataset, partition, focus, onFocus, selectedCommun
       degree.set(relationship.targetId, (degree.get(relationship.targetId) ?? 0) + 1);
     }
     let nodes = [...kept.values()];
+    if (!loose && partition) nodes = nodes.filter((entity) => primary.has(entity.id));
     // Whole means whole, so records with no relationships come along with it.
     if (!isolated && !showAll) nodes = nodes.filter((entity) => (degree.get(entity.id) ?? 0) > 0);
     const total = nodes.length;
@@ -173,7 +176,7 @@ export function NetworkView({ dataset, partition, focus, onFocus, selectedCommun
     }
     const drawn = new Set(nodes.map((n) => n.id));
     return { nodes, edges: edges.filter((e) => drawn.has(e.sourceId) && drawn.has(e.targetId)), total, degree };
-  }, [dataset, hiddenTypes, hiddenRelationships, cap, isolated, showAll]);
+  }, [dataset, hiddenTypes, hiddenRelationships, cap, isolated, showAll, loose, partition, primary]);
 
   const ego: EgoModel | null = useMemo(
     () => (arrange === "focus" && seedId ? egoSummary(dataset, seedId, { perGroup: showAll ? cap : REPRESENTATIVES, perOpenGroup: cap, opened: openGroups }) : null),
@@ -540,7 +543,7 @@ export function NetworkView({ dataset, partition, focus, onFocus, selectedCommun
         { selector: "edge.agg", style: { width: "data(width)", "curve-style": "bezier", "line-color": "#b6bec7", "target-arrow-shape": "triangle", "target-arrow-color": "#b6bec7", "arrow-scale": 0.8, label: "data(label)", "font-size": 9, color: "#5f6b78", "text-background-color": "#f3f4f1", "text-background-opacity": 0.85, "text-background-padding": "2px", "text-rotation": "autorotate", "min-zoomed-font-size": 8, "z-index": 2 } },
         // Invisible on purpose: it exists so the layout keeps a community together, and the cloud
         // layer is what the reader sees.
-        { selector: "node.commgroup", style: { "background-opacity": 0, "border-width": 0, label: "", padding: "26px", events: "no" } },
+        { selector: "node.commgroup", style: { "background-opacity": 0, "border-width": 0, label: "", padding: "26px" } },
         { selector: "node.band", style: { shape: "rectangle", width: BAND.boxWidth, height: 1, "background-opacity": 0, "border-width": 0, "z-index": 5, label: "data(label)", "text-valign": "top", "text-margin-y": -6, "font-size": 12, "font-weight": 700, color: "#3a3a36", "text-background-opacity": 0, events: "no" } },
         { selector: "node.nolabel", style: { label: "" } },
         { selector: "edge", style: { width: 1, "line-color": "#c2c9d1", "curve-style": "haystack", "haystack-radius": 0, "z-index": 1 } },
@@ -599,6 +602,11 @@ export function NetworkView({ dataset, partition, focus, onFocus, selectedCommun
         next.delete(type);
         return next;
       });
+    });
+    // Taking hold of a community moves the whole group; Cytoscape carries the children along.
+    cy.on("tap", "node.commgroup", (event) => {
+      const id = (event.target.id() as string).replace(/^comm:/, "");
+      propsRef.current.onSelectCommunity(id);
     });
     cy.on("tap", "node.record", (event) => {
       const id = event.target.id();
@@ -665,7 +673,9 @@ export function NetworkView({ dataset, partition, focus, onFocus, selectedCommun
       cy.nodes(".band").absoluteComplement().forEach((node) => {
         const community = primary.get(node.id());
         const index = community === undefined ? -1 : groupOrder.indexOf(community);
-        node.data("paint", overlay === "colour" && index >= 0 ? cloudColors(index).stroke : (node.data("color") as string));
+        // Grey says "in no community", which is a fact about the record worth seeing at a glance.
+        const outside = overlay !== "off" && community === undefined;
+        node.data("paint", outside ? "#b9c0c8" : overlay === "colour" && index >= 0 ? cloudColors(index).stroke : (node.data("color") as string));
         const name = node.data("name") as string | undefined;
         const type = node.data("type") as string | undefined;
         if (name && type) {
@@ -769,6 +779,9 @@ export function NetworkView({ dataset, partition, focus, onFocus, selectedCommun
             </select>
           </label>
           <label className="control"><input type="checkbox" checked={isolated} onChange={(e) => setIsolated(e.target.checked)} /> {t("Entities with no relationships")}</label>
+          {overlay !== "off" && partition && (
+            <label className="control"><input type="checkbox" checked={loose} onChange={(event) => setLoose(event.target.checked)} /> {t("Entities in no community")}</label>
+          )}
         </div>
         <div className="graph-controls">
           {arrange === "focus" && ego && (

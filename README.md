@@ -93,6 +93,11 @@ Opening a type in the schema names its two busiest records and keeps the rest as
 count, which opens on click. Nothing anywhere asks you to choose a number of nodes: one switch says
 part of the data or all of it, and part always means a couple of representatives plus a count.
 
+The **Communities** view opens on every community at once: one band per level from the root down,
+one circle per community sized by the entities it holds, and a curve from each community to its
+parent. Entities that no community claims are drawn as grey dots under the bands and can be switched
+off. The nested box map, where a community opens into its members, is one switch away.
+
 With the community overlay on, the free layout keeps each community together: a community is a
 container the layout must not scatter, and a link that leaves one is given a long ideal length while
 links inside it stay short. The clouds then come out as separate petals rather than one smear.

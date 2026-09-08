@@ -349,3 +349,14 @@
 .groups li button:hover { background: var(--rule-2); }
 .groups .bar { grid-column: 1 / -1; height: 4px; border-radius: 2px; background: var(--depth-2); }
 .groups .bar i { display: block; height: 100%; border-radius: 2px; background: var(--depth-4); }
+
+/* Every community at once: a band per level, a circle per community */
+.bands-scroll { flex: 1; min-height: 0; overflow: auto; border: 1px solid var(--rule); border-radius: var(--radius-lg); background: var(--surface); }
+.bands { display: block; max-width: none; }
+.bands .mono { font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace; }
+.band-node { cursor: pointer; }
+.band-node:hover circle { fill-opacity: 0.55; }
+.band-node.selected text { font-weight: 700; }
+.head-control { margin-left: auto; }
+
+.bands-controls { display: flex; align-items: center; gap: 12px; margin-bottom: 8px; font-size: var(--fs-0); }

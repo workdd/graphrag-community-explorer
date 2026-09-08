@@ -21,8 +21,8 @@ test("url keeps the dataset and the view; back button walks the trail", async ({
 
   // The paper's upper plane: the graph's communities as nodes inside their opened parents.
   await page.getByRole("button", { name: "See on map" }).click();
-  await expect(page.getByRole("tab", { name: "Map" })).toHaveAttribute("aria-selected", "true");
-  await expect(page.locator(".graph-stats")).toContainText("communities and", { timeout: 30_000 });
+  await expect(page.getByRole("tab", { name: "Communities" })).toHaveAttribute("aria-selected", "true");
+  await expect(page.locator(".bands")).toBeVisible({ timeout: 30_000 });
   expect(page.url()).toContain("open=");
   await expect(page.locator(".inspector h2")).toHaveText("Payments");
 
@@ -32,10 +32,11 @@ test("url keeps the dataset and the view; back button walks the trail", async ({
 
 test("map opens a nested community inside its closed parents", async ({ page }) => {
   await page.goto("/?data=./samples/demo#view=map");
+  await page.locator(".head-control select").selectOption("boxes");
   await expect(page.locator(".graph-stats")).toContainText("3 communities and 0 entities drawn", { timeout: 30_000 });
   await page.getByRole("tab", { name: "Overview" }).click();
   await page.locator(".ctable tbody tr", { hasText: "Checkout" }).first().click();
-  await page.getByRole("tab", { name: "Map" }).click();
+  await page.getByRole("tab", { name: "Communities" }).click();
   await expect(page.locator(".map-note")).toContainText("Checkout sits inside a closed community");
   await page.getByRole("button", { name: "Open in map" }).click();
   await expect(page.locator(".graph-stats")).toContainText("9 communities and 3 entities drawn", { timeout: 30_000 });
@@ -47,7 +48,7 @@ test("entities and relationships alone still give an entity list and neighbourho
   await page.goto("/?data=./samples/minimal");
   await page.getByRole("tab", { name: "Overview" }).click();
   await expect(page.locator(".summary")).toContainText("No community set loaded");
-  await expect(page.getByRole("tab", { name: "Map" })).toBeDisabled();
+  await expect(page.getByRole("tab", { name: "Communities" })).toBeDisabled();
   await page.getByRole("tab", { name: "Network" }).click();
   await page.getByPlaceholder("Find an entity").fill("gateway");
   await page.getByRole("button", { name: "Find" }).click();

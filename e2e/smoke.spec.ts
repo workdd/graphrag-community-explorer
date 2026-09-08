@@ -14,7 +14,9 @@ test("sample dataset: overview, graph, map and quality", async ({ page }) => {
   await expect(page.locator(".graph-stats")).toContainText("27 of 27 entities");
   await expect(page.locator(".graph-canvas canvas").first()).toBeVisible();
 
-  await page.getByRole("tab", { name: "Map" }).click();
+  await page.getByRole("tab", { name: "Communities" }).click();
+  await expect(page.locator(".bands")).toBeVisible({ timeout: 30_000 });
+  await page.locator(".head-control select").selectOption("boxes");
   await expect(page.locator(".graph-stats")).toContainText("3 communities and 0 entities drawn", { timeout: 30_000 });
 
   await page.getByRole("tab", { name: "Quality" }).click();

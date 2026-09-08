@@ -55,6 +55,14 @@ const KO: Record<string, string> = {
   "{nodes} records and {edges} relationships went into the prompt. Dashed nodes were not ranked; they are the far end of a link. {hover}":
     "레코드 {nodes}개와 관계 {edges}개가 프롬프트에 들어갔습니다. 점선 노드는 순위에 들지 않았고 관계의 반대편일 뿐입니다. {hover}",
   "Zoom in for names": "확대해서 이름 보기",
+  "What is {type} {entity} connected to, and what do those links mean?":
+    "{type} {entity} 은(는) 무엇과 연결되어 있고 그 연결은 무엇을 뜻합니까?",
+  "How are {type} {entity} and {otherType} {other} related?":
+    "{type} {entity} 와(과) {otherType} {other} 는 어떤 관계입니까?",
+  "If {type} {entity} were removed or scaled down, what else would be affected?":
+    "{type} {entity} 을(를) 삭제하거나 축소하면 무엇이 영향을 받습니까?",
+  "What depends on {type} {entity}, and what does it depend on?":
+    "무엇이 {type} {entity} 에 의존하고, 이것은 무엇에 의존합니까?",
   // search
   "Reports": "보고서",
   "Ask": "질문",
@@ -230,6 +238,14 @@ const KO: Record<string, string> = {
   "Around {entity}": "{entity} 주변",
   "Fold leaves": "잎 묶기",
   "See on map": "지도에서 보기",
+  "Show entities in no community": "커뮤니티에 없는 엔티티 보기",
+  "{n} entities are in no community": "커뮤니티에 없는 엔티티 {n}개",
+  "View": "보기",
+  "all communities by level": "레벨별 커뮤니티 전체",
+  "nested boxes with members": "멤버가 든 중첩 상자",
+  "{communities} communities on {levels} levels. A band is a level, a circle is a community sized by how many entities it holds, and a curve joins a community to its parent.": "커뮤니티 {communities}개, 레벨 {levels}단. 가로 띠가 레벨이고, 원 하나가 커뮤니티이며 크기는 담고 있는 엔티티 수입니다. 곡선은 부모와 자식을 잇습니다.",
+  "Click a circle to read it; double-click to open its internal graph.": "원을 누르면 내용을 읽고, 두 번 누르면 내부 그래프가 열립니다.",
+  "L{depth} · {communities} communities · {entities} entities": "L{depth} · 커뮤니티 {communities}개 · 엔티티 {entities}개",
   "Laying out {n} nodes…": "노드 {n}개 배치 중…",
   "Opening a type names its two busiest records and counts the rest; click the bubble to open them.": "유형을 열면 연결이 많은 레코드 2개만 이름을 달고 나머지는 개수로 접힙니다. 묶음을 누르면 펼쳐집니다.",
   "Opening a type draws its busiest records.": "유형을 열면 연결이 많은 레코드부터 그립니다.",

@@ -27,6 +27,7 @@ const SearchView = lazy(() => import("../search/SearchView").then((m) => ({ defa
 const FormationView = lazy(() => import("../formation/FormationView").then((m) => ({ default: m.FormationView })));
 const NetworkView = lazy(() => import("../network/NetworkView").then((m) => ({ default: m.NetworkView })));
 const MatrixView = lazy(() => import("../matrix/MatrixView").then((m) => ({ default: m.MatrixView })));
+const CommunityBands = lazy(() => import("../map/CommunityBands").then((m) => ({ default: m.CommunityBands })));
 
 type View = "network" | "table" | "map" | "graph" | "quality" | "schema" | "formation" | "ask" | "matrix";
 const VIEWS: View[] = ["network", "table", "map", "graph", "quality", "schema", "formation", "ask", "matrix"];
@@ -89,6 +90,8 @@ export function Overview({ result, label, onReset, datasets, activeData, onOpenD
   const [view, setView] = useState<View>(initial.view);
   const [mapExpanded, setMapExpanded] = useState<Set<string>>(() => new Set(initial.open));
   const [mapBackgrounds, setMapBackgrounds] = useState<Backgrounds>("boxes");
+  // The whole community set at a glance comes first; the box map is for drilling into one of them.
+  const [mapMode, setMapMode] = useState<"bands" | "boxes">("bands");
   const [focus, setFocus] = useState<GraphFocus>(() => (initial.entity ? { kind: "entity", id: initial.entity } : null));
   const [extraIds, setExtraIds] = useState<string[]>([]);
   const [graphMode, setGraphMode] = useState<GraphMode>(() => (initial.entity ? { kind: "neighborhood", entityId: initial.entity, hops: initial.hops } : { kind: "communities" }));
@@ -250,10 +253,18 @@ export function Overview({ result, label, onReset, datasets, activeData, onOpenD
 
       <main className={`main${view === "map" || view === "graph" || view === "network" || view === "formation" || view === "matrix" ? " graph-mode" : ""}`}>
         <div className="main-head">
+          {view === "map" && (
+            <label className="control head-control">{t("View")}
+              <select value={mapMode} onChange={(event) => setMapMode(event.target.value as "bands" | "boxes")}>
+                <option value="bands">{t("all communities by level")}</option>
+                <option value="boxes">{t("nested boxes with members")}</option>
+              </select>
+            </label>
+          )}
           <div className="segmented" role="tablist">
             <button role="tab" aria-selected={view === "network"} className={view === "network" ? "active" : ""} title={t("Every entity and relationship; communities are an overlay you turn on")} onClick={() => setView("network")}>{t("Network")}</button>
             <button role="tab" aria-selected={view === "table"} className={view === "table" ? "active" : ""} onClick={() => setView("table")}>{t("Overview")}</button>
-            <button role="tab" aria-selected={view === "map"} className={view === "map" ? "active" : ""} disabled={!realPartition} title={realPartition ? undefined : t("Needs communities.parquet")} onClick={() => setView("map")}>{t("Map")}</button>
+            <button role="tab" aria-selected={view === "map"} className={view === "map" ? "active" : ""} disabled={!realPartition} title={realPartition ? undefined : t("Needs communities.parquet")} onClick={() => setView("map")}>{t("Communities")}</button>
             <button role="tab" aria-selected={view === "quality"} className={view === "quality" ? "active" : ""} disabled={!realPartition} title={realPartition ? undefined : t("Needs communities.parquet")} onClick={() => setView("quality")}>{t("Quality")}</button>
             <button role="tab" aria-selected={view === "schema"} className={view === "schema" ? "active" : ""} title={t("The tables behind the graph and the rows behind the selection")} onClick={() => setView("schema")}>{t("Schema")}</button>
             <button role="tab" aria-selected={view === "matrix"} className={view === "matrix" ? "active" : ""} disabled={schema.edges.length === 0} title={t("Two entity types as a grid, which is the readable form of a dense block")} onClick={() => openMatrix(pair?.from ?? schema.edges[0].from, pair?.to ?? schema.edges[0].to)}>{t("Matrix")}</button>
@@ -314,6 +325,14 @@ export function Overview({ result, label, onReset, datasets, activeData, onOpenD
           <SchemaView dataset={dataset} partition={realPartition ?? null} tables={result.tables} selectedId={selectedId} focus={focus} onSelect={select} onFocus={setFocus} onOpenGraph={openGraph} onOpenType={openType} onOpenTriple={openTriple} onOpenMatrix={openMatrix} onExplore={explore} />
         ) : view === "quality" && realPartition ? (
           <QualityView dataset={dataset} partition={realPartition} selectedId={selectedId} onSelect={select} />
+        ) : view === "map" && realPartition && mapMode === "bands" ? (
+          <CommunityBands
+            dataset={dataset}
+            partition={realPartition}
+            selectedId={selectedId}
+            onSelect={select}
+            onOpenGraph={(id) => { select(id); setView("graph"); }}
+          />
         ) : view === "map" && realPartition ? (
           <CommunityMap
             dataset={dataset}
