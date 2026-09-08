@@ -1,4 +1,5 @@
 import type cytoscape from "cytoscape";
+import { HIDE_LABEL_BELOW_PX } from "../map/legibility";
 
 const FONT = 'system-ui, -apple-system, "Segoe UI", Roboto, "Apple SD Gothic Neo", "Noto Sans KR", sans-serif';
 
@@ -50,7 +51,7 @@ export const GRAPH_STYLE = [
       "text-wrap": "none",
       "text-max-width": 1000,
       "text-background-opacity": 0,
-      "min-zoomed-font-size": 0,
+      "min-zoomed-font-size": HIDE_LABEL_BELOW_PX,
       "overlay-opacity": 0,
     },
   },
@@ -117,7 +118,8 @@ export const MAP_STYLE = [
       "text-background-opacity": 0,
       "text-margin-y": 0,
       color: "#1b2430",
-      "min-zoomed-font-size": 3,
+      // Below this the label is dropped rather than drawn as a smudge that reads as overlapping text.
+      "min-zoomed-font-size": HIDE_LABEL_BELOW_PX,
     },
   },
   { selector: "node.unassigned", style: { "border-style": "dashed", "border-color": "#8c96a0", color: "#5f6b78" } },

@@ -36,9 +36,10 @@ function options(profile: LayoutProfile, incremental: boolean): cytoscape.Layout
     uniformNodeDimensions: false,
     packComponents: true,
     tile: true,
-    tilingPaddingVertical: 18,
-    tilingPaddingHorizontal: 18,
-    nodeRepulsion: (node: cytoscape.NodeSingular) => (node.data("kind") === "community" ? 30000 : node.hasClass("ghost") ? 2500 : 8000),
+    tilingPaddingVertical: 28,
+    tilingPaddingHorizontal: 28,
+    // Community boxes carry a label inside them, so they need more room than a plain node.
+    nodeRepulsion: (node: cytoscape.NodeSingular) => (node.data("kind") === "community" ? 48000 : node.hasClass("ghost") ? 2500 : 8000),
     idealEdgeLength: (edge: cytoscape.EdgeSingular) => {
       const kind = edge.data("kind");
       if (kind === "agg") return 170;

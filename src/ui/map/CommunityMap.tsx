@@ -12,6 +12,7 @@ import type { GraphFocus } from "../graph/CommunityGraph";
 import { loadCachedLayout, requestLayout, saveCachedLayout } from "../graph/layoutClient";
 import { MAP_STYLE } from "../graph/style";
 import { attachClouds, cloudColors } from "../graph/clouds";
+import { zoomAfterFit } from "./legibility";
 import { buildMapElements, layoutInput, type Positions } from "./mapElements";
 
 interface Props {
@@ -135,6 +136,10 @@ export function CommunityMap(props: Props) {
       autounselectify: true,
     });
     cy.fit(cy.elements(), 40);
+    // Fitting a dense map puts the labels at a few pixels. Open closer instead; the Fit button
+    // still fits the whole thing for anyone who wants the overview more than the names.
+    const opened = zoomAfterFit(cy.zoom(), cy.maxZoom());
+    if (opened !== cy.zoom()) cy.zoom({ level: opened, renderedPosition: { x: cy.width() / 2, y: cy.height() / 2 } });
 
     cy.on("tap", "node.collapsed, node.container", (event) => {
       const id = event.target.data("communityId") as string;
