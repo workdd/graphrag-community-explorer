@@ -300,3 +300,23 @@
 .field.find { width: 180px; }
 @media (max-width: 1100px) { .app.no-rail { grid-template-columns: 1fr; } }
 .lede-note { max-width: 70ch; margin: -6px 0 14px; color: var(--ink-2); font-size: var(--fs-0); }
+
+/* Schema shape: the type graph and the records behind whatever is picked in it */
+.schema-graph { display: grid; grid-template-columns: minmax(0, 1fr) 300px; gap: 12px; border: 1px solid var(--rule); border-radius: var(--radius-lg); background: var(--surface); }
+.schema-graph-canvas { height: 460px; min-width: 0; }
+.schema-graph-side { padding: 12px 14px; border-left: 1px solid var(--rule); overflow-y: auto; max-height: 460px; }
+.schema-graph-side h4 { font-size: var(--fs-2); font-weight: 600; margin-bottom: 4px; }
+.schema-graph-side h5 { margin: 12px 0 4px; color: var(--ink-2); font-size: var(--fs-0); text-transform: uppercase; letter-spacing: 0.04em; }
+.schema-graph-side .btn { margin-top: 8px; }
+.schema-triples { margin-top: 10px; display: flex; flex-direction: column; gap: 4px; }
+.schema-values { display: flex; flex-direction: column; gap: 2px; }
+.value { display: flex; align-items: baseline; gap: 6px; width: 100%; text-align: left; padding: 3px 4px; border-radius: var(--radius); font-size: var(--fs-0); }
+.value:hover { background: var(--rule-2); }
+.value-title { flex: 1; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.value-arrow { color: var(--ink-3); }
+.formation-heading { margin-top: 4px; font-size: var(--fs-0); color: var(--ink-2); text-transform: uppercase; letter-spacing: 0.04em; }
+.formation-groups { display: flex; flex-direction: column; gap: 8px; }
+.formation-group-head { display: flex; align-items: center; gap: 6px; font-size: var(--fs-0); }
+.formation-group-head i { width: 10px; height: 10px; border-radius: 3px; }
+.formation-members { margin-left: 4px; }
+@media (max-width: 1280px) { .schema-graph { grid-template-columns: 1fr; } .schema-graph-side { border-left: 0; border-top: 1px solid var(--rule); max-height: none; } }

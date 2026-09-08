@@ -5,6 +5,7 @@ import { buildGraph, runLeiden, type LeidenStep } from "../../core/community/lei
 import { displayTitle } from "../../core/graph/palette";
 import { withSeed } from "../../core/graph/seed";
 import type { Community, Dataset, Partition } from "../../core/model";
+import type { GraphFocus } from "../graph/CommunityGraph";
 import { compareAssignments } from "../../core/metrics/compare";
 import { assignmentAtLevel } from "../../core/metrics/quality";
 import { levelsByDepth } from "../../core/hierarchy";
@@ -18,9 +19,12 @@ interface Props {
   dataset: Dataset;
   partition: Partition | null;
   selected: Community | null;
+  /** Types picked in the schema view, so the run can be watched on one slice of the schema. */
+  spotlight: { label: string; types: string[]; relationships: string[] } | null;
+  onFocus: (focus: GraphFocus) => void;
 }
 
-type Scope = "all" | "top" | "community";
+type Scope = "all" | "top" | "community" | "spotlight";
 const TOP_NODES = 400;
 /** Below this the whole index is drawn; above it the busiest entities are, so the picture stays readable. */
 const WHOLE_INDEX_LIMIT = 600;
@@ -34,9 +38,9 @@ const PHASE_TEXT: Record<LeidenStep["phase"], string> = {
   done: "No sweep moves anything: the run is finished.",
 };
 
-export function FormationView({ dataset, partition, selected }: Props) {
+export function FormationView({ dataset, partition, selected, spotlight, onFocus }: Props) {
   const { t } = useT();
-  const [scope, setScope] = useState<Scope>(() => (dataset.entities.size <= WHOLE_INDEX_LIMIT ? "all" : "top"));
+  const [scope, setScope] = useState<Scope>(() => (spotlight ? "spotlight" : dataset.entities.size <= WHOLE_INDEX_LIMIT ? "all" : "top"));
   const [resolution, setResolution] = useState(1);
   const [seed, setSeed] = useState(42);
   const [index, setIndex] = useState(0);
@@ -49,10 +53,14 @@ export function FormationView({ dataset, partition, selected }: Props) {
   // Entities the run works on. Leiden is computed on exactly what is drawn, so the picture is the run.
   const entityIds = useMemo(() => {
     if (scope === "community" && selected) return selected.entityIds.filter((id) => dataset.entities.has(id));
+    if (scope === "spotlight" && spotlight) {
+      const types = new Set(spotlight.types);
+      return [...dataset.entities.values()].filter((entity) => types.has(entity.type)).map((entity) => entity.id);
+    }
     const all = [...dataset.entities.values()];
     if (scope === "all") return all.map((e) => e.id);
     return all.sort((a, b) => b.degree - a.degree || a.id.localeCompare(b.id)).slice(0, TOP_NODES).map((e) => e.id);
-  }, [dataset, scope, selected]);
+  }, [dataset, scope, selected, spotlight]);
 
   const run = useMemo(() => {
     const { graph, entityIds: order } = buildGraph(dataset, entityIds);
@@ -162,6 +170,28 @@ export function FormationView({ dataset, partition, selected }: Props) {
     return compareAssignments(ours, theirs);
   }, [partition, step, run]);
 
+  // The values behind the colours: the biggest communities of this step and who is in them.
+  const groups = useMemo(() => {
+    if (!step) return [];
+    const byCommunity = new Map<number, string[]>();
+    step.membership.forEach((community, node) => {
+      const list = byCommunity.get(community);
+      if (list) list.push(run.order[node]);
+      else byCommunity.set(community, [run.order[node]]);
+    });
+    return [...byCommunity.entries()]
+      .map(([id, ids]) => ({
+        id,
+        members: ids
+          .map((entityId) => dataset.entities.get(entityId))
+          .filter((entity): entity is NonNullable<typeof entity> => entity !== undefined)
+          .sort((a, b) => b.degree - a.degree || a.title.localeCompare(b.title)),
+      }))
+      .filter((group) => group.members.length > 1)
+      .sort((a, b) => b.members.length - a.members.length)
+      .slice(0, 6);
+  }, [step, run, dataset]);
+
   const last = run.steps[run.steps.length - 1];
   const peak = Math.max(...run.steps.map((s) => s.modularity), 0.0001);
 
@@ -174,6 +204,7 @@ export function FormationView({ dataset, partition, selected }: Props) {
               <option value="all">{t("the whole index ({n} entities)", { n: fmt(dataset.entities.size) })}</option>
               <option value="top">{t("the {n} best connected entities", { n: fmt(TOP_NODES) })}</option>
               {selected && <option value="community">{t("{title} only", { title: selected.title })}</option>}
+              {spotlight && <option value="spotlight">{t("the schema selection ({label})", { label: spotlight.label })}</option>}
             </select>
           </label>
           <label className="control">{t("Resolution")}
@@ -240,6 +271,30 @@ export function FormationView({ dataset, partition, selected }: Props) {
               {t("Against the loaded community set at this step: NMI {nmi}, ARI {ari}.", { nmi: stored.nmi.toFixed(3), ari: stored.ari.toFixed(3) })}
             </p>
           )}
+          <h4 className="formation-heading">{t("Communities at this step")}</h4>
+          {groups.length === 0 && <p className="muted">{t("Nobody has joined anyone yet: every entity is still on its own.")}</p>}
+          <ul className="formation-groups">
+            {groups.map((group) => (
+              <li key={group.id}>
+                <div className="formation-group-head">
+                  <i style={{ background: cloudColors(group.id).stroke }} />
+                  <span className="num">{fmt(group.members.length)}</span>
+                  <span className="muted">{t("entities")}</span>
+                </div>
+                <ul className="formation-members">
+                  {group.members.slice(0, 5).map((entity) => (
+                    <li key={entity.id}>
+                      <button className="value" onClick={() => onFocus({ kind: "entity", id: entity.id })} title={entity.description ?? entity.title}>
+                        <span className="type-tag">{entity.type}</span>
+                        <span className="value-title">{displayTitle(entity)}</span>
+                      </button>
+                    </li>
+                  ))}
+                  {group.members.length > 5 && <li className="muted">{t("and {n} more", { n: fmt(group.members.length - 5) })}</li>}
+                </ul>
+              </li>
+            ))}
+          </ul>
           <p className="note">{t("Leiden is run in this browser on the entities above; the loaded communities are never changed.")}</p>
         </aside>
       </div>

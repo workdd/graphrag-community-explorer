@@ -3,7 +3,9 @@ import { snippet } from "../../core/evidence";
 import { displayTitle } from "../../core/graph/palette";
 import type { Dataset, Partition } from "../../core/model";
 import { contextFor, describeTables, type ContextScope, type SchemaTable, type TableInfo, type TableKey } from "../../core/schema";
+import type { SchemaTripleEdge } from "../../core/graph/schemaGraph";
 import { fmt } from "../format";
+import { SchemaGraphView } from "./SchemaGraphView";
 import { LevelTag } from "../level";
 import type { GraphFocus } from "../graph/CommunityGraph";
 import { useT } from "../i18n";
@@ -17,6 +19,8 @@ interface Props {
   onSelect: (id: string) => void;
   onFocus: (focus: GraphFocus) => void;
   onOpenGraph: () => void;
+  onOpenType: (type: string) => void;
+  onOpenTriple: (edge: SchemaTripleEdge) => void;
 }
 
 /** The colours of the GraphRAG local-search figure: communities dark, entities blue, relationships green, text units red. */
@@ -40,7 +44,7 @@ const FILE_HINT: Record<TableKey, string> = {
   covariates: "covariates.parquet",
 };
 
-export function SchemaView({ dataset, partition, tables, selectedId, focus, onSelect, onFocus, onOpenGraph }: Props) {
+export function SchemaView({ dataset, partition, tables, selectedId, focus, onSelect, onFocus, onOpenGraph, onOpenType, onOpenTriple }: Props) {
   const { t } = useT();
   const schema = useMemo(() => describeTables(tables), [tables]);
   const scope: ContextScope = useMemo(() => {
@@ -64,6 +68,18 @@ export function SchemaView({ dataset, partition, tables, selectedId, focus, onSe
 
   return (
     <div className="schema">
+      <section className="schema-shape">
+        <h3>{t("Types and how they connect")}</h3>
+        <p className="muted">{t("The schema of this index, counted from the rows themselves: one node per entity type, one arrow per relationship that occurs between two types.")}</p>
+        <SchemaGraphView
+          dataset={dataset}
+          onOpenType={onOpenType}
+          onOpenTriple={onOpenTriple}
+          onFocusEntity={(id) => onFocus({ kind: "entity", id })}
+          onFocusRelationship={(id) => onFocus({ kind: "relationship", id })}
+        />
+      </section>
+
       <section className="schema-tables">
         <h3>{t("Tables in this index")}</h3>
         <p className="muted">{t("Each Parquet file is a relational table. Key columns are marked, and reference columns say which table they point into; the graph is drawn from those references.")}</p>

@@ -79,6 +79,16 @@ each take about half a second (`samples/generate_sample.py --scale 53 --edge-fac
 
 ## What you see
 
+Three pictures answer three different questions, and they are wired to each other.
+
+1. **Schema** draws the shape of the index: one node per entity type, one arrow per relationship
+   that occurs between two types, both with counts. Nothing declares this shape; it is counted from
+   the rows. Picking a type or an arrow lists the records behind it.
+2. **Network** draws those records. A type or triple picked in the schema carries over as a filter,
+   shown as a chip you can clear.
+3. **Formation** runs Leiden on whatever is on screen and plays the communities back as they form,
+   naming the entities that end up together at each step.
+
 The app opens on the **Network** view: every entity and relationship on one canvas, with no
 communities involved. Node colour is the entity type and size is the degree. Communities are an
 overlay you add, as clouds around their members or as node colour, and they can be taken away again.

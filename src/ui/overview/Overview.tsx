@@ -6,6 +6,7 @@ import { datasetCounts, summarizePartition } from "../../core/metrics/summary";
 import type { GraphFocus, GraphMode } from "../graph/CommunityGraph";
 import { displayTitle } from "../../core/graph/palette";
 import { nestingRatio } from "../../core/graph/map";
+import { neighbourTypes, relationshipsOfType, schemaGraph, type SchemaTripleEdge } from "../../core/graph/schemaGraph";
 import { depthOfLevel, levelsByDepth, pathTo } from "../../core/hierarchy";
 import type { Dataset, Partition } from "../../core/model";
 import { Mark } from "../Mark";
@@ -68,6 +69,14 @@ function readHash(dataset: Dataset): HashState {
 /** Stand-in for indexes shipped without communities.parquet: the graph still works around an entity. */
 const EMPTY_PARTITION: Partition = { id: "none", label: "none", communities: new Map(), levels: [], rootLevel: 0 };
 
+/** Entity and relationship types picked in the schema view and shown in the data views. */
+export interface SpotlightSelection {
+  label: string;
+  types: string[];
+  relationships: string[];
+}
+type Spotlight = SpotlightSelection | null;
+
 interface Props {
   result: LoadResult;
   label: string;
@@ -93,6 +102,19 @@ export function Overview({ result, label, onReset, datasets, activeData, onOpenD
   const partition = realPartition ?? EMPTY_PARTITION;
   // Only a properly nested hierarchy can open a community inside its parents on the map.
   const nested = useMemo(() => nestingRatio(partition) >= 0.9, [partition]);
+  const schema = useMemo(() => schemaGraph(dataset), [dataset]);
+  // A slice of the schema carried into the data views, so a type or a triple can be followed through.
+  const [spotlight, setSpotlight] = useState<Spotlight>(null);
+  const openType = (type: string) => {
+    setSpotlight({ label: type, types: neighbourTypes(schema, type), relationships: relationshipsOfType(schema, type) });
+    setFocus(null);
+    setView("network");
+  };
+  const openTriple = (edge: SchemaTripleEdge) => {
+    setSpotlight({ label: `${edge.from} ${edge.relationship} ${edge.to}`, types: [...new Set([edge.from, edge.to])], relationships: [edge.relationship] });
+    setFocus(null);
+    setView("network");
+  };
   const ancestorsOf = (ids: string[]) => ids.flatMap((id) => pathTo(partition, id).slice(0, -1).map((c) => c.id));
 
   const counts = useMemo(() => datasetCounts(dataset), [dataset]);
@@ -286,11 +308,13 @@ export function Overview({ result, label, onReset, datasets, activeData, onOpenD
             selectedCommunityId={selectedId}
             onSelectCommunity={(id) => { select(id); setView("map"); }}
             onExplore={explore}
+            spotlight={spotlight}
+            onClearSpotlight={() => setSpotlight(null)}
           />
         ) : view === "formation" ? (
-          <FormationView dataset={dataset} partition={realPartition ?? null} selected={selected} />
+          <FormationView dataset={dataset} partition={realPartition ?? null} selected={selected} spotlight={spotlight} onFocus={setFocus} />
         ) : view === "schema" ? (
-          <SchemaView dataset={dataset} partition={realPartition ?? null} tables={result.tables} selectedId={selectedId} focus={focus} onSelect={select} onFocus={setFocus} onOpenGraph={openGraph} />
+          <SchemaView dataset={dataset} partition={realPartition ?? null} tables={result.tables} selectedId={selectedId} focus={focus} onSelect={select} onFocus={setFocus} onOpenGraph={openGraph} onOpenType={openType} onOpenTriple={openTriple} />
         ) : view === "quality" && realPartition ? (
           <QualityView dataset={dataset} partition={realPartition} selectedId={selectedId} onSelect={select} />
         ) : view === "map" && realPartition ? (

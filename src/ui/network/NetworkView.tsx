@@ -20,6 +20,9 @@ interface Props {
   selectedCommunityId: string | null;
   onSelectCommunity: (id: string) => void;
   onExplore: (entityId: string) => void;
+  /** Types picked in the schema view; the graph narrows to them until it is cleared. */
+  spotlight: { label: string; types: string[]; relationships: string[] } | null;
+  onClearSpotlight: () => void;
 }
 
 /** How communities are laid over the plain graph. `off` is the knowledge graph on its own. */
@@ -58,7 +61,7 @@ export function bandRows(counts: number[]): number {
 }
 
 /** The whole knowledge graph: entities and relationships, with communities as something you add. */
-export function NetworkView({ dataset, partition, focus, onFocus, selectedCommunityId, onSelectCommunity, onExplore }: Props) {
+export function NetworkView({ dataset, partition, focus, onFocus, selectedCommunityId, onSelectCommunity, onExplore, spotlight, onClearSpotlight }: Props) {
   const { t } = useT();
   const [overlay, setOverlay] = useState<Overlay>("off");
   // Typed graphs read best as columns, and that arrangement is instant; a graph with one or two
@@ -76,6 +79,16 @@ export function NetworkView({ dataset, partition, focus, onFocus, selectedCommun
   const cloudsRef = useRef<CloudGroup[]>([]);
   const [layoutMs, setLayoutMs] = useState<number | null>(null);
   const [ready, setReady] = useState<{ signature: string; positions: Positions } | null>(null);
+
+  // A schema selection replaces the filters, so what is drawn is exactly the slice that was picked.
+  useEffect(() => {
+    if (!spotlight) return;
+    const types = new Set(spotlight.types);
+    const relationships = new Set(spotlight.relationships);
+    setHiddenTypes(new Set([...new Set([...dataset.entities.values()].map((e) => e.type))].filter((type) => !types.has(type))));
+    setHiddenRelationships(new Set([...new Set(dataset.relationships.map((r) => r.type))].filter((type) => !relationships.has(type))));
+    setIsolated(false);
+  }, [spotlight, dataset]);
 
   const colors = useMemo(() => typeColors([...dataset.entities.values()].map((e) => e.type)), [dataset]);
   const primary = useMemo(() => {
@@ -400,6 +413,11 @@ export function NetworkView({ dataset, partition, focus, onFocus, selectedCommun
           <label className="control"><input type="checkbox" checked={isolated} onChange={(e) => setIsolated(e.target.checked)} /> {t("Entities with no relationships")}</label>
         </div>
         <div className="graph-controls">
+          {spotlight && (
+            <button className="chip static" onClick={() => { setHiddenTypes(new Set()); setHiddenRelationships(new Set()); onClearSpotlight(); }} title={t("Show the whole graph again")}>
+              {t("from the schema: {label}", { label: spotlight.label })} <span className="chip-x">×</span>
+            </button>
+          )}
           <input className="field find" placeholder={t("Find an entity")} value={query} onChange={(e) => setQuery(e.target.value)} onKeyDown={(e) => e.key === "Enter" && find()} />
           <button className="btn" onClick={find}>{t("Find")}</button>
           <button className="btn" onClick={() => cyRef.current?.animate({ fit: { eles: cyRef.current.elements(), padding: 40 } }, { duration: 250 })}>{t("Fit")}</button>
