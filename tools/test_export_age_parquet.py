@@ -220,3 +220,59 @@ def test_identical_derived_titles_get_the_community_number():
 def test_a_producer_title_is_never_replaced(snapshot):
     _, _, communities, _, _ = m.convert(*snapshot, graph="g")
     assert [c["title"] for c in communities] == ["A", "B"]
+
+
+def test_split_parent_keys_handles_the_shapes_producers_use():
+    assert m.split_parent_keys("L1:0 · L1:1") == ["L1:0", "L1:1"]
+    assert m.split_parent_keys(["L1:0", "L1:1"]) == ["L1:0", "L1:1"]
+    assert m.split_parent_keys("L1:0, L1:1; L1:2|L1:3") == ["L1:0", "L1:1", "L1:2", "L1:3"]
+    assert m.split_parent_keys("L1:0") == ["L1:0"]
+    assert m.split_parent_keys(None) == []
+    assert m.split_parent_keys("") == []
+
+
+@pytest.fixture
+def straddler():
+    """자식 하나가 부모 둘에 걸쳐 있는 그래프. 거버넌스에서 실제로 나온 모양이다."""
+    vertices = [
+        vertex("1", "Resource", name="a", kind="K"),
+        vertex("2", "Resource", name="b", kind="K"),
+        vertex("3", "Resource", name="c", kind="K"),
+        vertex("10", "Community", id="comm-p1", level=0, title="P1"),
+        vertex("11", "Community", id="comm-p2", level=0, title="P2"),
+        vertex("12", "Community", id="comm-child", level=1, title="C", parentIds="comm-p1 · comm-p2"),
+    ]
+    edges = [
+        edge("m1", "inCommunity", "1", "10"), edge("m2", "inCommunity", "2", "10"),
+        edge("m3", "inCommunity", "3", "11"),
+        edge("m4", "inCommunity", "1", "12"), edge("m5", "inCommunity", "2", "12"),
+        edge("m6", "inCommunity", "3", "12"),
+    ]
+    return vertices, edges
+
+
+def test_a_child_with_two_parents_joins_the_one_that_holds_most_of_it(straddler):
+    vertices, edges = straddler
+    communities, warnings = m.convert(vertices, edges, graph="g")[2], m.convert(vertices, edges, graph="g")[4]
+    child = next(c for c in communities if c["title"].startswith("C"))
+    p1 = next(c for c in communities if c["title"].startswith("P1"))
+    assert child["parent"] == p1["community"]
+    assert any("comm-child" in w and "dropped" in w for w in warnings)
+
+
+def test_the_dropped_parents_are_named_so_nothing_disappears_quietly(straddler):
+    vertices, edges = straddler
+    warnings = m.convert(vertices, edges, graph="g")[4]
+    line = next(w for w in warnings if "comm-child" in w)
+    assert "comm-p1" in line and "comm-p2" in line
+    assert "2 of its 3 members" in line or "holds 2" in line
+
+
+def test_a_child_named_only_in_the_plural_field_still_gets_a_parent(straddler):
+    vertices, edges = straddler
+    single = [v for v in vertices if v["id"] != "12"]
+    single.append(vertex("12", "Community", id="comm-child", level=1, title="C", parentIds="comm-p1"))
+    communities = m.convert(single, edges, graph="g")[2]
+    child = next(c for c in communities if c["title"].startswith("C"))
+    p1 = next(c for c in communities if c["title"].startswith("P1"))
+    assert child["parent"] == p1["community"]

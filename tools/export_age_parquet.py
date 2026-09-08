@@ -140,6 +140,50 @@ def resolve_parent(raw, business_ids):
     return None
 
 
+PARENT_SEPARATORS = ("·", ";", ",", "|")
+
+
+def split_parent_keys(raw):
+    """부모 여러 개를 한 문자열에 담은 값을 나눕니다 ("L1:0 · L1:1").
+
+    리스트로 오면 그대로 씁니다. 구분자는 생산자마다 달라 흔한 것을 모두 봅니다.
+    """
+    if raw is None or raw == "":
+        return []
+    if isinstance(raw, (list, tuple)):
+        return [str(x).strip() for x in raw if str(x).strip()]
+    text = str(raw)
+    for sep in PARENT_SEPARATORS:
+        text = text.replace(sep, "\u0000")
+    return [part.strip() for part in text.split("\u0000") if part.strip()]
+
+
+def choose_parent(child_id, child_members, keys, business_ids, node_of, members, warnings):
+    """부모가 여럿이면 자식을 가장 많이 담은 하나를 고릅니다.
+
+    화면의 계층은 트리라서 부모를 여럿 가질 수 없습니다. 아무거나 고르면 자식이
+    엉뚱한 곳에 붙고, 비워 두면 자식이 루트로 떠올라 최상위가 부풀어 오릅니다.
+    담은 비율로 고르고 무엇을 버렸는지 남깁니다.
+    """
+    scored = []
+    for key in keys:
+        resolved = resolve_parent(key, business_ids)
+        if resolved is None:
+            raise ValueError(f"Unknown parent for community {child_id}: {key}")
+        node = node_of[resolved]
+        scored.append((len(child_members & members[node]), resolved))
+    if not scored:
+        return None
+    scored.sort(key=lambda item: (-item[0], item[1]))
+    best_count, best = scored[0]
+    if len(scored) > 1:
+        rest = ", ".join("%s (%d)" % (name, count) for count, name in scored[1:])
+        warnings.append(
+            "Community %s lists %d parents; kept %s which holds %d of its %d members, dropped %s"
+            % (child_id, len(scored), best, best_count, len(child_members), rest))
+    return best
+
+
 def resolve_duplicate_communities(clusters, allow_duplicate_ids, warnings):
     """Community.id 가 유일한지 확인합니다.
 
@@ -243,17 +287,22 @@ def convert(vertices, edges, graph, entity_labels="auto", community_label="Commu
             type=e["label"], age_source_id=e["source"], age_target_id=e["target"],
             age_properties_json=encode(p)))
 
+    node_of = {str(v["properties"]["id"]): v["id"] for v in clusters}
     communities, reports = [], []
     for v in clusters:
         p, vid = v["properties"], v["id"]
         number, membership = numbers[vid], members[vid]
         parent_key = p.get("parent_id", p.get("parentId"))
+        keys = split_parent_keys(parent_key)
+        if not keys:
+            # 단수 필드가 비어 있어도 복수 필드에 부모가 있을 수 있습니다. 여기서 포기하면
+            # 자식이 루트로 떠올라 최상위 개수가 실제와 달라집니다.
+            keys = split_parent_keys(p.get("parent_ids", p.get("parentIds")))
         parent = -1
-        if parent_key not in (None, "", -1, "-1"):
-            resolved = resolve_parent(parent_key, business_ids)
-            if resolved is None:
-                raise ValueError(f"Unknown parent for community {p['id']}: {parent_key}")
-            parent = business_ids[resolved]
+        if keys:
+            resolved = choose_parent(p["id"], membership, keys, business_ids, node_of, members, warnings)
+            if resolved is not None:
+                parent = business_ids[resolved]
         if p.get("member_count") is not None and int(p["member_count"]) != len(membership):
             warnings.append(f"Community {p['id']}: stored member_count={p['member_count']}, actual={len(membership)}")
         level = int(p.get("level", 0))

@@ -48,8 +48,9 @@ export const GRAPH_STYLE = [
       "text-valign": "top",
       "text-halign": "center",
       "text-margin-y": -8,
-      "text-wrap": "none",
-      "text-max-width": 1000,
+      "text-wrap": "wrap",
+      "text-overflow-wrap": "anywhere",
+      "text-max-width": 320,
       "text-background-opacity": 0,
       "min-zoomed-font-size": HIDE_LABEL_BELOW_PX,
       "overlay-opacity": 0,
@@ -114,6 +115,9 @@ export const MAP_STYLE = [
       "text-valign": "center",
       "text-halign": "center",
       "text-wrap": "wrap",
+      // Governance titles carry raw ids. One unbroken token is wider than any box, and without
+      // this it runs straight over the neighbours instead of wrapping.
+      "text-overflow-wrap": "anywhere",
       "text-max-width": "data(labelWidth)",
       "text-background-opacity": 0,
       "text-margin-y": 0,
