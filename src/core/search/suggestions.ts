@@ -37,7 +37,7 @@ export const PREFERRED_TYPES = ["virtualmachine", "vm", "instance", "server", "h
 
 /**
  * A name has to carry a word for the question to be answerable. Local search embeds the question and
- * compares it with entity text: a bare id like "7809779" embeds to nothing in particular, so the
+ * compares it with entity text: a bare numeric id embeds to nothing in particular, so the
  * ranking returns ten other records and the model answers, correctly, that it was told nothing about
  * the one that was named. A named record makes the example exercise the path rather than its edge.
  */

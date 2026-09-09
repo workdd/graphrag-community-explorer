@@ -15,7 +15,7 @@ describe("readableTitle", () => {
   });
 
   it("keeps a Korean name", () => {
-    expect(readableTitle("VirtualMachine · 삭제금지-CloudWatchAgent-Linux [AGE:1]")).toBe("삭제금지-CloudWatchAgent-Linux");
+    expect(readableTitle("VirtualMachine · 결제-에이전트-리눅스 [AGE:1]")).toBe("결제-에이전트-리눅스");
   });
 
   it("does not mistake a middle dot inside a name for a prefix", () => {

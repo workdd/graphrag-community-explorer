@@ -213,18 +213,18 @@ describe("records named only by a number", () => {
     }]));
 
   it("prefers a record whose name carries a word", () => {
-    const out = suggestQuestions({ dataset: { ...dataset, entities: vms("7809779", "web-frontend") }, partition, hasEmbeddings: true });
+    const out = suggestQuestions({ dataset: { ...dataset, entities: vms("1234567", "web-frontend") }, partition, hasEmbeddings: true });
     expect(out.find((s) => s.method === "local")?.vars.entity).toBe("web-frontend");
   });
 
   it("accepts a Korean name as a word", () => {
-    const out = suggestQuestions({ dataset: { ...dataset, entities: vms("7809779", "삭제금지") }, partition, hasEmbeddings: true });
-    expect(out.find((s) => s.method === "local")?.vars.entity).toBe("삭제금지");
+    const out = suggestQuestions({ dataset: { ...dataset, entities: vms("1234567", "주문-서버") }, partition, hasEmbeddings: true });
+    expect(out.find((s) => s.method === "local")?.vars.entity).toBe("주문-서버");
   });
 
   it("still asks something when every name is a number", () => {
-    const out = suggestQuestions({ dataset: { ...dataset, entities: vms("7809779", "6112060") }, partition, hasEmbeddings: true });
-    expect(out.find((s) => s.method === "local")?.vars.entity).toBe("7809779");
+    const out = suggestQuestions({ dataset: { ...dataset, entities: vms("1234567", "7654321") }, partition, hasEmbeddings: true });
+    expect(out.find((s) => s.method === "local")?.vars.entity).toBe("1234567");
   });
 
   it("does not treat a single letter as a word", () => {
