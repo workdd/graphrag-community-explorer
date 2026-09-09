@@ -221,7 +221,9 @@ export function Overview({ result, label, onReset, datasets, activeData, onOpenD
   };
 
   return (
-    <div className="app no-rail">
+    // The Ask tab reads its own records beside the answer, so the community inspector would sit
+    // there repeating a prompt about a selection this view does not make. It gives up its column.
+    <div className={`app no-rail${view === "ask" ? " no-inspector" : ""}`}>
       <header className="topbar">
         <Mark size={22} />
         <span className="topbar-title">GraphRAG Community Explorer</span>
@@ -395,6 +397,7 @@ export function Overview({ result, label, onReset, datasets, activeData, onOpenD
         </Suspense>
       </main>
 
+      {view === "ask" ? null : (
       <aside className="inspector">
         <Inspector
           dataset={dataset}
@@ -414,6 +417,7 @@ export function Overview({ result, label, onReset, datasets, activeData, onOpenD
           onToggleMap={toggleInMap}
         />
       </aside>
+      )}
     </div>
   );
 }

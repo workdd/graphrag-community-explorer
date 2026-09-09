@@ -1,5 +1,7 @@
 /* The chat view. Its own file so the shared stylesheet stays out of the way of other work. */
-.search { display: flex; flex-direction: column; gap: 14px; padding: 4px 2px 24px; max-width: 100ch; }
+/* Prose wants a short measure, the graph wants the room. Cap the reading blocks, not the page. */
+.search { display: flex; flex-direction: column; gap: 14px; padding: 4px 2px 24px; }
+.search .notice, .search .answer, .search .ask, .search .settings, .search .examples, .search .usage { max-width: 100ch; }
 .search h3 { margin: 0 0 6px; font-size: 14px; }
 .search .row { display: flex; flex-wrap: wrap; gap: 8px; align-items: center; }
 .search .ask { display: flex; gap: 8px; align-items: flex-start; }
@@ -25,7 +27,7 @@
 .search .cite button:hover { text-decoration: underline; }
 .search .cite .dead { color: var(--ink-3); cursor: default; }
 .search .used { display: grid; gap: 10px; }
-.search .used table { width: 100%; border-collapse: collapse; font-size: 12px; }
+.search .used table { width: 100%; max-width: 1500px; border-collapse: collapse; font-size: 12px; }
 .search .used th, .search .used td { text-align: left; padding: 4px 6px; border-bottom: 1px solid var(--rule); vertical-align: top; }
 .search .used th { color: var(--ink-2); font-weight: 600; }
 .search .used td.n { width: 34px; color: var(--ink-3); }
@@ -46,7 +48,7 @@
 
 /* The answer, the graph and the table are one page: selecting in any of them lights the other two. */
 .search .usage { margin: 2px 0 0; }
-.search .split { display: grid; grid-template-columns: minmax(0, 1.5fr) minmax(300px, 1fr); gap: 12px; align-items: stretch; }
+.search .split { display: grid; grid-template-columns: minmax(0, 1.6fr) minmax(320px, 0.9fr); gap: 12px; align-items: stretch; max-width: 1500px; }
 @media (max-width: 1180px) { .search .split { grid-template-columns: 1fr; } }
 
 .search .graph-pane { border: 1px solid var(--rule); border-radius: 6px; background: var(--surface); padding: 6px; min-width: 0; }

@@ -295,10 +295,12 @@
 
 /* Graph-first views use the full width: the community tree belongs to the views that navigate it. */
 .app.no-rail { grid-template-columns: minmax(0, 1fr) var(--inspector-w); }
+/* A view that reads its own records needs the width more than it needs the community inspector. */
+.app.no-rail.no-inspector { grid-template-columns: minmax(0, 1fr); }
 .legend-item.off { opacity: 0.4; text-decoration: line-through; }
 .graph-legend button.legend-item { border: none; background: none; cursor: pointer; font: inherit; padding: 0 2px; }
 .field.find { width: 180px; }
-@media (max-width: 1100px) { .app.no-rail { grid-template-columns: 1fr; } }
+@media (max-width: 1100px) { .app.no-rail, .app.no-rail.no-inspector { grid-template-columns: 1fr; } }
 .lede-note { max-width: 70ch; margin: -6px 0 14px; color: var(--ink-2); font-size: var(--fs-0); }
 
 /* Schema shape: the type graph and the records behind whatever is picked in it */

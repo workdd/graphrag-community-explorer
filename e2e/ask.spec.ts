@@ -27,6 +27,15 @@ test("ask tab reports what it needs and never hides the network call", async ({ 
   await page.getByLabel("API key").fill("sk-not-a-real-key");
   await expect(page.getByRole("button", { name: /Provider:/ })).not.toContainText("sk-not-a-real-key");
   await expect(page.getByRole("button", { name: "Ask", exact: true })).toBeEnabled();
+
+  // The community inspector belongs to the views that navigate communities. This tab reads its own
+  // records, so the column goes to the graph rather than repeating a prompt about a selection that
+  // is never made here. Checked last: leaving the tab resets what was typed.
+  await expect(page.locator("aside.inspector")).toHaveCount(0);
+  await page.getByRole("tab", { name: "Overview", exact: true }).click();
+  await expect(page.locator("aside.inspector")).toHaveCount(1);
+  await page.getByRole("tab", { name: "Ask", exact: true }).click();
+  await expect(page.locator("aside.inspector")).toHaveCount(0);
 });
 
 test("ask tab refuses a trace it cannot read", async ({ page }) => {
