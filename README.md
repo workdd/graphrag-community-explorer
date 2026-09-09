@@ -133,6 +133,14 @@ The app opens on the **Network** view: every entity and relationship on one canv
 communities involved. Node colour is the entity type and size is the degree. Communities are an
 overlay you add, as clouds around their members or as node colour, and they can be taken away again.
 
+Every cloud carries its community's name at a fixed size on screen, so the graph says what it is
+made of whether it is zoomed right out or right in. Where two names would land on top of each other
+the smaller community gives way and gets its name back as you zoom in; every community is also
+listed under the canvas with the colour it was drawn in, so no name is ever out of reach. Clicking
+a cloud reads that community in the inspector and dragging one pulls it aside. Links take no clicks:
+a community is mostly the links between its members, so a clickable link would leave the community
+unclickable over most of its area. Links are read from the inspector, which lists them by name.
+
 `Arrange: layers` puts one column per entity type and orders the columns so that as many
 relationships as possible run forward, using a greedy feedback arc set. It reports the share that
 made it, and draws the rest dashed red. Long columns wrap into sub-columns so the picture stays

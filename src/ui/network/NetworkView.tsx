@@ -11,6 +11,7 @@ import type { Dataset, Entity, Partition, Relationship } from "../../core/model"
 import { exportCytoscapePng } from "../download";
 import { fmt } from "../format";
 import { attachClouds, cloudColors, type CloudGroup } from "../graph/clouds";
+import { fadeable } from "../graph/focus";
 import { attachLabeller } from "../graph/labeller";
 import type { GraphFocus } from "../graph/CommunityGraph";
 import { loadCachedLayout, requestLayout, saveCachedLayout } from "../graph/layoutClient";
@@ -40,6 +41,14 @@ type Overlay = "off" | "clouds" | "colour";
 /** Free force layout, or one column per entity type with the relationships flowing forward. */
 /** The schema is the frame: types are nodes until one is opened into its records. */
 type Arrange = "schema" | "focus" | "communities" | "force" | "layers";
+
+/** One community as it is listed under the graph: the colour it was drawn in, and its size. */
+interface CommunityLegend {
+  id: string;
+  title: string;
+  colour: string;
+  size: number;
+}
 const FOCUS_RADIUS = 250;
 /** The pile of records no community claims, drawn as one more disc. */
 const LOOSE = "loose";
@@ -118,6 +127,7 @@ export function NetworkView({ dataset, partition, focus, onFocus, selectedCommun
   const wrap = useRef<HTMLDivElement>(null);
   const cyRef = useRef<cytoscape.Core | undefined>(undefined);
   const cloudsRef = useRef<CloudGroup[]>([]);
+  const [legend, setLegend] = useState<CommunityLegend[]>([]);
   const [layoutMs, setLayoutMs] = useState<number | null>(null);
   const [ready, setReady] = useState<{ signature: string; positions: Positions } | null>(null);
 
@@ -576,13 +586,17 @@ export function NetworkView({ dataset, partition, focus, onFocus, selectedCommun
         { selector: "node.commgroup.selected", style: { "background-opacity": 0.08, "border-width": 1.5, "border-color": "#5a6fbe", "border-style": "dashed" } },
         { selector: "node.band", style: { shape: "rectangle", width: BAND.boxWidth, height: 1, "background-opacity": 0, "border-width": 0, "z-index": 5, label: "data(label)", "text-valign": "top", "text-margin-y": -6, "font-size": 12, "font-weight": 700, color: "#3a3a36", "text-background-opacity": 0, events: "no" } },
         { selector: "node.nolabel", style: { label: "" } },
-        { selector: "edge", style: { width: 1, "line-color": "#c2c9d1", "curve-style": "haystack", "haystack-radius": 0, "z-index": 1 } },
+        { selector: "edge", style: { width: 1, "line-color": "#c2c9d1", "curve-style": "haystack", "haystack-radius": 0, "z-index": 1,
+          // A community is mostly the links between its members, so an edge that takes the click
+          // leaves the community itself unclickable over most of its area. Links are read from
+          // the inspector instead, where they are listed by name.
+          events: "no" } },
         { selector: "edge.flow", style: { "curve-style": "bezier", "control-point-step-size": 60, "target-arrow-shape": "triangle", "target-arrow-color": "#b6bec7", "arrow-scale": 0.7 } },
         { selector: "edge.back", style: { "line-color": "#b4453a", "target-arrow-color": "#b4453a", "line-style": "dashed", opacity: 0.7 } },
         { selector: "edge.same", style: { "line-style": "dashed", opacity: 0.45 } },
         { selector: "edge.faint", style: { opacity: 0.35 } },
-        { selector: "node.dim", style: { opacity: 0.15 } },
-        { selector: "edge.dim", style: { opacity: 0.06 } },
+        { selector: "node.dim", style: { opacity: 0.28 } },
+        { selector: "edge.dim", style: { opacity: 0.1 } },
         { selector: "node.focus", style: { "border-width": 3, "border-color": "#5a6fbe", label: "data(label)", "font-size": 12, "z-index": 30 } },
         { selector: "node.neighbor", style: { "border-width": 2, "border-color": "#7b8794", label: "data(label)", "z-index": 20 } },
         { selector: "edge.on", style: { width: 2, "line-color": "#8b9dd4", "target-arrow-color": "#8b9dd4", opacity: 1, label: "data(label)", "font-size": 10, color: "#5a6fbe", "text-background-color": "#ffffff", "text-background-opacity": 0.85, "z-index": 3 } },
@@ -667,7 +681,6 @@ export function NetworkView({ dataset, partition, focus, onFocus, selectedCommun
       if (notARecord.some((name) => event.target.hasClass(name))) return;
       propsRef.current.onFocus({ kind: "entity", id: event.target.id() });
     });
-    cy.on("tap", "edge", (event) => propsRef.current.onFocus({ kind: "relationship", id: event.target.id() }));
     cy.on("tap", (event) => {
       if (event.target === cy) propsRef.current.onFocus(null);
     });
@@ -722,22 +735,34 @@ export function NetworkView({ dataset, partition, focus, onFocus, selectedCommun
         }
       });
     });
-    const radii = new Map((clusters?.groups ?? []).map((group) => [group.id, group.radius]));
-    cloudsRef.current = overlay === "clouds"
+    // Names are drawn at a steady size on screen and cut to fit there, so the title is handed over
+    // whole rather than trimmed against a radius that changes with every arrangement.
+    const clouds: CloudGroup[] = overlay === "clouds"
       ? [...groups.entries()]
           .filter(([, ids]) => ids.length >= 2)
-          .map(([community, ids]) => {
-            const title = partition?.communities.get(community)?.title ?? community;
-            const room = radii.get(community);
-            const limit = room === undefined ? 40 : Math.max(8, Math.round(room / 4.5));
-            return {
-              id: community,
-              label: title.length > limit ? `${title.slice(0, limit - 1)}…` : title,
-              ...cloudColors(groupOrder.indexOf(community)),
-              elementIds: ids,
-            };
-          })
+          .map(([community, ids]) => ({
+            id: community,
+            label: partition?.communities.get(community)?.title ?? community,
+            ...cloudColors(groupOrder.indexOf(community)),
+            elementIds: ids,
+            weight: ids.length,
+          }))
       : [];
+    cloudsRef.current = clouds;
+    // Every community is listed under the graph as well, so a name that loses its place on a
+    // crowded canvas can still be read, and read against the colour it was drawn in.
+    const listed = (overlay === "off" ? [] : [...groups.entries()])
+      .map(([community, ids]) => ({
+        id: community,
+        title: partition?.communities.get(community)?.title ?? community,
+        colour: cloudColors(groupOrder.indexOf(community)).stroke,
+        size: ids.length,
+      }))
+      .sort((a, b) => b.size - a.size || a.title.localeCompare(b.title));
+    setLegend((previous) => {
+      const same = previous.length === listed.length && previous.every((entry, index) => entry.id === listed[index].id && entry.size === listed[index].size);
+      return same ? previous : listed;
+    });
     cy.forceRender();
   }, [overlay, partition, primary, ready, arrange, selectedCommunityId, clusters]);
 
@@ -752,11 +777,12 @@ export function NetworkView({ dataset, partition, focus, onFocus, selectedCommun
       // The focus arrangement is already the neighbourhood of one record, so dimming it would only
       // hide the second ring it was drawn to show.
       if (arrange === "focus") return;
+      const fades = fadeable(cy);
       if (focus?.kind === "entity") {
         const node = cy.getElementById(focus.id);
         if (node.empty()) return;
         const near = node.closedNeighborhood();
-        cy.elements().not(near).addClass("dim");
+        fades.not(near).addClass("dim");
         node.addClass("focus");
         near.nodes().not(node).addClass("neighbor");
         const links = node.connectedEdges();
@@ -766,7 +792,7 @@ export function NetworkView({ dataset, partition, focus, onFocus, selectedCommun
       } else if (focus?.kind === "relationship") {
         const edge = cy.getElementById(focus.id);
         if (edge.empty()) return;
-        cy.elements().not(edge.connectedNodes().union(edge)).addClass("dim");
+        fades.not(edge.connectedNodes().union(edge)).addClass("dim");
         edge.addClass("picked");
       }
     });
@@ -916,9 +942,33 @@ export function NetworkView({ dataset, partition, focus, onFocus, selectedCommun
         ))}
       </div>
 
+      {overlay !== "off" && legend.length > 0 && (
+        <div className="graph-legend communities">
+          <span className="legend-title">{t("Communities")}</span>
+          {legend.map((community) => (
+            <button
+              key={community.id}
+              className={`legend-item${community.id === selectedCommunityId ? " active" : ""}`}
+              onClick={() => onSelectCommunity(community.id)}
+              title={t("Read this community")}
+            >
+              <i style={{ background: community.colour }} />{community.title} <span className="num">{fmt(community.size)}</span>
+            </button>
+          ))}
+        </div>
+      )}
+
       <div className="graph-canvas-wrap" ref={wrap}>
         <div className="graph-canvas" ref={host} />
         {!ready && <div className="view-loading">{t("Laying out {n} nodes…", { n: fmt(elements.filter((element) => element.group === "nodes").length) })}</div>}
+      </div>
+
+      <div className="graph-hints">
+        <span><b>{t("Wheel")}</b> {t("zoom")}</span>
+        <span><b>{t("Drag")}</b> {t("move")}</span>
+        <span><b>{t("Zoom in")}</b> {t("more names appear")}</span>
+        {overlay === "clouds" && <span><b>{t("Drag a cloud")}</b> {t("pull a community aside")}</span>}
+        {overlay !== "off" && <span><b>{t("Click a cloud")}</b> {t("read it; double-click opens its own graph")}</span>}
       </div>
 
       <p className="graph-stats">
@@ -959,7 +1009,7 @@ export function NetworkView({ dataset, partition, focus, onFocus, selectedCommun
         )}
         {arrange === "layers" && layers.total > 0 && t("Columns are ordered so {share} of relationships point forward; the ones that do not are dashed red.", { share: `${Math.round((layers.forward / layers.total) * 100)}%` })}{" "}
         {arrange === "force" && layoutMs !== null && layoutMs > 0 && t("Layout {ms} ms off the main thread.", { ms: Math.round(layoutMs) })}{" "}
-        {t("Click a node for its neighbours, a link for its detail, the background to clear.")}
+        {t("Click a node for its neighbours, a community for its summary, the background to clear.")}
         {focused && focusedCommunity && (
           <>
             {" "}

@@ -82,3 +82,50 @@ test("turning communities on lays them out as separate blobs", async ({ page }) 
   await expect(page.locator(".graph-stats")).toContainText("entities and", { timeout: 30_000 });
   await expect(page.locator("canvas.cloud-layer")).toHaveCount(1);
 });
+
+// Turning communities on has to name them, and clicking a record must not fade the picture away.
+test("communities are named on the canvas and listed under it, at any zoom", async ({ page }) => {
+  await page.goto("/?data=./samples/demo#view=network");
+  await expect(page.locator(".graph-stats")).toContainText("types drawn", { timeout: 30_000 });
+  await page.locator(".control", { hasText: new RegExp("^Communities") }).locator("select").selectOption("clouds");
+  const canvas = page.locator("canvas.cloud-layer");
+  await expect(canvas).toHaveCount(1);
+
+  // Every community is listed with the colour it was drawn in, so no name is ever out of reach.
+  const listed = page.locator(".graph-legend", { hasText: "Communities" }).locator("button.legend-item");
+  await expect(listed.first()).toBeVisible({ timeout: 30_000 });
+  const names = await listed.count();
+  expect(names).toBeGreaterThan(1);
+
+  // Names are on the canvas with the whole graph in view, not only once it is zoomed into.
+  await page.locator(".btn", { hasText: "Fit" }).click();
+  await expect.poll(async () => Number(await canvas.getAttribute("data-names")), { timeout: 15_000 }).toBeGreaterThan(0);
+
+  // Reading a community from the list puts it in the inspector without leaving the graph.
+  await listed.first().click();
+  await expect(page.locator(".inspector h2")).not.toBeEmpty();
+  await expect(page.getByRole("tab", { name: "Network" })).toHaveAttribute("aria-selected", "true");
+});
+
+// A community is mostly the links between its members, so a clickable edge makes the community
+// itself unclickable over most of its area. Links are read from the inspector instead.
+test("links take no clicks, so a tap inside a community reads the community", async ({ page }) => {
+  await page.goto("/?data=./samples/demo#view=network");
+  await expect(page.locator(".graph-stats")).toContainText("types drawn", { timeout: 30_000 });
+  await page.locator(".control", { hasText: new RegExp("^Communities") }).locator("select").selectOption("clouds");
+  await expect(page.locator("canvas.cloud-layer")).toHaveCount(1);
+  await expect.poll(async () => Number(await page.locator("canvas.cloud-layer").getAttribute("data-names")), { timeout: 20_000 }).toBeGreaterThan(0);
+
+  const canvas = page.locator(".graph-canvas");
+  const box = (await canvas.boundingBox())!;
+  const headings: string[] = [];
+  for (const [fx, fy] of [[0.5, 0.5], [0.42, 0.58], [0.58, 0.42], [0.5, 0.35], [0.35, 0.5]]) {
+    await page.mouse.click(box.x + box.width * fx, box.y + box.height * fy);
+    await page.waitForTimeout(400);
+    headings.push((await page.locator(".inspector h2").first().innerText().catch(() => "")).trim());
+  }
+  // A relationship heading reads "A → B"; no click may ever produce one.
+  expect(headings.filter((heading) => heading.includes("\u2192"))).toEqual([]);
+  // and at least one of those clicks landed on a community rather than on nothing
+  expect(headings.filter((heading) => heading !== "").length).toBeGreaterThan(0);
+});

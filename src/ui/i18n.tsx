@@ -385,6 +385,7 @@ const KO: Record<string, string> = {
   "Layout {ms} ms off the main thread.": "배치 {ms} ms, 메인 스레드 밖.",
   "Columns are ordered so {share} of relationships point forward; the ones that do not are dashed red.": "관계의 {share}가 앞으로 흐르도록 열을 정렬했습니다. 거스르는 관계는 빨간 점선입니다.",
   "Click a node for its neighbours, a link for its detail, the background to clear.": "노드를 누르면 이웃, 선을 누르면 상세, 배경을 누르면 해제됩니다.",
+  "Click a node for its neighbours, a community for its summary, the background to clear.": "노드를 누르면 이웃, 커뮤니티를 누르면 요약, 배경을 누르면 해제됩니다.",
   "Community of {title}": "{title}의 커뮤니티",
   "Formation": "형성 과정",
   "Run Leiden here and watch the communities form": "레이덴을 여기서 돌려 커뮤니티가 만들어지는 과정을 봅니다",

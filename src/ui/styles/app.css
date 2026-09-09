@@ -360,3 +360,10 @@
 .head-control { margin-left: auto; }
 
 .bands-controls { display: flex; align-items: center; gap: 12px; margin-bottom: 8px; font-size: var(--fs-0); }
+
+/* Reading hints under the canvas: what the wheel, a drag and a zoom actually do. */
+.graph-hints { display: flex; flex-wrap: wrap; align-items: center; gap: 4px 14px; margin-top: 7px;
+  font-size: 11px; color: var(--ink-3); }
+.graph-hints b { font-weight: 600; color: var(--ink-2); margin-right: 3px; }
+/* An index can hold dozens of communities; the list scrolls rather than pushing the graph down. */
+.graph-legend.communities { max-height: 62px; overflow-y: auto; align-content: flex-start; }

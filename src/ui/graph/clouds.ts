@@ -1,4 +1,5 @@
 import type cytoscape from "cytoscape";
+import { placeLabels, type LabelCandidate } from "../../core/graph/labels";
 
 export interface CloudGroup {
   id: string;
@@ -10,6 +11,8 @@ export interface CloudGroup {
   elementIds: string[];
   /** Ancestor communities: drawn first, larger padding, dashed outline. */
   outer?: boolean;
+  /** How many records the community holds. Decides which name survives a crowd. */
+  weight?: number;
 }
 
 type Point = { x: number; y: number; r: number };
@@ -59,6 +62,87 @@ function tracePath(ctx: CanvasRenderingContext2D, pts: { x: number; y: number }[
   ctx.closePath();
 }
 
+interface PendingName {
+  id: string;
+  text: string;
+  /** Top of the cloud, in screen pixels. */
+  x: number;
+  y: number;
+  stroke: string;
+  weight: number;
+}
+
+/** Names are drawn at this size on screen whatever the zoom, so the whole graph stays readable. */
+const NAME_SIZE = 12;
+const NAME_FONT = `600 ${NAME_SIZE}px system-ui, -apple-system, "Segoe UI", "Apple SD Gothic Neo", "Noto Sans KR", sans-serif`;
+/** A name wider than this is cut; a long community title would otherwise cover its neighbours. */
+const NAME_MAX = 190;
+
+function pill(ctx: CanvasRenderingContext2D, x: number, y: number, width: number, height: number): void {
+  const r = 5;
+  ctx.beginPath();
+  ctx.moveTo(x + r, y);
+  ctx.arcTo(x + width, y, x + width, y + height, r);
+  ctx.arcTo(x + width, y + height, x, y + height, r);
+  ctx.arcTo(x, y + height, x, y, r);
+  ctx.arcTo(x, y, x + width, y, r);
+  ctx.closePath();
+}
+
+/** Cuts a name to the width a label may take, ending in an ellipsis. */
+function clip(ctx: CanvasRenderingContext2D, text: string): string {
+  if (ctx.measureText(text).width <= NAME_MAX) return text;
+  let cut = text;
+  while (cut.length > 1 && ctx.measureText(`${cut}\u2026`).width > NAME_MAX) cut = cut.slice(0, -1);
+  return `${cut}\u2026`;
+}
+
+/**
+ * Every community is named, at a steady size, whether the graph is zoomed right out or right in.
+ * Where two names would land on top of each other the smaller community gives way, and zooming in
+ * spreads the clouds apart until it gets its name back.
+ */
+function drawNames(ctx: CanvasRenderingContext2D, names: PendingName[]): number {
+  if (names.length === 0) return 0;
+  ctx.save();
+  ctx.setLineDash([]);
+  ctx.font = NAME_FONT;
+  ctx.textAlign = "center";
+  ctx.textBaseline = "middle";
+  const height = NAME_SIZE + 9;
+  const boxes = new Map<string, { text: string; candidate: LabelCandidate; stroke: string }>();
+  const candidates: LabelCandidate[] = [];
+  for (const name of names) {
+    const text = clip(ctx, name.text);
+    const candidate: LabelCandidate = {
+      id: name.id,
+      x: name.x,
+      y: name.y - height / 2 - 3,
+      width: ctx.measureText(text).width + 16,
+      height,
+      priority: name.weight,
+    };
+    candidates.push(candidate);
+    boxes.set(name.id, { text, candidate, stroke: name.stroke });
+  }
+  const { shown } = placeLabels(candidates, 120);
+  for (const id of shown) {
+    const box = boxes.get(id);
+    if (!box) continue;
+    const { candidate } = box;
+    pill(ctx, candidate.x - candidate.width / 2, candidate.y - candidate.height / 2, candidate.width, candidate.height);
+    ctx.fillStyle = "rgba(255, 254, 251, 0.92)";
+    ctx.fill();
+    ctx.strokeStyle = box.stroke;
+    ctx.lineWidth = 1;
+    ctx.stroke();
+    ctx.fillStyle = "#1b2430";
+    ctx.fillText(box.text, candidate.x, candidate.y + 0.5);
+  }
+  ctx.restore();
+  return shown.size;
+}
+
 /**
  * Draws translucent clouds around groups of nodes on a canvas that sits under the Cytoscape
  * layers, redrawn on every render so pan, zoom and drag keep them in place. Returns a detach function.
@@ -87,6 +171,7 @@ export function attachClouds(cy: cytoscape.Core, wrap: HTMLElement, getGroups: (
     ctx.clearRect(0, 0, width, height);
     const zoom = cy.zoom();
     const basePadding = Math.max(14, 26 * zoom);
+    const pending: PendingName[] = [];
     for (const group of getGroups()) {
       const padding = group.outer ? basePadding * 1.9 : basePadding;
       ctx.setLineDash(group.outer ? [6, 5] : []);
@@ -124,14 +209,11 @@ export function attachClouds(cy: cytoscape.Core, wrap: HTMLElement, getGroups: (
       }
       ctx.fill();
       ctx.stroke();
-      if (zoom >= 0.35) {
-        ctx.font = `600 ${Math.max(11, Math.min(14, 12 * zoom))}px system-ui, -apple-system, "Segoe UI", "Apple SD Gothic Neo", "Noto Sans KR", sans-serif`;
-        ctx.textAlign = "center";
-        ctx.textBaseline = "bottom";
-        ctx.fillStyle = "#1b2430";
-        ctx.fillText(group.label, top.x, top.y - 4);
-      }
+      pending.push({ id: group.id, text: group.label, x: top.x, y: top.y, stroke: group.stroke, weight: group.weight ?? group.elementIds.length });
     }
+    // How many community names the canvas is carrying right now, so a test can say whether the
+    // whole graph in view still names what it is made of.
+    canvas.dataset.names = String(drawNames(ctx, pending));
   };
 
   cy.on("render", draw);
