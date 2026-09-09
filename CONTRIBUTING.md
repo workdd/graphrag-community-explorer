@@ -1,6 +1,9 @@
 # Contributing
 
-Thanks for helping. This page is the whole process; there is nothing hidden in a wiki.
+Thanks for helping. This page is the whole process; there is nothing hidden in a wiki. Two other
+pages are short and worth reading first: [CODE_OF_CONDUCT.md](CODE_OF_CONDUCT.md) for how people
+here talk to each other, and [SECURITY.md](SECURITY.md) for what leaves the browser tab and what
+never does.
 
 ## Set up
 
@@ -31,8 +34,12 @@ file, an environment file or an identifier from a private export; move the data 
 
 - `src/core`: pure TypeScript. Data contract, loaders, hierarchy, metrics, map model, evidence.
   Everything here has a vitest suite next to it and must stay free of DOM and React imports.
+- `src/core/search`: the Ask tab's engine. Ranking, token budget, prompts, citation parsing, traces.
+  It takes its provider calls as arguments, so the tests never reach the network.
 - `src/ui`: React views. They import from `src/core` only.
-- `src/workers`: layout worker. Anything it imports must run without a DOM.
+- `src/workers`: layout and projection workers. Anything they import must run without a DOM.
+- `tools/`: offline Python. Each script declares its own dependencies and is run with `uv`; none of
+  them writes to a source database.
 - `samples/`: the synthetic sample generator. `public/samples/demo` is its output; regenerate rather
   than edit.
 - `docs/`: roadmap and screenshots. Screenshots come from the sample dataset only.
@@ -45,9 +52,14 @@ file, an environment file or an identifier from a private export; move the data 
 - Keep the UI copy in the tone of the existing screens: sentence case, plain verbs, no exclamation
   marks.
 - Screenshots in the description are welcome; take them on the sample dataset.
+- Nothing that calls a model may run in a test. If a change touches the Ask tab, the test passes a
+  stub client, and the recorded run in `public/samples/demo/example-run.json` covers the rest.
 
 ## Reporting a problem
 
-Open an issue with the template. Include the GraphRAG version that produced the index, the file names
+A security problem goes to a [private advisory](https://github.com/workdd/graphrag-community-explorer/security/advisories/new)
+rather than an issue; [SECURITY.md](SECURITY.md) says what is worth reporting.
+
+For anything else, open an issue with the template. Include the GraphRAG version that produced the index, the file names
 you loaded, and what the integrity panel said. Do not attach real index files; describe their shape
 or reproduce the problem with `samples/generate_sample.py`.
