@@ -7,10 +7,14 @@ import { DEFAULT_LOCAL } from "../../core/search/local";
 import { newTrace, plannedCalls, runGlobal, runLocal } from "../../core/search/run";
 import { suggestQuestions } from "../../core/search/suggestions";
 import { parseTraceJson, traceJson, TraceError } from "../../core/search/trace";
-import type { SearchContext, SearchMethod, SearchRun, SearchTrace } from "../../core/search/types";
+import { emptyContext, type SearchContext, type SearchMethod, type SearchRun, type SearchTrace } from "../../core/search/types";
 import { downloadText } from "../download";
 import { fill, Rich, useT } from "../i18n";
+import { citedShortIds, countUsage, sameSelection, type Selection } from "../../core/search/highlight";
 import { Answer } from "./Answer";
+import { RecordPanel } from "./RecordPanel";
+import { readableLink, readableTitle } from "./label";
+import { ScenarioPanel } from "./ScenarioPanel";
 
 // Cytoscape is heavy and only the evidence graph needs it, so it loads with the first answer.
 const EvidenceGraph = lazy(() => import("./EvidenceGraph").then((m) => ({ default: m.EvidenceGraph })));
@@ -60,9 +64,11 @@ export function SearchView(props: Props) {
   const [question, setQuestion] = useState("");
   const [busy, setBusy] = useState(false);
   const [run, setRun] = useState<SearchRun | null>(null);
+  const [runQuery, setRunQuery] = useState("");
   const [imported, setImported] = useState<SearchTrace | null>(null);
   const [notes, setNotes] = useState<string[]>([]);
   const abort = useRef<AbortController | null>(null);
+  const [selection, setSelection] = useState<Selection | null>(null);
   const fileInput = useRef<HTMLInputElement>(null);
 
   const ready = isConfigured(provider);
@@ -84,7 +90,7 @@ export function SearchView(props: Props) {
 
   const ask = async () => {
     const query = question.trim();
-    if (query === "" || busy) return;
+    if (query === "" || busy || !ready || (method === "local" ? !localReady : globalPlan.reports === 0)) return;
     abort.current = new AbortController();
     setBusy(true);
     setImported(null);
@@ -111,6 +117,8 @@ export function SearchView(props: Props) {
               signal: abort.current.signal,
             });
       setRun(result);
+      setRunQuery(query);
+      setSelection(null);
     } finally {
       setBusy(false);
       abort.current = null;
@@ -119,7 +127,7 @@ export function SearchView(props: Props) {
 
   const exportTrace = () => {
     if (!run) return;
-    const trace = newTrace(question.trim(), props.label, props.fingerprints, [run], props.version);
+    const trace = newTrace(runQuery, props.label, props.fingerprints, [run], props.version);
     downloadText("search-trace.json", traceJson(trace));
   };
 
@@ -128,6 +136,7 @@ export function SearchView(props: Props) {
       const load = parseTraceJson(await file.text());
       setImported(load.trace);
       setRun(load.trace.runs[0] ?? null);
+      setSelection(null);
       setQuestion(load.trace.query);
       const wrong = mismatches(load.trace.index.files, props.fingerprints);
       setNotes([
@@ -145,11 +154,11 @@ export function SearchView(props: Props) {
 
   const linked = imported === null || mismatches(imported.index.files, props.fingerprints).length === 0;
 
-  const openCitation = (kind: keyof SearchContext, id: string) => {
-    if (!linked) return;
-    if (kind === "entities") props.onOpenEntity(id);
-    else if (kind === "reports") props.onOpenCommunity(id);
-  };
+  const cited = useMemo(
+    () => citedShortIds(run?.response ?? "", run?.context ?? emptyContext()),
+    [run],
+  );
+  const usage = useMemo(() => countUsage(run?.context ?? emptyContext(), cited), [run, cited]);
 
   return (
     <div className="search">
@@ -297,6 +306,18 @@ export function SearchView(props: Props) {
         </div>
       ) : null}
 
+      <ScenarioPanel
+        dataset={props.dataset}
+        method={method}
+        busy={busy}
+        localReady={localReady}
+        globalReady={globalPlan.reports > 0}
+        onChoose={(query, nextMethod) => {
+          setQuestion(query);
+          setMethod(nextMethod);
+        }}
+      />
+
       <div className="ask">
         <textarea
           value={question}
@@ -307,7 +328,7 @@ export function SearchView(props: Props) {
             if (e.key === "Enter" && (e.metaKey || e.ctrlKey)) void ask();
           }}
         />
-        <button className="btn primary" disabled={!ready || busy || question.trim() === ""} onClick={() => void ask()}>
+        <button className="btn primary" disabled={!ready || busy || question.trim() === "" || (method === "local" ? !localReady : globalPlan.reports === 0)} onClick={() => void ask()}>
           {busy ? t("Asking…") : t("Ask")}
         </button>
         {busy ? <button className="btn" onClick={() => abort.current?.abort()}>{t("Stop")}</button> : null}
@@ -330,7 +351,7 @@ export function SearchView(props: Props) {
       {run?.status === "error" ? <p className="notice stop">{run.error}</p> : null}
 
       {run && run.status === "ok" && run.response !== "" ? (
-        <Answer text={run.response} context={run.context} onOpen={openCitation} />
+        <Answer text={run.response} context={run.context} selection={selection} onSelect={setSelection} />
       ) : null}
 
       {run && run.status === "ok" && run.response === "" ? (
@@ -357,19 +378,30 @@ export function SearchView(props: Props) {
             ))}
           </div>
 
-          <Suspense fallback={<p className="muted">{t("Drawing the evidence…")}</p>}>
-            <EvidenceGraph
+          <p className="muted usage">
+            {t("The answer cited {cited} of the {retrieved} records that were sent to the model.", { cited: usage.cited, retrieved: usage.retrieved })}
+          </p>
+
+          <div className="split">
+            <Suspense fallback={<p className="muted">{t("Drawing the evidence…")}</p>}>
+              <EvidenceGraph context={run.context} cited={cited} selection={selection} onSelect={setSelection} />
+            </Suspense>
+            <RecordPanel
+              dataset={props.dataset}
               context={run.context}
+              selection={selection}
+              onSelect={setSelection}
               onOpenEntity={linked ? props.onOpenEntity : null}
+              onOpenCommunity={linked ? props.onOpenCommunity : null}
             />
-          </Suspense>
+          </div>
 
           <div className="used">
             {(Object.keys(KIND_LABEL) as (keyof SearchContext)[])
               .filter((kind) => run.context[kind].length > 0)
               .map((kind) => (
                 <div key={kind}>
-                  <h3>{t(KIND_LABEL[kind])} ({run.context[kind].length})</h3>
+                  <h3>{t(KIND_LABEL[kind])} ({run.context[kind].length}) <span className="muted">{t("{n} cited", { n: cited[kind].size })}</span></h3>
                   <table>
                     <thead>
                       <tr>
@@ -379,25 +411,25 @@ export function SearchView(props: Props) {
                       </tr>
                     </thead>
                     <tbody>
-                      {run.context[kind].map((entry) => (
-                        <tr key={entry.shortId}>
-                          <td className="n">{entry.shortId}</td>
-                          <td>
-                            {entry.id && linked && (kind === "entities" || kind === "reports") ? (
-                              <button
-                                className="linklike"
-                                onClick={() => openCitation(kind, entry.id!)}
-                              >
-                                {entry.title}
-                              </button>
-                            ) : (
-                              <b>{entry.title}</b>
-                            )}
-                            <div className="muted">{entry.text}</div>
-                          </td>
-                          <td className="s">{entry.score === undefined ? "" : entry.score.toFixed(2)}</td>
-                        </tr>
-                      ))}
+                      {run.context[kind].map((entry) => {
+                        const picked = sameSelection(selection, { kind, shortId: entry.shortId });
+                        const wasCited = cited[kind].has(entry.shortId);
+                        return (
+                          <tr
+                            key={entry.shortId}
+                            className={`${picked ? "picked" : ""} ${wasCited ? "cited" : ""}`.trim()}
+                            onClick={() => setSelection(picked ? null : { kind, shortId: entry.shortId })}
+                          >
+                            <td className="n">{entry.shortId}</td>
+                            <td>
+                              <b>{kind === "relationships" ? readableLink(entry.title) : readableTitle(entry.title)}</b>
+                              {wasCited ? <span className="used-mark">{t("cited")}</span> : null}
+                              <div className="muted">{entry.text}</div>
+                            </td>
+                            <td className="s">{entry.score === undefined ? "" : entry.score.toFixed(2)}</td>
+                          </tr>
+                        );
+                      })}
                     </tbody>
                   </table>
                 </div>

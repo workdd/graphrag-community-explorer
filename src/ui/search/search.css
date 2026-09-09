@@ -43,7 +43,40 @@
 .search .examples { display: flex; flex-wrap: wrap; gap: 6px; align-items: center; }
 .search .examples .chip { max-width: 46ch; text-align: left; display: inline-flex; gap: 6px; align-items: baseline; }
 .search .examples .chip b { color: var(--ink-2); font-size: 10px; font-weight: 700; letter-spacing: .02em; }
-.search .evidence-graph { border: 1px solid var(--rule); border-radius: 6px; background: var(--surface); padding: 6px; }
-.search .evidence-graph .canvas { height: 320px; width: 100%; }
-.search .evidence-graph .muted { margin: 4px 2px 0; font-size: 12px; }
-.search .evidence-graph .row { margin: 0 0 6px; }
+
+/* The answer, the graph and the table are one page: selecting in any of them lights the other two. */
+.search .usage { margin: 2px 0 0; }
+.search .split { display: grid; grid-template-columns: minmax(0, 1.5fr) minmax(300px, 1fr); gap: 12px; align-items: stretch; }
+@media (max-width: 1180px) { .search .split { grid-template-columns: 1fr; } }
+
+.search .graph-pane { border: 1px solid var(--rule); border-radius: 6px; background: var(--surface); padding: 6px; min-width: 0; }
+.search .graph-pane .canvas { height: 440px; width: 100%; }
+.search .legend { display: flex; flex-wrap: wrap; gap: 12px; align-items: center; padding: 6px 4px 2px; font-size: 12px; color: var(--ink-2); }
+.search .legend .dot { display: inline-block; width: 10px; height: 10px; border-radius: 50%; margin-right: 4px; vertical-align: -1px; }
+.search .legend .dot.cited { background: #6b8f5e; box-shadow: 0 0 0 2px #a3423c; }
+.search .legend .dot.plain { background: #a9b89c; }
+.search .legend .dot.outside { background: #fff; border: 1.5px dashed #c8d0c2; }
+.search .legend .btn { margin-left: auto; padding: 3px 10px; }
+
+.search .record-pane { border: 1px solid var(--rule); border-radius: 6px; background: var(--surface); padding: 10px 12px; max-height: 494px; overflow: auto; min-width: 0; }
+.search .record-pane.empty { display: flex; align-items: center; justify-content: center; text-align: center; }
+.search .record-pane h3 { margin: 6px 0 8px; font-size: 14px; word-break: break-word; }
+.search .record-pane h4 { margin: 14px 0 4px; font-size: 12px; color: var(--ink-2); }
+.search .record-head { display: flex; align-items: center; gap: 8px; }
+.search .record-head .tag { padding: 1px 8px; border: 1px solid var(--rule); border-radius: 10px; background: var(--depth-1); font-size: 11px; font-weight: 600; }
+.search .record-head .btn.small { margin-left: auto; padding: 2px 8px; font-size: 12px; }
+.search .facts { display: grid; grid-template-columns: auto 1fr; gap: 2px 10px; margin: 0; font-size: 12px; }
+.search .facts dt { color: var(--ink-2); }
+.search .facts dd { margin: 0; }
+.search .record-text, .search .record-chunk { margin: 0 0 8px; font-size: 12px; line-height: 1.6; word-break: break-word; }
+.search .record-chunk { padding-left: 8px; border-left: 2px solid var(--rule); }
+.search .record-links { margin: 0; padding-left: 16px; font-size: 12px; }
+.search .record-links li { margin-bottom: 2px; }
+
+/* Cited beats retrieved: the accent marks what the answer leaned on, not merely what was sent. */
+.search .used tbody tr { cursor: pointer; }
+.search .used tbody tr:hover { background: var(--depth-1); }
+.search .used tbody tr.cited td.n { color: #a3423c; font-weight: 700; }
+.search .used tbody tr.picked { background: var(--depth-1); box-shadow: inset 3px 0 0 var(--accent); }
+.search .used-mark { margin-left: 6px; padding: 0 5px; border: 1px solid #a3423c; border-radius: 8px; color: #a3423c; font-size: 10px; font-weight: 700; }
+.search .cite button.picked { background: var(--accent); color: var(--accent-ink); border-radius: 7px; padding: 0 5px; }

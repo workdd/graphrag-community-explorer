@@ -1,10 +1,18 @@
 import { splitByCitations, type Citation } from "../../core/search/citations";
+import { sameSelection, type Selection } from "../../core/search/highlight";
 import type { SearchContext } from "../../core/search/types";
 import { useT } from "../i18n";
 
+interface Props {
+  text: string;
+  context: SearchContext;
+  selection: Selection | null;
+  /** Selecting reads the record beside the answer. Nothing here navigates away from the tab. */
+  onSelect: (selection: Selection | null) => void;
+}
+
 /** Models write **bold** even when asked for plain text, so the markers are rendered rather than shown. */
 function Marked({ text }: { text: string }) {
-  // Heading markers at the start of a line are dropped; the line is emphasized instead.
   const parts = text.replace(/^#{1,6}\s+(.*)$/gm, "**$1**").split(/(\*\*[^*]+\*\*)/g);
   return (
     <>
@@ -19,18 +27,11 @@ function Marked({ text }: { text: string }) {
   );
 }
 
-interface Props {
-  text: string;
-  context: SearchContext;
-  /** Called with the record a citation names, when the loaded dataset holds it. */
-  onOpen: (kind: keyof SearchContext, id: string) => void;
-}
-
-/** One number in a citation. It only becomes a link when it names something we can open. */
-function Chip({ citation, context, onOpen }: { citation: Citation } & Omit<Props, "text">) {
+function Chip({ citation, context, selection, onSelect }: { citation: Citation } & Omit<Props, "text">) {
   const { t } = useT();
   if (citation.kind === null) return <span className="cite">{citation.label}</span>;
-  const items = context[citation.kind];
+  const kind = citation.kind;
+  const items = context[kind];
   return (
     <span className="cite">
       {citation.label}
@@ -43,15 +44,15 @@ function Chip({ citation, context, onOpen }: { citation: Citation } & Omit<Props
             </span>
           );
         }
-        if (!item.id) {
-          return (
-            <span key={shortId} className="dead" title={item.title}>
-              {shortId}
-            </span>
-          );
-        }
+        const picked = sameSelection(selection, { kind, shortId });
         return (
-          <button key={shortId} type="button" title={item.title} onClick={() => onOpen(citation.kind!, item.id!)}>
+          <button
+            key={shortId}
+            type="button"
+            className={picked ? "picked" : ""}
+            title={item.title}
+            onClick={() => onSelect(picked ? null : { kind, shortId })}
+          >
             {shortId}
           </button>
         );
@@ -61,7 +62,7 @@ function Chip({ citation, context, onOpen }: { citation: Citation } & Omit<Props
   );
 }
 
-export function Answer({ text, context, onOpen }: Props) {
+export function Answer({ text, context, selection, onSelect }: Props) {
   const parts = splitByCitations(text);
   return (
     <div className="answer">
@@ -72,7 +73,7 @@ export function Answer({ text, context, onOpen }: Props) {
           ) : (
             <span key={i}>
               {part.block.citations.map((citation, j) => (
-                <Chip key={j} citation={citation} context={context} onOpen={onOpen} />
+                <Chip key={j} citation={citation} context={context} selection={selection} onSelect={onSelect} />
               ))}
             </span>
           ),

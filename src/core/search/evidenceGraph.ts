@@ -77,3 +77,32 @@ export function buildEvidenceGraph(context: SearchContext): EvidenceGraph {
   else if (edges.length === 0) note = "no-links";
   return { nodes: list, edges, note };
 }
+
+/** Node and edge keys to keep lit when one node is selected: itself, its links, and their far ends. */
+export function neighbourhoodOf(graph: EvidenceGraph, nodeId: string): { nodes: Set<string>; edges: Set<string> } {
+  const nodes = new Set<string>([nodeId]);
+  const edges = new Set<string>();
+  for (const edge of graph.edges) {
+    if (edge.source !== nodeId && edge.target !== nodeId) continue;
+    edges.add(edge.id);
+    nodes.add(edge.source);
+    nodes.add(edge.target);
+  }
+  return { nodes, edges };
+}
+
+/** The drawing key for a context item, so a click in the answer or the table lights the same node. */
+export function nodeKeyFor(graph: EvidenceGraph, kind: string, shortId: string): string | null {
+  if (kind === "entities") {
+    return graph.nodes.find((node) => node.shortId === shortId)?.id ?? null;
+  }
+  if (kind === "relationships") {
+    const edge = graph.edges.find((e) => e.shortId === shortId);
+    return edge?.source ?? null;
+  }
+  return null;
+}
+
+/** The edge key for a cited relationship, so citing a link lights the link rather than one end. */
+export const edgeKeyFor = (graph: EvidenceGraph, shortId: string): string | null =>
+  graph.edges.find((edge) => edge.shortId === shortId)?.id ?? null;

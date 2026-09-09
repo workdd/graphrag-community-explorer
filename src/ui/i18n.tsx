@@ -63,6 +63,42 @@ const KO: Record<string, string> = {
     "{type} {entity} 을(를) 삭제하거나 축소하면 무엇이 영향을 받습니까?",
   "What depends on {type} {entity}, and what does it depend on?":
     "무엇이 {type} {entity} 에 의존하고, 이것은 무엇에 의존합니까?",
+  "The answer cited {cited} of the {retrieved} records that were sent to the model.":
+    "모델에 보낸 레코드 {retrieved}개 중 {cited}개를 답변이 인용했습니다.",
+  "Cited by the answer":
+    "답변이 인용함",
+  "Sent to the model":
+    "모델에 보냄",
+  "Far end of a link":
+    "관계의 반대편",
+  "Pick a citation, a node or a row to read the record here.":
+    "인용·노드·표의 행을 누르면 여기에 레코드가 열립니다.",
+  "cited":
+    "인용됨",
+  "{n} cited":
+    "인용 {n}개",
+  "Relationship":
+    "관계",
+  "Claim":
+    "클레임",
+  "Type":
+    "유형",
+  "Links in the index":
+    "색인의 연결 수",
+  "Text sent to the model":
+    "모델에 보낸 텍스트",
+  "Ends":
+    "양 끝",
+  "Links this run carried ({count})":
+    "이 실행이 담은 관계 ({count})",
+  "and {count} more":
+    "그 밖에 {count}개",
+  "Open the neighbourhood graph":
+    "이웃 그래프 열기",
+  "Open this community":
+    "이 커뮤니티 열기",
+  "Close":
+    "닫기",
   // search
   "Reports": "보고서",
   "Ask": "질문",
@@ -146,6 +182,17 @@ const KO: Record<string, string> = {
   "GraphRAG output": "GraphRAG 출력",
   "Entity types": "엔티티 유형",
   "Relationship types": "관계 유형",
+  "Read this community": "이 커뮤니티 읽기",
+  "Wheel": "휠",
+  "zoom": "확대·축소",
+  "Drag": "끌기",
+  "move": "이동",
+  "Zoom in": "확대",
+  "more names appear": "이름이 더 뜸",
+  "Drag a cloud": "구름 끌기",
+  "pull a community aside": "커뮤니티를 떼어 놓음",
+  "Click a cloud": "구름 클릭",
+  "read it; double-click opens its own graph": "요약을 읽음. 더블클릭하면 내부 그래프",
   "Find a community": "커뮤니티 찾기",
   "Collapse": "접기",
   "Expand": "펼치기",
