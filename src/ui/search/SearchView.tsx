@@ -1,5 +1,5 @@
 import { lazy, Suspense, useEffect, useMemo, useRef, useState } from "react";
-import type { EmbeddingIndex } from "../../core/loaders/embeddings";
+import { sameEmbeddingModel, type EmbeddingIndex } from "../../core/loaders/embeddings";
 import type { Dataset, Partition } from "../../core/model";
 import { mismatches } from "../../core/search/fingerprint";
 import { DEFAULT_GLOBAL } from "../../core/search/global";
@@ -88,6 +88,12 @@ export function SearchView(props: Props) {
     [props.dataset, props.partition, props.embeddings],
   );
   const localReady = props.embeddings !== undefined && stale.length === 0;
+  // Same dimension, different model, silently meaningless numbers. Said out loud rather than
+  // enforced: only the caller knows whether two names are two halves of one model.
+  const wrongModel =
+    props.embeddings !== undefined &&
+    provider.embedModel.trim() !== "" &&
+    !sameEmbeddingModel(props.embeddings.model, provider.embedModel);
 
   const save = (next: typeof provider) => {
     setProvider(next);
@@ -287,13 +293,26 @@ export function SearchView(props: Props) {
           {t("Local search needs an embeddings.parquet next to the index. The embed_index tool writes one.")}
         </p>
       ) : null}
+      {wrongModel ? (
+        <p className="notice warn">
+          {t(
+            "The vectors were made with {stored} and the question would be embedded with {asked}. A ranking is only meaningful when both come from the same model.",
+            { stored: props.embeddings?.model ?? "", asked: provider.embedModel },
+          )}
+        </p>
+      ) : null}
       {method === "global" && globalPlan.calls > 0 ? (
         <p className="notice info">
-          {t("Global reads {reports} reports in {batches} batches, so this question costs about {calls} model calls.", {
-            reports: globalPlan.reports,
-            batches: globalPlan.batches,
-            calls: globalPlan.calls,
-          })}
+          {globalPlan.batches === 1
+            ? t("Global reads every summary at this level ({reports}) in one context window, so this question costs about {calls} model calls.", {
+                reports: globalPlan.reports,
+                calls: globalPlan.calls,
+              })
+            : t("Global reads every summary at this level ({reports}) in {batches} context windows, so this question costs about {calls} model calls.", {
+                reports: globalPlan.reports,
+                batches: globalPlan.batches,
+                calls: globalPlan.calls,
+              })}
         </p>
       ) : null}
 

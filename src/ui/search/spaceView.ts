@@ -121,3 +121,32 @@ export function frame(placed: Placed[], indexes: number[], camera: Camera, width
     panY: camera.panY + (height / 2 - midY) * applied,
   };
 }
+
+export interface LabelBox {
+  index: number;
+  x: number;
+  y: number;
+  width: number;
+  height: number;
+}
+
+/**
+ * Keeps the labels that do not land on one already kept, in the order given, so the caller decides
+ * what matters by sorting first. Points that sit almost on top of each other would otherwise stack
+ * their names into an unreadable pile; a name that is dropped here is still in the ranking table
+ * under the canvas, and zooming in separates the points and brings it back.
+ */
+export function withoutOverlap(boxes: LabelBox[], padding = 2): LabelBox[] {
+  const kept: LabelBox[] = [];
+  for (const box of boxes) {
+    const clash = kept.some(
+      (other) =>
+        box.x - padding < other.x + other.width &&
+        box.x + box.width + padding > other.x &&
+        box.y - padding < other.y + other.height &&
+        box.y + box.height + padding > other.y,
+    );
+    if (!clash) kept.push(box);
+  }
+  return kept;
+}

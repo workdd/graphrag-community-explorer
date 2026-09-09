@@ -1,7 +1,7 @@
 import { useMemo } from "react";
 import type { EmbeddingIndex } from "../../core/loaders/embeddings";
 import type { Dataset, Partition } from "../../core/model";
-import { describeSystem, type SystemNode, type Zone } from "../../core/search/systemMap";
+import { crossZoneLabels, describeSystem, labelWidth, type SystemNode, type Zone } from "../../core/search/systemMap";
 import type { SearchMethod, SearchRun } from "../../core/search/types";
 import { fill, useT } from "../i18n";
 
@@ -23,9 +23,11 @@ const ZONES: { id: Zone; label: string }[] = [
 const BOX_W = 172;
 const BOX_H = 52;
 const GAP_Y = 12;
-const GAP_X = 58;
+/** Widened at render time when a flow label needs more room than this. */
+const MIN_GAP_X = 58;
 const PAD = 14;
 const HEAD = 22;
+const LABEL_PX = 9;
 
 /** SVG does not wrap, so a long note is cut rather than allowed to run over the next box. */
 const clip = (text: string, max = 34): string => (text.length <= max ? text : `${text.slice(0, max - 1)}…`);
@@ -38,14 +40,21 @@ export function SystemMap({ dataset, partition, embeddings, method, run }: Props
   );
 
   const zones = ZONES.filter((zone) => map.nodes.some((node) => node.zone === zone.id));
-  const columnX = new Map(zones.map((zone, i) => [zone.id, PAD + i * (BOX_W + GAP_X)]));
+  const zoneOf = new Map(map.nodes.map((node) => [node.id, node.zone]));
+  // A label between two columns is drawn in the gap, so the gap is as wide as the widest label.
+  // Translating the map can change which label that is, so it is measured after translation.
+  const gapX = Math.max(
+    MIN_GAP_X,
+    Math.ceil(crossZoneLabels(map).reduce((widest, label) => Math.max(widest, labelWidth(t(label), LABEL_PX)), 0)) + 20,
+  );
+  const columnX = new Map(zones.map((zone, i) => [zone.id, PAD + i * (BOX_W + gapX)]));
   const place = (node: SystemNode) => ({
     x: columnX.get(node.zone) ?? PAD,
     y: PAD + HEAD + node.row * (BOX_H + GAP_Y),
   });
   const positions = new Map(map.nodes.map((node) => [node.id, place(node)]));
   const rows = Math.max(...map.nodes.map((node) => node.row)) + 1;
-  const width = PAD * 2 + zones.length * BOX_W + (zones.length - 1) * GAP_X;
+  const width = PAD * 2 + zones.length * BOX_W + (zones.length - 1) * gapX;
   const height = PAD * 2 + HEAD + rows * (BOX_H + GAP_Y);
 
   return (
@@ -88,9 +97,22 @@ export function SystemMap({ dataset, partition, embeddings, method, run }: Props
           return (
             <g key={i} className={flow.leaves ? "flow out" : "flow"}>
               <path d={d} markerEnd={`url(#${flow.leaves ? "sm-arrow-out" : "sm-arrow"})`} />
-              {flow.label ? (
-                <text x={(sx + tx) / 2} y={(sy + ty) / 2 - 5} className="flow-label">{t(flow.label)}</text>
-              ) : null}
+              {flow.label ? (() => {
+                const text = t(flow.label);
+                const mx = (sx + tx) / 2;
+                const my = (sy + ty) / 2 - 5;
+                // A label in the gap sits on the map's own background, so it is given a plate to
+                // keep the line it names from running through the letters. One inside a zone box
+                // would need that zone's colour, and there the line is short enough to read past.
+                const inGap = zoneOf.get(flow.from) !== zoneOf.get(flow.to);
+                const plate = labelWidth(text, LABEL_PX) + 8;
+                return (
+                  <>
+                    {inGap ? <rect className="flow-plate" x={mx - plate / 2} y={my - 9} width={plate} height={12} rx="2" /> : null}
+                    <text x={mx} y={my} className="flow-label">{text}</text>
+                  </>
+                );
+              })() : null}
             </g>
           );
         })}

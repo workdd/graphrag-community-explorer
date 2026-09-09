@@ -212,3 +212,27 @@ export const leavingFlows = (map: SystemMap): SystemFlow[] => map.flows.filter((
 
 /** Steps that are calls to the provider. These are what a run costs. */
 export const modelCalls = (map: SystemMap): SystemNode[] => map.nodes.filter((node) => node.call === true);
+
+/**
+ * SVG cannot measure text before it is drawn, so a label's width is estimated: Hangul and the CJK
+ * ranges take about one em a character, everything else about half. The estimate only has to be
+ * generous enough that a label fits the space reserved for it.
+ */
+const WIDE = /[ᄀ-ᇿ⺀-꓏ꥠ-꥿가-퟿豈-﫿︰-﹏＀-｠]/;
+
+export function labelWidth(text: string, fontPx: number): number {
+  let em = 0;
+  for (const ch of text) em += WIDE.test(ch) ? 1 : 0.52;
+  return em * fontPx;
+}
+
+/**
+ * Labels on flows that cross from one zone to the next. These are drawn in the gap between two
+ * columns, so the gap has to be at least as wide as the widest of them or the text runs over a box.
+ */
+export function crossZoneLabels(map: SystemMap): string[] {
+  const zone = new Map(map.nodes.map((node) => [node.id, node.zone]));
+  return map.flows
+    .filter((flow) => flow.label !== null && zone.get(flow.from) !== zone.get(flow.to))
+    .map((flow) => flow.label as string);
+}

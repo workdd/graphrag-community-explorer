@@ -10,7 +10,7 @@ import type { SearchContext } from "../../core/search/types";
 import { useT } from "../i18n";
 import { readableTitle } from "./label";
 import { requestProjection, type ProjectionResult } from "./projectionClient";
-import { frame, hit, pan, place, START, turn, zoomAt, type Camera, type Placed } from "./spaceView";
+import { frame, hit, pan, place, START, turn, withoutOverlap, zoomAt, type Camera, type Placed } from "./spaceView";
 
 interface Props {
   dataset: Dataset;
@@ -192,17 +192,31 @@ export function EmbeddingSpace({ dataset, embeddings, context, cited, selection,
     ctx.globalAlpha = 1;
     ctx.font = '600 11px system-ui, -apple-system, "Apple SD Gothic Neo", "Noto Sans KR", sans-serif';
     ctx.textAlign = "center";
-    // Only what the run used gets a name; two thousand names at once is a smudge.
-    for (const item of order) {
-      const point = points[item.index];
-      const worth = (point.shortId !== undefined && cited.entities.has(point.shortId)) || item.index === selectedIndex;
-      if (!worth) continue;
-      const label = point.title.slice(0, 24);
-      const width = ctx.measureText(label).width;
+    // Only what the run used gets a name; two thousand names at once is a smudge. The picked record
+    // is named first and the rest in ranking order, so when two names would collide the one that
+    // survives is the one the reader is more likely to be after.
+    const named = order
+      .filter((item) => {
+        const point = points[item.index];
+        return (point.shortId !== undefined && cited.entities.has(point.shortId)) || item.index === selectedIndex;
+      })
+      .sort((a, b) => {
+        if (a.index === selectedIndex) return -1;
+        if (b.index === selectedIndex) return 1;
+        return (points[b.index].score ?? 0) - (points[a.index].score ?? 0);
+      });
+    const texts = new Map(named.map((item) => [item.index, points[item.index].title.slice(0, 24)]));
+    const room = withoutOverlap(
+      named.map((item) => {
+        const width = ctx.measureText(texts.get(item.index) ?? "").width;
+        return { index: item.index, x: item.x - width / 2 - 3, y: item.y - 23, width: width + 6, height: 14 };
+      }),
+    );
+    for (const box of room) {
       ctx.fillStyle = "rgba(255,255,255,0.9)";
-      ctx.fillRect(item.x - width / 2 - 3, item.y - 23, width + 6, 14);
+      ctx.fillRect(box.x, box.y, box.width, box.height);
       ctx.fillStyle = "#1b2430";
-      ctx.fillText(label, item.x, item.y - 12);
+      ctx.fillText(texts.get(box.index) ?? "", box.x + box.width / 2, box.y + 11);
     }
   }, [fitted, points, camera, threeD, cited, selectedIndex, colors, onlyType, questionAt, dropped]);
 

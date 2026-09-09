@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { clampPitch, clampZoom, frame, hit, MAX_ZOOM, MIN_ZOOM, pan, place, START, turn, zoomAt } from "./spaceView";
+import { clampPitch, clampZoom, frame, hit, MAX_ZOOM, MIN_ZOOM, pan, place, START, turn, withoutOverlap, zoomAt } from "./spaceView";
 
 const coords = Float32Array.from([0, 0, 0, 1, 0, 0, 0, 1, 0, 0, 0, 1]);
 const flat = { ...START, yaw: 0, pitch: 0 };
@@ -93,5 +93,31 @@ describe("frame", () => {
     const camera = frame(placed, [1, 2], flat, 400, 200);
     expect(camera.yaw).toBe(flat.yaw);
     expect(camera.pitch).toBe(flat.pitch);
+  });
+});
+
+describe("withoutOverlap", () => {
+  const box = (index: number, x: number, y: number) => ({ index, x, y, width: 60, height: 14 });
+
+  it("keeps labels that stand apart", () => {
+    expect(withoutOverlap([box(0, 0, 0), box(1, 100, 0), box(2, 0, 40)]).map((b) => b.index)).toEqual([0, 1, 2]);
+  });
+
+  it("drops the later of two labels that would sit on each other", () => {
+    expect(withoutOverlap([box(0, 0, 0), box(1, 10, 4)]).map((b) => b.index)).toEqual([0]);
+  });
+
+  it("takes the order given as the order of importance", () => {
+    expect(withoutOverlap([box(9, 10, 4), box(0, 0, 0)]).map((b) => b.index)).toEqual([9]);
+  });
+
+  it("counts the padding, so two labels never touch", () => {
+    // Exactly adjacent: with padding they still clash, without it they do not.
+    expect(withoutOverlap([box(0, 0, 0), box(1, 60, 0)], 2)).toHaveLength(1);
+    expect(withoutOverlap([box(0, 0, 0), box(1, 60, 0)], 0)).toHaveLength(2);
+  });
+
+  it("has nothing to say about an empty canvas", () => {
+    expect(withoutOverlap([])).toEqual([]);
   });
 });

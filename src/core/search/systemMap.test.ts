@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 import type { Community, Dataset, Partition } from "../model";
-import { describeSystem, leavingFlows, modelCalls, type SystemInput } from "./systemMap";
+import { crossZoneLabels, describeSystem, labelWidth, leavingFlows, modelCalls, type SystemInput } from "./systemMap";
 import { emptyContext, type SearchRun } from "./types";
 
 const dataset: Dataset = {
@@ -89,5 +89,40 @@ describe("describeSystem for global", () => {
 
   it("counts both completions as calls", () => {
     expect(modelCalls(describeSystem(g))).toHaveLength(2);
+  });
+});
+
+describe("labelWidth", () => {
+  it("charges a wide script about twice what it charges Latin", () => {
+    expect(labelWidth("가나다", 10)).toBeCloseTo(30, 5);
+    expect(labelWidth("abcdef", 10)).toBeCloseTo(31.2, 5);
+  });
+
+  it("grows with the text, so a longer label always asks for more room", () => {
+    expect(labelWidth("the points that survived", 9)).toBeGreaterThan(labelWidth("seeds", 9));
+  });
+
+  it("costs nothing for nothing", () => {
+    expect(labelWidth("", 9)).toBe(0);
+  });
+});
+
+describe("crossZoneLabels", () => {
+  const global: SystemInput = { ...input, method: "global" };
+
+  it("names only the labels drawn in a gap between two columns", () => {
+    const map = describeSystem(global);
+    const labels = crossZoneLabels(map);
+    // Every one of them belongs to a flow whose ends are in different zones.
+    const zone = new Map(map.nodes.map((n) => [n.id, n.zone]));
+    for (const flow of map.flows) {
+      if (flow.label === null) continue;
+      const crosses = zone.get(flow.from) !== zone.get(flow.to);
+      expect(labels.includes(flow.label)).toBe(crosses);
+    }
+  });
+
+  it("finds the label the column gap has to be wide enough for", () => {
+    expect(crossZoneLabels(describeSystem(global))).toContain("the points that survived");
   });
 });

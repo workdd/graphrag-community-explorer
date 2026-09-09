@@ -322,8 +322,12 @@ const KO: Record<string, string> = {
     "임베딩 파일이 다른 색인에서 만들어졌습니다({files}). Local 검색을 끕니다.",
   "Local search needs an embeddings.parquet next to the index. The embed_index tool writes one.":
     "Local 검색은 색인 옆의 embeddings.parquet 이 필요합니다. embed_index 도구가 만들어 줍니다.",
-  "Global reads {reports} reports in {batches} batches, so this question costs about {calls} model calls.":
-    "Global 은 보고서 {reports}건을 {batches}개 배치로 읽으므로 이 질문에 모델 호출이 약 {calls}회 듭니다.",
+  "Global reads every summary at this level ({reports}) in one context window, so this question costs about {calls} model calls.":
+    "Global 은 이 레벨의 요약 {reports}건을 한 컨텍스트 창에 담아 읽으므로 이 질문에 모델 호출이 약 {calls}회 듭니다.",
+  "Global reads every summary at this level ({reports}) in {batches} context windows, so this question costs about {calls} model calls.":
+    "Global 은 이 레벨의 요약 {reports}건을 컨텍스트 창 {batches}개로 나눠 읽으므로 이 질문에 모델 호출이 약 {calls}회 듭니다.",
+  "The vectors were made with {stored} and the question would be embedded with {asked}. A ranking is only meaningful when both come from the same model.":
+    "벡터는 {stored} 로 만들었는데 질문은 {asked} 로 임베딩됩니다. 두 모델이 같아야 순위에 의미가 있습니다.",
   "Ask about this index": "이 색인에 대해 질문하세요",
   "Showing a saved run from {tool} {version}, made on {when}.": "{tool} {version} 이 {when} 에 저장한 실행입니다.",
   "This trace was made from another index ({files}), so its citations are not linked.":

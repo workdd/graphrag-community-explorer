@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { buildEmbeddingIndex, decodeVector, fingerprintMatches } from "./embeddings";
+import { buildEmbeddingIndex, decodeVector, fingerprintMatches, sameEmbeddingModel } from "./embeddings";
 
 const bytesOf = (values: number[]): Uint8Array => {
   const buffer = new ArrayBuffer(values.length * 4);
@@ -96,5 +96,24 @@ describe("fingerprintMatches", () => {
 
   it("accepts when the runner recorded nothing", () => {
     expect(fingerprintMatches({ ...index, sourceFiles: {} }, { "entities.parquet": "sha256:bb" })).toBe(true);
+  });
+});
+
+describe("sameEmbeddingModel", () => {
+  it("accepts the two halves of one model", () => {
+    expect(sameEmbeddingModel("solar-embedding-1-large-passage", "solar-embedding-1-large-query")).toBe(true);
+  });
+
+  it("accepts the same name whatever the case and spacing", () => {
+    expect(sameEmbeddingModel(" Text-Embedding-3-Small ", "text-embedding-3-small")).toBe(true);
+  });
+
+  it("refuses two different models, however alike the dimensions", () => {
+    expect(sameEmbeddingModel("text-embedding-3-small", "solar-embedding-1-large-query")).toBe(false);
+    expect(sameEmbeddingModel("text-embedding-3-small", "text-embedding-3-large")).toBe(false);
+  });
+
+  it("does not treat a suffix in the middle of a name as a role", () => {
+    expect(sameEmbeddingModel("passage-model-a", "passage-model-b")).toBe(false);
   });
 });

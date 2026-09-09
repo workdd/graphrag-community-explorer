@@ -133,6 +133,7 @@
 .search .system-map .node .note { font-size: 9px; fill: var(--ink-3); }
 .search .system-map .flow path { fill: none; stroke: #8c96a0; stroke-width: 1.2; }
 .search .system-map .flow.out path { stroke: #a3423c; stroke-width: 2; }
+.search .system-map .flow-plate { fill: var(--surface); }
 .search .system-map .flow-label { font-size: 9px; fill: var(--ink-3); text-anchor: middle; }
 .search .system-map .flow.out .flow-label { fill: #a3423c; font-weight: 600; }
 .search .legend-out { display: flex; align-items: center; gap: 6px; margin: 6px 2px 0; font-size: 11px; }

@@ -106,3 +106,17 @@ export function fingerprintMatches(index: EmbeddingIndex, loaded: Record<string,
   if (keys.length === 0) return true;
   return keys.every((name) => loaded[name] === undefined || loaded[name] === index.sourceFiles[name]);
 }
+
+/**
+ * Whether a sidecar's model and the model a question would be embedded with are the same one.
+ *
+ * Some providers split a single embedding model into a half for stored text and a half for
+ * queries, which is the documented way to use it and not a mismatch; Upstage's
+ * `solar-embedding-1-large-passage` and `…-query` are one model. A different name after that
+ * suffix is dropped is a real mismatch, and it costs nothing to run: the dimensions can agree
+ * while the numbers mean nothing.
+ */
+const ROLE = /-(passage|query|document|search_document|search_query)$/;
+
+export const sameEmbeddingModel = (stored: string, asked: string): boolean =>
+  stored.trim().toLowerCase().replace(ROLE, "") === asked.trim().toLowerCase().replace(ROLE, "");
