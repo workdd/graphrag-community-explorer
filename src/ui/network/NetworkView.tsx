@@ -7,6 +7,7 @@ import { forwardShare, layerGroups, layerOrder, typeFlow } from "../../core/grap
 import { exitsFrom, extendSelection, schemaGraph, selectType, type SchemaSelection, type SchemaTripleEdge } from "../../core/graph/schemaGraph";
 import { egoBranches, egoSummary, type EgoModel } from "../../core/graph/ego";
 import { clusterLayout } from "../../core/graph/clusterLayout";
+import { apart, separate } from "../../core/graph/separate";
 import type { Dataset, Entity, Partition, Relationship } from "../../core/model";
 import { exportCytoscapePng } from "../download";
 import { fmt } from "../format";
@@ -572,8 +573,8 @@ export function NetworkView({ dataset, partition, focus, onFocus, selectedCommun
         // Layer mode: one labelled box per entity, stacked in the column of its type.
         { selector: "node.box", style: { shape: "round-rectangle", width: BAND.boxWidth, height: BAND.boxHeight, "background-color": "data(paint)", "background-opacity": 0.16, "border-width": 1.5, "border-color": "data(paint)", label: "data(boxLabel)", "text-wrap": "none", "text-valign": "center", "text-halign": "center", "text-margin-y": 0, "font-size": 11, "text-background-opacity": 0 } },
         // The schema backbone: a type is one node until it is opened, and then a box holding its records.
-        { selector: "node.typenode", style: { shape: "ellipse", "background-opacity": 0.22, "border-width": 2, "border-color": "data(color)", label: "data(label)", "text-wrap": "wrap", "text-valign": "center", "font-size": 13, "line-height": 1.25, "text-background-opacity": 0, "z-index": 12 } },
-        { selector: "node.typebox", style: { shape: "round-rectangle", "background-color": "data(color)", "background-opacity": 0.07, "border-width": 1.5, "border-color": "data(color)", "border-style": "dashed", label: "data(label)", "text-valign": "top", "text-halign": "center", "text-margin-y": -6, "font-size": 12, "font-weight": 600, "text-background-opacity": 0, padding: "14px", "z-index": 2 } },
+        { selector: "node.typenode", style: { "min-zoomed-font-size": 0, shape: "ellipse", "background-opacity": 0.22, "border-width": 2, "border-color": "data(color)", label: "data(label)", "text-wrap": "wrap", "text-valign": "center", "font-size": 13, "line-height": 1.25, "text-background-opacity": 0, "z-index": 12 } },
+        { selector: "node.typebox", style: { "min-zoomed-font-size": 0, shape: "round-rectangle", "background-color": "data(color)", "background-opacity": 0.07, "border-width": 1.5, "border-color": "data(color)", "border-style": "dashed", label: "data(label)", "text-valign": "top", "text-halign": "center", "text-margin-y": -6, "font-size": 12, "font-weight": 600, "text-background-opacity": 0, padding: "14px", "z-index": 2 } },
         { selector: "node.seed", style: { "border-width": 3, "border-color": "#5a6fbe", "font-size": 13, "font-weight": 600, "text-margin-y": 8, "text-background-color": "#f3f4f1", "text-background-opacity": 0.85, "z-index": 30 } },
         // The rest of a group, kept as one bubble rather than a hundred dots.
         { selector: "node.summary", style: { shape: "round-rectangle", "background-opacity": 0.14, "border-width": 1.5, "border-color": "data(color)", "border-style": "dashed", label: "data(label)", "text-wrap": "wrap", "text-valign": "center", "font-size": 11, "text-background-opacity": 0, "z-index": 12 } },
@@ -587,6 +588,9 @@ export function NetworkView({ dataset, partition, focus, onFocus, selectedCommun
         { selector: "node.commgroup.selected", style: { "background-opacity": 0.08, "border-width": 1.5, "border-color": "#5a6fbe", "border-style": "dashed" } },
         { selector: "node.band", style: { shape: "rectangle", width: BAND.boxWidth, height: 1, "background-opacity": 0, "border-width": 0, "z-index": 5, label: "data(label)", "text-valign": "top", "text-margin-y": -6, "font-size": 12, "font-weight": 700, color: "#3a3a36", "text-background-opacity": 0, events: "no" } },
         { selector: "node.nolabel", style: { label: "" } },
+        // The type bubbles are the frame; they are few, they never overlap, and the picture says
+        // nothing without them, so the declutterer is not allowed to take their names away.
+        { selector: "node.typenode.nolabel, node.typebox.nolabel", style: { label: "data(label)" } },
         { selector: "edge", style: { width: 1, "line-color": "#c2c9d1", "curve-style": "haystack", "haystack-radius": 0, "z-index": 1,
           // A community is mostly the links between its members, so an edge that takes the click
           // leaves the community itself unclickable over most of its area. Links are read from
@@ -714,7 +718,61 @@ export function NetworkView({ dataset, partition, focus, onFocus, selectedCommun
         if (node.hasClass("hop2")) return 7;
         return undefined;
       },
+      // The type bubbles are the frame the data hangs on. There are a couple of dozen of them at
+      // most and the picture says nothing without their names, so they are named at every zoom.
+      fontFloor: (node) => (node.hasClass("typenode") || node.hasClass("typebox") || node.hasClass("band") ? 11 : undefined),
     });
+    // A type bubble is sized by how many records it stands for, so one type can be many times the
+    // width of its neighbours and the layout drops the small ones inside it. Whatever the layout
+    // decided, nothing is left sitting on top of anything else.
+    //
+    // Parting them makes the picture wider, which changes the fit, which changes how large the
+    // names are on screen and so how much room they need: the three chase each other. A few rounds
+    // settle it, and a round that moves nothing ends the loop.
+    if (arrange === "schema" || arrange === "focus") {
+      for (let round = 0; round < 5; round++) {
+        labeller.refresh();
+        const top = cy.nodes().filter((node) => node.parent().empty());
+        const boxes = top.map((node: cytoscape.NodeSingular) => {
+          // The name counts as part of the node: two bubbles that clear each other by a hair still
+          // have their names written across one another. A name can sit off to one side, so the box
+          // is mirrored around the node to whichever side reaches furthest.
+          const around = node.boundingBox({ includeLabels: true });
+          const at = node.position();
+          return {
+            id: node.id(),
+            x: at.x,
+            y: at.y,
+            width: 2 * Math.max(at.x - around.x1, around.x2 - at.x),
+            height: 2 * Math.max(at.y - around.y1, around.y2 - at.y),
+          };
+        });
+        const { positions, rounds } = separate(boxes, { gap: 10 });
+        if (rounds === 0) break;
+        cy.batch(() => {
+          top.forEach((node: cytoscape.NodeSingular) => {
+            const at = positions.get(node.id());
+            if (at) node.position(at);
+          });
+        });
+        // Nothing may be clipped, so the wider picture is fitted again before the next round.
+        if (!layered) cy.fit(cy.elements(), 40);
+      }
+      // Whether the picture came out clean, so a test can say it rather than take it on trust.
+      const settled = cy.nodes().filter((node) => node.parent().empty()).map((node: cytoscape.NodeSingular) => {
+        const around = node.boundingBox({ includeLabels: true });
+        const at = node.position();
+        return {
+          id: node.id(),
+          x: at.x,
+          y: at.y,
+          width: 2 * Math.max(at.x - around.x1, around.x2 - at.x),
+          height: 2 * Math.max(at.y - around.y1, around.y2 - at.y),
+        };
+      });
+      host.current.dataset.apart = String(apart(settled));
+    }
+    labeller.refresh();
     if (import.meta.env.DEV) (window as unknown as { __cyNetwork?: cytoscape.Core }).__cyNetwork = cy;
     labellerRef.current = labeller;
     return () => {

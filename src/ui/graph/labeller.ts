@@ -11,10 +11,18 @@ export interface LabellerOptions {
    * findable when the whole graph is in view, where everything else is a couple of pixels across.
    */
   floor?: (node: cytoscape.NodeSingular) => number | undefined;
+  /**
+   * Smallest this node's name may be drawn, in screen pixels. The few nodes that carry the frame of
+   * the picture are named at every zoom; everything else gives its name up as the crowd grows.
+   */
+  fontFloor?: (node: cytoscape.NodeSingular) => number | undefined;
 }
 
 export interface Labeller {
-  /** Places the names again: call it when the ranking has changed but the camera has not. */
+  /**
+   * Places the names again, at once. Call it when the ranking has changed but the camera has not,
+   * or before measuring what the names take up.
+   */
   refresh: () => void;
   detach: () => void;
 }
@@ -28,6 +36,7 @@ export function attachLabeller(cy: cytoscape.Core, options: LabellerOptions = {}
   const limit = options.limit ?? 140;
   const priority = options.priority ?? ((node) => node.degree(false));
   const floor = options.floor ?? (() => undefined);
+  const fontFloor = options.fontFloor ?? (() => undefined);
   let frame: number | undefined;
 
   const run = () => {
@@ -77,7 +86,12 @@ export function attachLabeller(cy: cytoscape.Core, options: LabellerOptions = {}
         if (least !== undefined && Number.isFinite(size) && size > 0) {
           steady = Math.max(steady, least / (size * zoom));
         }
-        if (on) node.style("font-size", (Number(node.data("fontSize")) || 10) * steady);
+        let font = (Number(node.data("fontSize")) || 10) * steady;
+        // A floor is given in screen pixels, so it is divided back through the zoom to reach the
+        // model size that draws at that many pixels.
+        const leastFont = fontFloor(node);
+        if (leastFont !== undefined) font = Math.max(font, leastFont / zoom);
+        if (on || leastFont !== undefined) node.style("font-size", font);
         if (Number.isFinite(size) && size > 0) node.style({ width: size * steady, height: size * steady });
       }
     });
@@ -89,9 +103,12 @@ export function attachLabeller(cy: cytoscape.Core, options: LabellerOptions = {}
   };
 
   cy.on("zoom pan resize", schedule);
-  schedule();
+  // The first pass is synchronous: a caller that wants to lay out around the names has to be able
+  // to measure them straight after attaching.
+  run();
   return {
-    refresh: schedule,
+    // Synchronous, because a caller that lays out around the names has to see them sized first.
+    refresh: run,
     detach: () => {
       cy.off("zoom pan resize", schedule);
       if (frame !== undefined) cancelAnimationFrame(frame);

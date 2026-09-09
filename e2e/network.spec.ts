@@ -162,3 +162,16 @@ test("clicking a record keeps the graph and centres it only on a double-click", 
   await expect(arrange).toHaveValue("focus", { timeout: 30_000 });
   await expect(page.locator(".chip.static", { hasText: "centred on" })).toHaveCount(1);
 });
+
+// A type bubble is sized by how many records it stands for, so one type is many times the width of
+// its neighbours and a force layout drops the small ones inside it.
+test("no two type bubbles or their names sit on top of each other", async ({ page }) => {
+  await page.goto("/?data=./samples/demo#view=network");
+  await expect(page.locator(".graph-stats")).toContainText("types drawn", { timeout: 30_000 });
+  await expect.poll(async () => page.locator(".graph-canvas").getAttribute("data-apart"), { timeout: 20_000 }).toBe("true");
+
+  // Opening a type redraws the picture, and it has to come out clean again.
+  await page.locator(".graph-legend button", { hasText: "Service" }).first().click();
+  await page.locator(".graph-legend button", { hasText: "Service" }).first().click();
+  await expect.poll(async () => page.locator(".graph-canvas").getAttribute("data-apart"), { timeout: 20_000 }).toBe("true");
+});

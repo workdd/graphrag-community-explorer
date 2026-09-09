@@ -147,6 +147,14 @@ two rings hold a size on screen so they can be found with the whole graph in vie
 is the deliberate step that redraws the picture around that one record, with a few of its
 neighbours named and the rest counted.
 
+A type bubble is sized by how many records it stands for, so one type can be many times the width
+of its neighbours and a force layout will drop the small ones inside the large one. Whatever the
+layout decides, the picture is settled afterwards: overlapping bubbles are pushed apart until none
+of them touch, names included, and the view is fitted again so nothing hangs over the edge. Parting
+them changes the fit, which changes how large the names are on screen and so how much room they
+need, so the three settle together over a few rounds. Every type is named at every zoom; the type
+bubbles are the frame the data hangs on and the picture says nothing without them.
+
 `Arrange: layers` puts one column per entity type and orders the columns so that as many
 relationships as possible run forward, using a greedy feedback arc set. It reports the share that
 made it, and draws the rest dashed red. Long columns wrap into sub-columns so the picture stays
