@@ -100,3 +100,23 @@
 .search .space-types .legend-item.on { background: var(--ink); color: var(--surface); }
 .search .space-types .dot { display: inline-block; width: 8px; height: 8px; border-radius: 50%; margin-right: 4px; vertical-align: -1px; }
 .search .space-pane .caveat { margin: 6px 4px 2px; font-size: 11px; line-height: 1.5; }
+
+/* The route the question took. Figures come from the run, so a blank means it was never recorded. */
+.search .pipeline { border: 1px solid var(--rule); border-radius: 6px; background: var(--surface); padding: 10px 12px; }
+.search .chain { display: flex; flex-wrap: wrap; gap: 6px; align-items: stretch; margin: 0 0 8px; padding: 0; list-style: none; }
+.search .chain li {
+  flex: 1 1 auto; min-width: 96px; display: flex; flex-direction: column; gap: 1px;
+  padding: 6px 10px; border: 1px solid var(--rule); border-radius: 6px; background: var(--depth-1); font-size: 11px;
+}
+.search .chain li + li { position: relative; }
+.search .chain li + li::before { content: "→"; position: absolute; left: -10px; top: 50%; transform: translateY(-50%); color: var(--ink-3); font-size: 11px; }
+.search .chain .what { color: var(--ink-2); }
+.search .chain b { font-size: 14px; }
+.search .prompt-dump { margin-top: 10px; max-height: 460px; overflow: auto; }
+.search .prompt-dump h4 { display: flex; gap: 8px; align-items: baseline; margin: 10px 0 4px; font-size: 12px; }
+.search .prompt-dump summary { font-size: 12px; color: var(--ink-2); }
+.search .prompt-dump pre {
+  margin: 4px 0 8px; padding: 8px 10px; border-left: 2px solid var(--rule); background: var(--depth-1);
+  font-size: 11px; line-height: 1.55; white-space: pre-wrap; word-break: break-word; max-height: 320px; overflow: auto;
+}
+.search .btn.small { padding: 3px 10px; font-size: 12px; }

@@ -127,6 +127,42 @@ const KO: Record<string, string> = {
     "끌면 이동, 휠로 확대",
   "Show only this type":
     "이 유형만 보기",
+  "Question":
+    "질문",
+  "Embedded once":
+    "임베딩 1회",
+  "The question becomes a vector":
+    "질문이 벡터가 됩니다",
+  "Ranked by cosine":
+    "코사인 정렬",
+  "Walked out":
+    "이웃 확장",
+  "Cut to the budget":
+    "예산까지 절단",
+  "estimated tokens":
+    "추정 토큰",
+  "Prompt":
+    "프롬프트",
+  "Model":
+    "모델",
+  "Answer":
+    "답변",
+  "records cited":
+    "개 레코드 인용",
+  "Community summaries":
+    "커뮤니티 요약",
+  "Batched":
+    "배치 분할",
+  "Points pulled out":
+    "요점 추출",
+  "Written once":
+    "최종 작성 1회",
+  "Show the prompt sent to the model":
+    "모델에 보낸 프롬프트 보기",
+  "Hide the prompt":
+    "프롬프트 접기",
+  "{n} messages, {chars} characters":
+    "메시지 {n}개 · {chars}자",
   // search
   "Reports": "보고서",
   "Ask": "질문",

@@ -68,6 +68,16 @@ function readRun(raw: unknown, notes: string[]): SearchRun {
           return { name: text(stage.name, "?"), ms: number(stage.ms) ?? 0, calls: number(stage.calls) ?? undefined };
         })
       : [],
+    messages: Array.isArray(row.messages)
+      ? row.messages.map((m) => {
+          const message = asRecord(m);
+          return {
+            stage: text(message.stage, "chat"),
+            role: message.role === "system" ? ("system" as const) : ("user" as const),
+            content: text(message.content),
+          };
+        })
+      : [],
     stats: {
       elapsedMs: number(stats.elapsedMs) ?? 0,
       llmCalls: number(stats.llmCalls) ?? 0,

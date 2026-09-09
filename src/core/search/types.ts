@@ -40,6 +40,13 @@ export interface RunStats {
   completionTokens: number | null;
 }
 
+export interface SentMessage {
+  /** Which call this went to: "chat", "map" or "reduce". */
+  stage: string;
+  role: "system" | "user";
+  content: string;
+}
+
 export interface SearchRun {
   method: SearchMethod;
   engine: SearchEngine;
@@ -51,6 +58,8 @@ export interface SearchRun {
   context: SearchContext;
   stages: RunStage[];
   stats: RunStats;
+  /** Exactly what was sent, so the prompt is inspectable rather than described. */
+  messages: SentMessage[];
 }
 
 export interface TraceIndex {

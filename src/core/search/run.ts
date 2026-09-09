@@ -3,11 +3,11 @@
 import type { Dataset, Partition } from "../model";
 import type { EmbeddingIndex } from "../loaders/embeddings";
 import { batchReports, collectReports, parseMapPoints, rankPoints, renderBatch, renderPoints, type GlobalOptions } from "./global";
-import { buildLocalContext, rankEntities, type LocalOptions } from "./local";
+import { buildLocalContext, rankEntities, type Seed, type LocalOptions } from "./local";
 import type { ChatResult, Message, Provider, Usage } from "./llm";
 import { chat as defaultChat, embed as defaultEmbed, traceableSettings } from "./llm";
 import { localMessages, mapMessages, reduceMessages } from "./prompt";
-import { emptyContext, type RunStage, type RunStats, type SearchRun, type SearchTrace, TRACE_SCHEMA_VERSION } from "./types";
+import { emptyContext, type RunStage, type RunStats, type SearchRun, type SearchTrace, type SentMessage, TRACE_SCHEMA_VERSION } from "./types";
 
 export interface Client {
   chat(provider: Provider, messages: Message[], opts?: { signal?: AbortSignal }): Promise<ChatResult>;
@@ -46,6 +46,14 @@ class Meter {
   }
 }
 
+/** Live UI observation; never triggers another embedding request or enters the LLM prompt. */
+export interface RetrievalObservation {
+  query: string;
+  queryVector: Float32Array;
+  seeds: Seed[];
+  contextEntityIds: string[];
+}
+
 export interface LocalRunInput {
   dataset: Dataset;
   partition: Partition | null;
@@ -53,6 +61,7 @@ export interface LocalRunInput {
   provider: Provider;
   query: string;
   options: LocalOptions;
+  onRetrieval?: (observation: RetrievalObservation) => void;
   responseLanguage: string;
   signal?: AbortSignal;
 }
@@ -63,7 +72,8 @@ export async function runLocal(input: LocalRunInput, client: Client = liveClient
     topK: input.options.topK,
     tokenBudget: input.options.tokenBudget,
   });
-  const base = { method: "local" as const, engine: "explorer", settings, stages: meter.stages };
+  const sent: SentMessage[] = [];
+  const base = { method: "local" as const, engine: "explorer", settings, stages: meter.stages, messages: sent };
   try {
     if (input.embeddings.vectors.size === 0) throw new Error("The embeddings file holds no vectors.");
     const [queryVector] = await client.embed(input.provider, [input.query], { signal: input.signal });
@@ -73,15 +83,16 @@ export async function runLocal(input: LocalRunInput, client: Client = liveClient
     const seeds = rankEntities(queryVector, input.embeddings, input.dataset, input.options.topK);
     const { context } = buildLocalContext(input.dataset, input.partition, seeds, input.options);
     meter.stage("select");
+    input.onRetrieval?.({ query: input.query, queryVector, seeds, contextEntityIds: context.entities.flatMap(e => e.id ? [e.id] : []) });
 
     if (seeds.length === 0) {
       meter.stage("chat", 0);
       return { ...base, status: "ok", error: null, response: "", context, stats: meter.stats() };
     }
 
-    const answer = await client.chat(input.provider, localMessages(input.query, context, input.responseLanguage), {
-      signal: input.signal,
-    });
+    const messages = localMessages(input.query, context, input.responseLanguage);
+    sent.push(...messages.map((m) => ({ stage: "chat", role: m.role, content: m.content })));
+    const answer = await client.chat(input.provider, messages, { signal: input.signal });
     meter.count(answer.usage);
     meter.stage("chat", 1);
     return { ...base, status: "ok", error: null, response: answer.text, context, stats: meter.stats() };
@@ -121,7 +132,8 @@ export async function runGlobal(input: GlobalRunInput, client: Client = liveClie
     batchTokens: input.options.batchTokens,
     maxPoints: input.options.maxPoints,
   });
-  const base = { method: "global" as const, engine: "explorer", settings, stages: meter.stages };
+  const sent: SentMessage[] = [];
+  const base = { method: "global" as const, engine: "explorer", settings, stages: meter.stages, messages: sent };
   const context = emptyContext();
   try {
     const reports = collectReports(input.partition, input.options);
@@ -134,9 +146,9 @@ export async function runGlobal(input: GlobalRunInput, client: Client = liveClie
 
     const points = [];
     for (const batch of batches) {
-      const result = await client.chat(input.provider, mapMessages(input.query, renderBatch(batch)), {
-        signal: input.signal,
-      });
+      const messages = mapMessages(input.query, renderBatch(batch));
+      sent.push(...messages.map((m) => ({ stage: "map", role: m.role, content: m.content })));
+      const result = await client.chat(input.provider, messages, { signal: input.signal });
       meter.count(result.usage);
       points.push(...parseMapPoints(result.text));
     }
@@ -148,11 +160,9 @@ export async function runGlobal(input: GlobalRunInput, client: Client = liveClie
       return { ...base, status: "ok", error: null, response: "", context, stats: meter.stats() };
     }
 
-    const answer = await client.chat(
-      input.provider,
-      reduceMessages(input.query, renderPoints(top), input.responseLanguage),
-      { signal: input.signal },
-    );
+    const reduce = reduceMessages(input.query, renderPoints(top), input.responseLanguage);
+    sent.push(...reduce.map((m) => ({ stage: "reduce", role: m.role, content: m.content })));
+    const answer = await client.chat(input.provider, reduce, { signal: input.signal });
     meter.count(answer.usage);
     meter.stage("reduce", 1);
     return { ...base, status: "ok", error: null, response: answer.text, context, stats: meter.stats() };

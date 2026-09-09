@@ -12,6 +12,7 @@ import { downloadText } from "../download";
 import { fill, Rich, useT } from "../i18n";
 import { citedShortIds, countUsage, sameSelection, type Selection } from "../../core/search/highlight";
 import { Answer } from "./Answer";
+import { Pipeline } from "./Pipeline";
 import { RecordPanel } from "./RecordPanel";
 import { readableLink, readableTitle } from "./label";
 import { ScenarioPanel } from "./ScenarioPanel";
@@ -389,6 +390,8 @@ export function SearchView(props: Props) {
               <span key={stage.name}>{stage.name}: <b>{stage.ms}ms</b></span>
             ))}
           </div>
+
+          <Pipeline run={run} cited={cited} />
 
           <p className="muted usage">
             {t("The answer cited {cited} of the {retrieved} records that were sent to the model.", { cited: usage.cited, retrieved: usage.retrieved })}
