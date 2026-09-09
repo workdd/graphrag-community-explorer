@@ -3,7 +3,7 @@ import { readableLink, readableTitle } from "./label";
 
 describe("readableTitle", () => {
   it("drops the source id the runner appended", () => {
-    expect(readableTitle("VirtualMachine · web-01 [AGE:844424930134486]")).toBe("web-01");
+    expect(readableTitle("VirtualMachine · web-01 [AGE:1234]")).toBe("web-01");
   });
 
   it("drops the type prefix", () => {
