@@ -13,6 +13,7 @@ import { fill, Rich, useT } from "../i18n";
 import { citedShortIds, countUsage, sameSelection, type Selection } from "../../core/search/highlight";
 import { Answer } from "./Answer";
 import { Pipeline } from "./Pipeline";
+import { SystemMap } from "./SystemMap";
 import { RecordPanel } from "./RecordPanel";
 import { readableLink, readableTitle } from "./label";
 import { ScenarioPanel } from "./ScenarioPanel";
@@ -329,6 +330,17 @@ export function SearchView(props: Props) {
         }}
       />
 
+      <details className="system" open>
+        <summary>{t("How a question reaches an answer")}</summary>
+        <SystemMap
+          dataset={props.dataset}
+          partition={props.partition}
+          embeddings={props.embeddings}
+          method={method}
+          run={run}
+        />
+      </details>
+
       <div className="ask">
         <textarea
           value={question}
@@ -391,7 +403,7 @@ export function SearchView(props: Props) {
             ))}
           </div>
 
-          <Pipeline run={run} cited={cited} />
+          <Pipeline run={run} />
 
           <p className="muted usage">
             {t("The answer cited {cited} of the {retrieved} records that were sent to the model.", { cited: usage.cited, retrieved: usage.retrieved })}

@@ -163,6 +163,58 @@ const KO: Record<string, string> = {
     "프롬프트 접기",
   "{n} messages, {chars} characters":
     "메시지 {n}개 · {chars}자",
+  "How a question reaches an answer":
+    "질문이 답변에 이르는 경로",
+  "Offline, once":
+    "오프라인, 한 번",
+  "Files in this tab":
+    "이 탭이 읽은 파일",
+  "This tab":
+    "이 탭 안",
+  "Your provider":
+    "설정한 제공자",
+  "embed_index runner":
+    "embed_index 러너",
+  "Cosine ranking":
+    "코사인 정렬",
+  "Neighbours and summaries":
+    "이웃과 요약",
+  "Budget cut":
+    "예산 절단",
+  "Prompt assembled":
+    "프롬프트 조립",
+  "Answer and citations":
+    "답변과 인용",
+  "Embeddings endpoint":
+    "임베딩 엔드포인트",
+  "Chat endpoint":
+    "채팅 엔드포인트",
+  "Summaries at the level":
+    "그 레벨의 요약",
+  "Points kept":
+    "남긴 요점",
+  "Chat endpoint, once a batch":
+    "채팅 엔드포인트, 배치마다 1회",
+  "Chat endpoint, once more":
+    "채팅 엔드포인트, 마지막 1회",
+  "writes":
+    "생성",
+  "the question text":
+    "질문 문장",
+  "query vector":
+    "질의 벡터",
+  "seeds":
+    "시드",
+  "the selected evidence":
+    "선택된 근거",
+  "every summary at the level":
+    "그 레벨의 요약 전부",
+  "scored points":
+    "점수 매긴 요점",
+  "the surviving points":
+    "살아남은 요점",
+  "Red arrows are the only things that leave this tab. Everything else happens here.":
+    "붉은 화살표만 이 탭을 떠납니다. 나머지는 전부 여기서 일어납니다.",
   // search
   "Reports": "보고서",
   "Ask": "질문",
