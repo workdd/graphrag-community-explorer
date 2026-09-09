@@ -23,9 +23,11 @@ are built. Apache AGE is one input adapter among several, not the center of the 
 
 | M5 Usability (done) | Korean/English interface, PNG and CSV export, shareable view URLs, lazy-loaded views, keyboard navigation for tree and tables | Every screen reads in both languages; smoke test covers the switch |
 | M6 Scale and compatibility (done) | 10k-entity synthetic stress set with measured load, graph and map timings; GraphRAG 0.3 `create_final_*` sample tested end to end; covariates (claims) shown; n-hop neighbourhood exploration from any entity | 10k entities load under five seconds, collapsed map under two; 0.3 sample passes the smoke test |
-| M7 Distribution (current) | npm package with a `bin` that serves a built copy next to your index; GitHub releases with notes; Dockerfile for static hosting | `npm pack` contains only dist and bin; a release page exists for each tag |
+| M7 Distribution (done) | npm package with a `bin` that serves a built copy next to your index; GitHub releases with notes; Dockerfile for static hosting | `npm pack` contains only dist and bin; a release page exists for each tag |
+| M8 Ask (current) | Local and global search against an OpenAI-compatible provider; citations that open the record they name; evidence graph, embedding space and a picture of the run itself; saved traces; entity-embedding sidecar tool | A question answered from the shipped sample end to end, with every citation resolving to a record; no key reaches a trace, a log or a build |
 
 ## Out of scope for now
 
-Running Leiden in the browser (offline tools cover it), live database connections, editing
-communities, and hosted multi-user deployments.
+Live database connections, editing communities, and hosted multi-user deployments. DRIFT search,
+dynamic community selection and prompt tuning are deliberately deferred until the two methods that
+exist have been measured on real indexes.

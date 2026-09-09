@@ -2,6 +2,22 @@
 
 ## Unreleased
 
+- Ask tab: local and global search against any OpenAI-compatible provider. The key stays in the
+  browser, never in a saved run; `VITE_LLM_*` supplies the defaults and the build refuses to
+  publish an inlined key unless `ALLOW_EMBEDDED_KEY=1`.
+- Every citation in an answer opens the record it names, beside the answer and without leaving the
+  tab. The evidence graph outlines the cited records in red and lists the retrieved ones with their
+  scores, so what the model ignored is as visible as what it used.
+- The embedding space plots the question and the entity vectors (PCA, 2D or 3D), marking what went
+  into the prompt and what the token budget cut.
+- "How a question reaches an answer" draws the run itself with the counts and milliseconds it
+  spent, and "Show the prompt sent to the model" prints the messages verbatim.
+- Runs can be saved as a trace file and read back on a machine with no key.
+- Example questions are derived from the loaded data, named with their schema type.
+- `tools/embed_index` writes the `embeddings.parquet` sidecar local search needs, with the model,
+  the dimension and a SHA-256 of every source file in the file's metadata.
+- The app opens on the schema view: entity types, the relationships between them, and the Parquet
+  tables with their key and reference columns.
 - Browser back and forward move between views and selections; neighbourhood mode is in the URL.
 - Big communities start with their dominant hub relationship type hidden; leaves of one type on
   one hub fold into a single node; dense graphs draw links fainter until one is selected.

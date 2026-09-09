@@ -1,19 +1,27 @@
 # GraphRAG Community Explorer
 
 Community-first explorer for [Microsoft GraphRAG](https://github.com/microsoft/graphrag) outputs.
-Open the Parquet files GraphRAG writes, read the community hierarchy and reports first, then descend
-into the entities and relationships inside each community. Everything runs in your browser; no file
-is uploaded anywhere.
+Open the Parquet files GraphRAG writes, read the schema and the community hierarchy first, then
+descend into the entities and relationships inside each community, and ask a question whose answer
+links back to the records it used. Browsing runs entirely in your browser; no file is uploaded
+anywhere. Asking a question is the one exception, and the app says so on the screen where it happens.
 
-Status: 0.1 alpha. Loader, overview, hierarchy tree, community table, report inspector, integrity
-checks, community graph, community map, quality metrics, partition comparison and source-text
-evidence are in place; see [docs/ROADMAP.md](docs/ROADMAP.md) for what comes next.
+Status: 0.2, alpha. Loader, schema view, network view, community hierarchy and map, report
+inspector, integrity checks, quality metrics, partition comparison, source-text evidence and the
+Ask tab (local and global search against your own provider) are in place; see
+[docs/ROADMAP.md](docs/ROADMAP.md) for what comes next.
 
-![Overview of the sample dataset: hierarchy tree, summary sentence, community table](docs/screenshots/overview-sample.png)
+![The schema of the sample index: one node per entity type, one arrow per relationship that occurs between two types, with the Parquet tables and their key columns underneath](docs/screenshots/schema-sample.png)
 
-![Graph of one community: entities colored by type inside the community container, a selected node with its incoming and outgoing links](docs/screenshots/graph-sample.png)
+![The whole sample index as one network with community clouds around the members, every cloud named, and the entity types and communities listed above the canvas](docs/screenshots/network-sample.png)
 
-![Community map: nested containers three levels deep, opened down to the entities of one topic, with aggregate links between groups](docs/screenshots/map-sample.png)
+![Ask tab: a question about what a queue's removal would affect, answered with inline citations back to entities, relationships, reports and claims](docs/screenshots/ask-sample.png)
+
+![The same answer read backwards: the cited records outlined in red in the evidence graph, the picked record open beside it with the text that went into the prompt, and the retrieved records listed with their scores](docs/screenshots/ask-evidence-sample.png)
+
+![Overview of the sample dataset: counts, integrity check, and a sortable community table with internal and boundary relationship counts](docs/screenshots/overview-sample.png)
+
+![Communities view: one band per level, one circle per community sized by the entities it holds, curves joining each community to its parent, and the entities in no community as grey dots](docs/screenshots/communities-sample.png)
 
 ## Try it
 
@@ -48,6 +56,65 @@ A `Dockerfile` builds a static image served by nginx; mount an index folder unde
 `/usr/share/nginx/html/data/<name>` and open `?data=./data/<name>`. It has not been exercised on a
 machine with Docker yet.
 
+## Ask a question
+
+The **Ask** tab answers from the index you have open, using a model provider you configure. It
+follows GraphRAG's two search methods; the selection and the budgeting are this project's own, so an
+answer here is not guaranteed to match what `graphrag query` returns from the same index.
+
+- **Local** embeds the question, ranks entities by cosine against the entity vectors, and packs the
+  seeds, the relationships between them, the reports of the communities they belong to, the source
+  chunks behind them and the claims about them into a token budget, in that order of priority. It
+  needs an `embeddings.parquet` beside the index.
+- **Global** reads the community reports, splits them into context windows, asks the model for
+  scored points from each window, keeps the best of them and asks once more for the answer. It needs
+  `community_reports.parquet` and no embeddings, which is how GraphRAG's global search works too.
+
+Any OpenAI-compatible endpoint will do. The key lives in your browser's local storage, never in a
+saved run and never in a log line. Presets for Upstage and OpenAI fill in the two model names; the
+embedding model matters, because a question embedded with a different model than the sidecar was
+built with ranks nothing usefully.
+
+To skip typing the settings in every browser, copy `.env.example` to `.env.development.local` and
+set `VITE_LLM_BASE_URL`, `VITE_LLM_CHAT_MODEL`, `VITE_LLM_EMBED_MODEL` and, if you accept the
+consequence, `VITE_LLM_API_KEY`. Vite inlines those into the bundle, so `npm run build` refuses to
+publish a key unless `ALLOW_EMBEDDED_KEY=1` says it may. Anything typed in the app wins over the
+environment.
+
+Local search needs entity vectors, which GraphRAG writes to a vector store rather than to Parquet.
+`tools/embed_index` builds the sidecar the browser can read:
+
+```sh
+EMBED_API_KEY=… python3 tools/embed_index/embed_index.py --index ~/graphrag/output
+```
+
+It writes `embeddings.parquet` next to the index: one row per entity, the vector as fixed-length
+binary, and the model, the dimension and a SHA-256 of every source file in the file's metadata. The
+app checks those fingerprints and turns local search off, saying which file changed, when the
+sidecar was made from a different index.
+
+What comes back is meant to be checked rather than believed:
+
+- Every citation in the answer is a button. Picking one reads that record beside the answer, with
+  the exact text that went into the prompt, the links the run carried and the source text behind it.
+- The evidence graph draws the records that were sent to the model and outlines in red the ones the
+  answer actually cited. A node, a citation and a table row are three views of the same record, and
+  picking any of them reads it in place. Nothing sends you to another tab.
+- The table under the graph lists everything that was retrieved with its score, so the records the
+  model was given and ignored are as visible as the ones it used.
+- The embedding space plots the question and the entity vectors, reduced with PCA, in two or three
+  dimensions, marking what went into the prompt and what the budget cut. It says on the screen that
+  distance there is not the cosine the search used.
+- **How a question reaches an answer** draws the run itself: retrieval, context window, model call
+  and response, with the counts and milliseconds this run actually spent, and the calls that left
+  the browser bordered in red. **Show the prompt sent to the model** prints the messages verbatim.
+- **Save this run** writes a trace file (question, settings without the key, every context record,
+  the answer and the timings); **Open a trace** reads one back and relinks its citations, so a run
+  can be reviewed on a machine with no key at all.
+
+Example questions are offered from the data itself: entities that are actually reachable, named with
+their schema type, weighted towards the kinds of record people ask impact questions about.
+
 ## What it reads
 
 | File | Used for |
@@ -55,9 +122,10 @@ machine with Docker yet.
 | `entities.parquet` | Entity titles, types, descriptions. Required. |
 | `relationships.parquet` | Edges between entity titles. Required. |
 | `communities.parquet` | Levels, parents, members. Recommended: without it only the entity list and neighbourhood graphs are available (`public/samples/minimal` is such a set). |
-| `community_reports.parquet` | Summaries, findings and ranks. |
+| `community_reports.parquet` | Summaries, findings and ranks. Global search reads these. |
 | `text_units.parquet`, `documents.parquet` | Source chunks and documents; the inspector shows the text behind an entity, relationship or community. |
-| `covariates.parquet` | Claims about entities, listed on the entity panel. |
+| `covariates.parquet` | Claims about entities, listed on the entity panel and offered to local search. |
+| `embeddings.parquet` | Optional sidecar of entity vectors written by `tools/embed_index`. Local search and the embedding space need it; nothing else does. |
 | `<label>_communities.parquet` | Any additional community set (for example `leiden_communities.parquet`) becomes a switchable partition. |
 
 Levels are shown from the root down: the root reads L0 and children count up, which is GraphRAG's
@@ -79,94 +147,71 @@ each take about half a second (`samples/generate_sample.py --scale 53 --edge-fac
 
 ## What you see
 
+The app opens on the **Schema**: one node per entity type, one arrow per relationship that occurs
+between two types, both with counts, and under it the Parquet tables with their key and reference
+columns. Nothing declares this shape; it is counted from the rows. Picking a type or an arrow lists
+the records behind it and carries over into the network as a filter you can clear.
+
 Not every relationship is worth drawing as arrows. A triple that joins most of its possible pairs,
 such as a permission block, is a hairball under any layout, and one that hangs everything off a few
 hubs is really a list of counts. The schema view measures both and sends you to the form that reads:
 a grid for a dense pair, counts per hub for a star, arrows for the rest.
 
-Clicking a record centres the graph on it and abstracts the rest. A few neighbours of each kind are
-drawn with their names, everything else becomes a dashed bubble carrying a count, and a second ring
-shows what those neighbours reach in turn: two names and one count each. A role with 274 neighbours
-reads as twenty nodes. A bubble opens on click.
+The **Network** draws the records themselves: every entity and relationship on one canvas, with node
+colour for the entity type and size for the degree. Communities are an overlay you add, as clouds
+around their members or as node colour, and they can be taken away again. Turning the overlay on
+takes you to the free layout, which keeps each community together already, so the hulls appear
+around what is on screen instead of rearranging it; switching it off again moves nothing.
 
-Opening a type in the schema names its two busiest records and keeps the rest as one bubble with a
-count, which opens on click. Nothing anywhere asks you to choose a number of nodes: one switch says
-part of the data or all of it, and part always means a couple of representatives plus a count.
-
-The **Communities** view opens on every community at once: one band per level from the root down,
-one circle per community sized by the entities it holds, and a curve from each community to its
-parent. Entities that no community claims are drawn as grey dots under the bands and can be switched
-off. The nested box map, where a community opens into its members, is one switch away.
-
-Clicking inside a community reads it on the right: its summary, its level, how much of its edge
-weight stays inside, its children and its members. Dragging it moves the whole group, and
-double-clicking opens its own graph.
-
-Turning the community overlay on takes you to the free layout, which keeps each community together
-already, so the hulls appear around what is on screen instead of rearranging it. Switching the
-overlay off again moves nothing. A tidier catalogue, one disc per community laid out in rows with a
-guaranteed gap, is there as its own arrangement when that is what is wanted.
-
-The free layout keeps each community together: a community is a
-container the layout must not scatter, and a link that leaves one is given a long ideal length while
-links inside it stay short. The clouds then come out as separate petals rather than one smear.
+The free layout treats a community as a container the layout must not scatter, and gives a link that
+leaves one a long ideal length while links inside it stay short. The clouds then come out as
+separate petals rather than one smear. A tidier catalogue, one disc per community laid out in rows
+with a guaranteed gap, is there as its own arrangement when that is what is wanted.
 
 Names appear as there is room for them. On every pan and zoom the visible nodes are measured in
 screen pixels and the best are named first, so a crowded picture names its hubs and the members of a
 community, and zooming in reveals the rest instead of piling text on text. Zooming spreads the graph
-out rather than magnifying it: dots and names hold their size on screen.
-
-Every node carries its entity type under its name, and the community it belongs to once the
-community overlay is on.
-
-Three pictures answer three different questions, and they are wired to each other.
-
-1. **Schema** draws the shape of the index: one node per entity type, one arrow per relationship
-   that occurs between two types, both with counts. Nothing declares this shape; it is counted from
-   the rows. Picking a type or an arrow lists the records behind it.
-2. **Network** draws those records. A type or triple picked in the schema carries over as a filter,
-   shown as a chip you can clear.
-3. **Formation** runs Leiden on whatever is on screen and plays the communities back as they form,
-   naming the entities that end up together at each step.
-
-The app opens on the **Network** view: every entity and relationship on one canvas, with no
-communities involved. Node colour is the entity type and size is the degree. Communities are an
-overlay you add, as clouds around their members or as node colour, and they can be taken away again.
-
-Every cloud carries its community's name at a fixed size on screen, so the graph says what it is
-made of whether it is zoomed right out or right in. Where two names would land on top of each other
-the smaller community gives way and gets its name back as you zoom in; every community is also
-listed under the canvas with the colour it was drawn in, so no name is ever out of reach. Clicking
-a cloud reads that community in the inspector and dragging one pulls it aside. Links take no clicks:
-a community is mostly the links between its members, so a clickable link would leave the community
-unclickable over most of its area. Links are read from the inspector, which lists them by name.
+out rather than magnifying it: dots and names hold their size on screen. Every cloud carries its
+community's name at a fixed size, and where two names would land on top of each other the smaller
+community gives way and gets its name back as you zoom in; every community is also listed under the
+canvas with the colour it was drawn in, so no name is ever out of reach.
 
 Clicking a record reads it where it stands. The graph stays exactly as it was; two hops around the
 record light up, everything else fades to a ghost rather than disappearing, and the record and its
 two rings hold a size on screen so they can be found with the whole graph in view. Double-clicking
-is the deliberate step that redraws the picture around that one record, with a few of its
-neighbours named and the rest counted.
+is the deliberate step that redraws the picture around that one record: a few neighbours of each
+kind are drawn with their names, everything else becomes a dashed bubble carrying a count, and a
+second ring shows what those neighbours reach in turn. A role with 274 neighbours reads as twenty
+nodes, and a bubble opens on click. Nothing anywhere asks you to choose a number of nodes: one
+switch says part of the data or all of it, and part always means a couple of representatives plus a
+count.
 
 A type bubble is sized by how many records it stands for, so one type can be many times the width
 of its neighbours and a force layout will drop the small ones inside the large one. Whatever the
 layout decides, the picture is settled afterwards: overlapping bubbles are pushed apart until none
 of them touch, names included, and the view is fitted again so nothing hangs over the edge. Parting
 them changes the fit, which changes how large the names are on screen and so how much room they
-need, so the three settle together over a few rounds. Every type is named at every zoom; the type
-bubbles are the frame the data hangs on and the picture says nothing without them.
+need, so the three settle together over a few rounds.
 
 `Arrange: layers` puts one column per entity type and orders the columns so that as many
 relationships as possible run forward, using a greedy feedback arc set. It reports the share that
 made it, and draws the rest dashed red. Long columns wrap into sub-columns so the picture stays
 readable. Both Apache AGE graphs we test with reach 99%.
 
+The **Communities** view opens on every community at once: one band per level from the root down,
+one circle per community sized by the entities it holds, and a curve from each community to its
+parent. Entities that no community claims are drawn as grey dots under the bands and can be switched
+off. The nested box map, where a community opens into its members, is one switch away. Clicking
+inside a community reads it on the right: its summary, its level, how much of its edge weight stays
+inside, its children and its members. Dragging it moves the whole group, and double-clicking opens
+its own graph.
+
 The **Formation** view runs Leiden in the browser on the entities on screen and plays the run back:
 local moving sweep by sweep, refinement, then aggregation, with the graph recolouring as communities
 appear, a modularity curve, the shrinking working graph, and NMI/ARI against the community set the
 index shipped. Resolution, seed and scope are yours to change; the loaded communities never are.
 
-The interface is available in English and Korean; the switch sits in the top bar and the choice is
-remembered in the browser.
+The rest, in short:
 
 - A one-paragraph summary with the counts that matter: entities, relationships, communities, levels,
   coverage, isolated entities.
@@ -195,23 +240,33 @@ remembered in the browser.
   neighbouring community can be added to the same picture. Click a node for its neighbourhood and
   incoming/outgoing links, a link for its description; filter relationship types, search, and drag
   nodes. Layouts are deterministic and survive filtering.
+- PNG export of the graph and the map at 2x, CSV export of the community and quality tables, and a
+  shareable view state in the URL (`#view=map&set=leiden&community=11`).
+
+The interface is available in English and Korean; the switch sits in the top bar and the choice is
+remembered in the browser.
 
 ## Development
 
 ```sh
 npm run typecheck
-npm test             # vitest: loaders, hierarchy, metrics, map model, evidence
+npm test             # vitest: loaders, hierarchy, metrics, map model, evidence, search
 npm run e2e          # Playwright smoke test against the production build (uses installed Chrome)
 npm run build        # vite build, then scripts/check-dist.mjs refuses any dataset but the sample
 npm run hooks        # installs the pre-push check once per clone
 uv run samples/generate_sample.py   # regenerates the synthetic sample
 ```
 
-Two checks keep private data out of the open: `scripts/check-sensitive.sh` runs before every push
-and in CI and refuses data files outside `public/samples/`, environment files and identifiers that
-only occur in private exports; `scripts/check-dist.mjs` runs after every build and fails if `dist/`
-would publish anything but the sample. Real indexes belong in `local-data/`, which Git ignores and
-the build never copies.
+Two checks keep private data and credentials out of the open: `scripts/check-sensitive.sh` runs
+before every push, once `npm run hooks` has installed the hook, and refuses data files outside
+`public/samples/`, environment files and identifiers that only occur in private exports;
+`scripts/check-dist.mjs` runs after every build and fails if `dist/` would publish anything but the
+sample, or an API key inlined from the environment. Real indexes belong in `local-data/`, which Git
+ignores and the build never copies.
+
+Offline tools live in `tools/`: the entity-embedding sidecar (`embed_index`), an Apache AGE Parquet
+export, a Leiden re-clustering run, community summaries for a re-clustered set, and a partition
+comparison. Each has its own README section under [tools/README.md](tools/README.md).
 
 See [CONTRIBUTING.md](CONTRIBUTING.md) for the workflow and [CHANGELOG.md](CHANGELOG.md) for releases.
 
@@ -226,11 +281,14 @@ branch and is not used by the current application.
 
 ## 한국어 안내
 
-GraphRAG 산출물(Parquet)을 커뮤니티 단위로 읽는 뷰어입니다. 계층 트리와 커뮤니티 표, 보고서(요약·발견·순위),
-무결성 검사가 먼저 나오고, 그래프는 선택한 커뮤니티 안에서만 엽니다. 모든 처리는 브라우저 안에서 끝나며 파일은
-어디에도 업로드되지 않습니다.
+GraphRAG 산출물(Parquet)을 커뮤니티 단위로 읽는 뷰어입니다. 스키마와 계층 트리, 커뮤니티 표, 보고서(요약·발견·순위),
+무결성 검사가 먼저 나오고, 그래프는 그 위에서 엽니다. **질문** 탭에서는 열려 있는 색인을 근거로 답을 받고, 답이 인용한
+레코드를 그 자리에서 되짚을 수 있습니다. 탐색은 모두 브라우저 안에서 끝나며 파일은 어디에도 업로드되지 않습니다. 질문만
+예외이고, 그 사실을 질문 화면에 적어 두었습니다.
 
 - 실행: `npm install` 후 `npm run dev`, 그리고 **Open the sample dataset** 또는 GraphRAG `output/` 폴더를 드롭. 상단의 **한국어** 버튼으로 화면 언어를 바꿀 수 있습니다.
 - 로컬 실데이터: `local-data/<이름>/` 에 두고 `?data=./data/<이름>` 으로 엽니다. 이 폴더는 Git 이 무시하고 빌드에도 들어가지 않습니다. `.env.development.local` 에 `VITE_DEFAULT_DATA=./data/<이름>` 을 적으면 시작 시 바로 열립니다.
+- 질문 탭: OpenAI 호환 엔드포인트면 무엇이든 됩니다. 키는 브라우저에만 남고 저장된 실행 기록에는 들어가지 않습니다. `.env.development.local` 의 `VITE_LLM_*` 로 미리 지정할 수 있으며, 키를 넣은 채로 빌드하면 `ALLOW_EMBEDDED_KEY=1` 을 붙이지 않는 한 빌드가 거부합니다.
+- Local 검색은 엔티티 벡터가 필요합니다. `tools/embed_index/embed_index.py --index <색인 경로>` 로 `embeddings.parquet` 을 만들어 색인 옆에 둡니다. Global 검색은 커뮤니티 보고서만 읽으므로 벡터가 필요 없습니다.
 - 추가 커뮤니티 집합: `<라벨>_communities.parquet` 파일을 함께 올리면 상단에서 전환할 수 있습니다.
 - 푸시 전 검사: `npm run hooks` 로 pre-push 훅을 설치하면 실데이터·환경 파일·사내 식별자가 섞인 커밋을 막습니다.
