@@ -215,6 +215,84 @@ const KO: Record<string, string> = {
     "살아남은 요점",
   "Red arrows are the only things that leave this tab. Everything else happens here.":
     "붉은 화살표만 이 탭을 떠납니다. 나머지는 전부 여기서 일어납니다.",
+  "Ranked by the question": "질문이 고른 순서",
+  "Cosine": "코사인",
+  "cut by the budget": "예산에서 제외",
+  "in the prompt": "프롬프트에 포함",
+  "the question": "질문",
+  "Retrieval":
+    "검색",
+  "Context window":
+    "컨텍스트 창",
+  "Model call":
+    "모델 호출",
+  "Response":
+    "응답",
+  "Embed the question":
+    "질문 임베딩",
+  "needs the sidecar":
+    "사이드카가 필요합니다",
+  "Nearest by cosine":
+    "코사인 최근접",
+  "Follow the graph":
+    "그래프 따라가기",
+  "of the communities the seeds belong to":
+    "시드가 속한 커뮤니티의 것",
+  "Pack the context window":
+    "컨텍스트 창 채우기",
+  "seeds, then links, summaries, chunks, claims":
+    "시드 → 관계 → 요약 → 청크 → 클레임 순",
+  "Number every item":
+    "항목마다 번호 부여",
+  "so a citation can name one":
+    "인용이 지목할 수 있도록",
+  "System and user message":
+    "system·user 메시지",
+  "prompt tokens the provider counted":
+    "제공자가 센 프롬프트 토큰",
+  "One completion":
+    "완성 1회",
+  "Completion tokens":
+    "완성 토큰",
+  "what the model wrote back":
+    "모델이 써 보낸 양",
+  "Read the citations":
+    "인용 해석",
+  "[Data: Entities (3); Reports (1)] back to records":
+    "[Data: Entities (3); Reports (1)] 를 레코드로",
+  "[Data: Reports (2)] back to communities":
+    "[Data: Reports (2)] 를 커뮤니티로",
+  "Every summary at the level":
+    "그 레벨의 요약 전부",
+  "no ranking: global reads them all":
+    "정렬 없음. Global 은 전부 읽습니다",
+  "Split into context windows":
+    "컨텍스트 창 단위로 분할",
+  "One completion a batch":
+    "배치마다 완성 1회",
+  "pull out scored points, JSON only":
+    "점수 매긴 요점 추출, JSON 만",
+  "Keep the best points":
+    "상위 요점만 남김",
+  "by the score the model gave each":
+    "모델이 매긴 점수 기준",
+  "One completion more":
+    "완성 1회 더",
+  "what fits":
+    "들어간 것",
+  "the evidence text":
+    "근거 텍스트",
+  "every summary":
+    "요약 전부",
+  "the points that survived":
+    "살아남은 요점",
+  "Bordered boxes are calls to the model. Red arrows carry text out of this tab; everything else stays here.":
+    "테두리가 굵은 상자가 모델 호출입니다. 붉은 화살표가 이 탭 밖으로 텍스트를 보내고, 나머지는 여기 머뭅니다.",
+  "over {n} entity vectors": "엔티티 벡터 {n}개 중에서",
+  "relationships of the seeds, out of {n}": "시드의 관계. 전체 {n}개 중",
+  "{model} · {dim}d": "{model} · {dim}차원",
+  "{model} · temperature 0": "{model} · temperature 0",
+  "{n} tokens a batch": "배치당 {n} 토큰",
   // search
   "Reports": "보고서",
   "Ask": "질문",

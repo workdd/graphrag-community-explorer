@@ -3,7 +3,7 @@ import type { EmbeddingIndex } from "../../core/loaders/embeddings";
 import type { Dataset, Partition } from "../../core/model";
 import { describeSystem, type SystemNode, type Zone } from "../../core/search/systemMap";
 import type { SearchMethod, SearchRun } from "../../core/search/types";
-import { useT } from "../i18n";
+import { fill, useT } from "../i18n";
 
 interface Props {
   dataset: Dataset;
@@ -14,18 +14,21 @@ interface Props {
 }
 
 const ZONES: { id: Zone; label: string }[] = [
-  { id: "offline", label: "Offline, once" },
-  { id: "files", label: "Files in this tab" },
-  { id: "browser", label: "This tab" },
-  { id: "provider", label: "Your provider" },
+  { id: "retrieval", label: "Retrieval" },
+  { id: "context", label: "Context window" },
+  { id: "model", label: "Model call" },
+  { id: "response", label: "Response" },
 ];
 
 const BOX_W = 172;
-const BOX_H = 42;
+const BOX_H = 52;
 const GAP_Y = 12;
 const GAP_X = 58;
 const PAD = 14;
 const HEAD = 22;
+
+/** SVG does not wrap, so a long note is cut rather than allowed to run over the next box. */
+const clip = (text: string, max = 34): string => (text.length <= max ? text : `${text.slice(0, max - 1)}…`);
 
 export function SystemMap({ dataset, partition, embeddings, method, run }: Props) {
   const { t } = useT();
@@ -62,7 +65,7 @@ export function SystemMap({ dataset, partition, embeddings, method, run }: Props
           return (
             <g key={zone.id}>
               <rect x={x - 8} y={PAD + HEAD - 8} width={BOX_W + 16} height={height - PAD * 2 - HEAD + 12}
-                    rx="8" fill={zone.id === "provider" ? "#fbf3f2" : "#f4f6f3"} stroke="#e2e7e0" />
+                    rx="8" fill={zone.id === "model" ? "#fbf3f2" : "#f4f6f3"} stroke="#e2e7e0" />
               <text x={x} y={PAD + 10} className="zone">{t(zone.label)}</text>
             </g>
           );
@@ -95,16 +98,19 @@ export function SystemMap({ dataset, partition, embeddings, method, run }: Props
         {map.nodes.map((node) => {
           const at = positions.get(node.id)!;
           return (
-            <g key={node.id} className={`node ${node.zone}`}>
+            <g key={node.id} className={`node ${node.zone}${node.call ? " call" : ""}`}>
               <rect x={at.x} y={at.y} width={BOX_W} height={BOX_H} rx="6" />
-              <text x={at.x + 10} y={at.y + 17} className="name">{t(node.label)}</text>
-              <text x={at.x + 10} y={at.y + 32} className="value">{node.value ?? "—"}</text>
+              <text x={at.x + 10} y={at.y + 16} className="name">{t(node.label)}</text>
+              <text x={at.x + 10} y={at.y + 31} className="value">{node.value ?? "—"}</text>
+              {node.note ? (
+                <text x={at.x + 10} y={at.y + 45} className="note">{clip(fill(t(node.note), node.noteVars))}</text>
+              ) : null}
             </g>
           );
         })}
       </svg>
       <p className="muted legend-out">
-        <i /> {t("Red arrows are the only things that leave this tab. Everything else happens here.")}
+        <i /> {t("Bordered boxes are calls to the model. Red arrows carry text out of this tab; everything else stays here.")}
       </p>
     </div>
   );

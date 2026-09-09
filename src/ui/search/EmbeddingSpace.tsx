@@ -4,7 +4,8 @@ import type { EmbeddingIndex } from "../../core/loaders/embeddings";
 import type { Dataset } from "../../core/model";
 import type { CitedShortIds, Selection } from "../../core/search/highlight";
 import { cosine } from "../../core/search/local";
-import { fitToBox } from "../../core/search/projection";
+import { boxScale, fitToBox, projectInto } from "../../core/search/projection";
+import type { RetrievalObservation } from "../../core/search/run";
 import type { SearchContext } from "../../core/search/types";
 import { useT } from "../i18n";
 import { readableTitle } from "./label";
@@ -18,6 +19,8 @@ interface Props {
   cited: CitedShortIds;
   selection: Selection | null;
   onSelect: (selection: Selection | null) => void;
+  /** The ranking the run actually did. Absent for an imported run, which carries no query vector. */
+  observation: RetrievalObservation | null;
 }
 
 interface Point {
@@ -30,7 +33,7 @@ interface Point {
   score?: number;
 }
 
-export function EmbeddingSpace({ dataset, embeddings, context, cited, selection, onSelect }: Props) {
+export function EmbeddingSpace({ dataset, embeddings, context, cited, selection, onSelect, observation }: Props) {
   const { t } = useT();
   const canvas = useRef<HTMLCanvasElement>(null);
   const placedRef = useRef<Placed[]>([]);
@@ -75,6 +78,24 @@ export function EmbeddingSpace({ dataset, embeddings, context, cited, selection,
   }, [points, embeddings]);
 
   const fitted = useMemo(() => (result ? fitToBox(result, 1) : null), [result]);
+  // The question is not one of the records, so it is placed with the same basis and the same scale.
+  // Anything else would put it somewhere the arithmetic never meant.
+  const questionAt = useMemo(() => {
+    if (!result || !observation) return null;
+    try {
+      const raw = projectInto(observation.queryVector, result.basis);
+      const scale = boxScale(result, 1);
+      return [raw[0] * scale, raw[1] * scale, (raw[2] ?? 0) * scale];
+    } catch {
+      return null;
+    }
+  }, [result, observation]);
+  // A record the ranking chose but the budget then dropped: the picture should not call it "used".
+  const dropped = useMemo(() => {
+    if (!observation) return new Set<string>();
+    const kept = new Set(observation.contextEntityIds);
+    return new Set(observation.seeds.map((seed) => seed.id).filter((id) => !kept.has(id)));
+  }, [observation]);
   const selectedIndex = useMemo(
     () => (selection?.kind === "entities" ? points.findIndex((p) => p.shortId === selection.shortId) : -1),
     [selection, points],
@@ -107,25 +128,65 @@ export function EmbeddingSpace({ dataset, embeddings, context, cited, selection,
     const placed = place(fitted, points.length, camera, w, h, threeD);
     placedRef.current = placed;
     const order = [...placed].sort((a, b) => a.depth - b.depth);
+    const question = questionAt
+      ? place(Float32Array.from(questionAt), 1, camera, w, h, threeD)[0]
+      : null;
+
+    // Lines from the question to what the ranking picked, drawn under the points.
+    if (question) {
+      ctx.strokeStyle = "#c8a95e";
+      ctx.lineWidth = 1;
+      ctx.globalAlpha = 0.5;
+      for (const item of placed) {
+        const point = points[item.index];
+        if (point.shortId === undefined && !dropped.has(point.id)) continue;
+        ctx.beginPath();
+        ctx.moveTo(question.x, question.y);
+        ctx.lineTo(item.x, item.y);
+        ctx.stroke();
+      }
+      ctx.globalAlpha = 1;
+    }
 
     for (const item of order) {
       const point = points[item.index];
       const muted = onlyType !== null && point.type !== onlyType;
       const isCited = point.shortId !== undefined && cited.entities.has(point.shortId);
-      const inRun = point.shortId !== undefined;
+      const wasDropped = dropped.has(point.id);
+      const inRun = point.shortId !== undefined || wasDropped;
       const picked = item.index === selectedIndex;
       const fade = threeD ? 0.45 + 0.55 * ((item.depth + 1) / 2) : 1;
       ctx.globalAlpha = muted ? 0.06 : inRun ? 1 : 0.5 * fade;
       ctx.fillStyle = colors.get(point.type) ?? "#8c96a0";
       ctx.beginPath();
       ctx.arc(item.x, item.y, isCited ? 7 : inRun ? 5 : 2.4, 0, Math.PI * 2);
-      ctx.fill();
+      if (wasDropped && point.shortId === undefined) {
+        // Chosen by the ranking, cut by the budget: hollow, so it never reads as evidence.
+        ctx.globalAlpha = muted ? 0.06 : 1;
+        ctx.strokeStyle = "#c8a95e";
+        ctx.lineWidth = 2;
+        ctx.stroke();
+      } else {
+        ctx.fill();
+      }
       if ((isCited || picked) && !muted) {
         ctx.globalAlpha = 1;
         ctx.lineWidth = picked ? 3 : 2;
         ctx.strokeStyle = picked ? "#3d5afe" : "#a3423c";
         ctx.stroke();
       }
+    }
+
+    if (question) {
+      ctx.globalAlpha = 1;
+      ctx.fillStyle = "#b8860b";
+      ctx.beginPath();
+      ctx.moveTo(question.x, question.y - 8);
+      ctx.lineTo(question.x + 8, question.y);
+      ctx.lineTo(question.x, question.y + 8);
+      ctx.lineTo(question.x - 8, question.y);
+      ctx.closePath();
+      ctx.fill();
     }
 
     ctx.globalAlpha = 1;
@@ -143,7 +204,7 @@ export function EmbeddingSpace({ dataset, embeddings, context, cited, selection,
       ctx.fillStyle = "#1b2430";
       ctx.fillText(label, item.x, item.y - 12);
     }
-  }, [fitted, points, camera, threeD, cited, selectedIndex, colors, onlyType]);
+  }, [fitted, points, camera, threeD, cited, selectedIndex, colors, onlyType, questionAt, dropped]);
 
   const pointerAt = (event: React.MouseEvent<HTMLCanvasElement>) => {
     const el = canvas.current;
@@ -240,6 +301,38 @@ export function EmbeddingSpace({ dataset, embeddings, context, cited, selection,
         )}
       </div>
 
+      {observation ? (
+        <table className="space-ranking">
+          <thead>
+            <tr>
+              <th>#</th>
+              <th>{t("Ranked by the question")}</th>
+              <th>{t("Cosine")}</th>
+            </tr>
+          </thead>
+          <tbody>
+            {observation.seeds.map((seed, i) => {
+              const point = points.find((entry) => entry.id === seed.id);
+              const picked = point?.shortId !== undefined && selection?.shortId === point.shortId;
+              return (
+                <tr
+                  key={seed.id}
+                  className={`${picked ? "picked" : ""} ${dropped.has(seed.id) ? "dropped" : ""}`.trim()}
+                  onClick={() => onSelect(point?.shortId === undefined ? null : { kind: "entities", shortId: point.shortId })}
+                >
+                  <td className="n">{i + 1}</td>
+                  <td>
+                    {readableTitle(seed.title)}
+                    <span className="muted"> {dropped.has(seed.id) ? t("cut by the budget") : t("in the prompt")}</span>
+                  </td>
+                  <td className="s">{seed.score.toFixed(4)}</td>
+                </tr>
+              );
+            })}
+          </tbody>
+        </table>
+      ) : null}
+
       <div className="space-types">
         {types.slice(0, 12).map(([type, count]) => (
           <button
@@ -253,6 +346,12 @@ export function EmbeddingSpace({ dataset, embeddings, context, cited, selection,
           </button>
         ))}
       </div>
+
+      {observation ? (
+        <p className="muted legend-space">
+          <i className="q" /> {t("the question")} <i className="kept" /> {t("in the prompt")} <i className="cut" /> {t("cut by the budget")}
+        </p>
+      ) : null}
 
       <p className="muted caveat">
         {t("Distance on screen is not the cosine similarity the search used. Vectors are scaled to unit length and reduced with PCA, so records that overlap here can still be far apart, and the axes carry no business meaning.")}

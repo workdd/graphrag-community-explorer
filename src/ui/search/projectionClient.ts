@@ -17,7 +17,8 @@ function getWorker(): Worker | null {
       pending.delete(event.data.id);
     };
     worker.onerror = () => {
-      for (const [, resolve] of pending) resolve({ id: 0, ids: [], coords: new Float32Array(), axes: 0, variance: [], ms: 0 });
+      const empty = { mean: new Float64Array(), components: [], dim: 0 };
+      for (const [, resolve] of pending) resolve({ id: 0, ids: [], coords: new Float32Array(), axes: 0, variance: [], basis: empty, ms: 0 });
       pending.clear();
       worker = null;
     };

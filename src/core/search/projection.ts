@@ -16,6 +16,14 @@ export interface Projection {
   axes: number;
   /** Share of the total spread each axis carries, 0 to 1, in order. */
   variance: number[];
+  /** The basis the coordinates were made with, so a later vector lands in the same picture. */
+  basis: Basis;
+}
+
+export interface Basis {
+  mean: Float64Array;
+  components: Float64Array[];
+  dim: number;
 }
 
 /** Cosine similarity ignores length, so the projection should too. A zero vector stays zero. */
@@ -113,7 +121,7 @@ export function topComponents(m: Matrix, axes: number, iterations = 8): Float64A
 /** Normalizes, centres and projects. The input matrix is consumed: it is rewritten in place. */
 export function project(m: Matrix, axes = 3, iterations = 8): Projection {
   normalizeRows(m);
-  centreRows(m);
+  const mean = centreRows(m);
   const total = totalSpread(m);
   const components = topComponents(m, axes, iterations);
   const rows = m.ids.length;
@@ -131,15 +139,40 @@ export function project(m: Matrix, axes = 3, iterations = 8): Projection {
     coords,
     axes,
     variance: spread.map((s) => (total > 0 ? s / total : 0)),
+    basis: { mean, components, dim: m.dim },
   };
+}
+
+/**
+ * Places one more vector in a picture that is already drawn. The question is not part of the data the
+ * axes were fitted to, so it has to be normalized and centred the same way or it lands somewhere the
+ * arithmetic never meant.
+ */
+export function projectInto(vector: Float32Array, basis: Basis): number[] {
+  if (vector.length !== basis.dim) {
+    throw new Error(`Vector has ${vector.length} dimensions, the picture was built from ${basis.dim}.`);
+  }
+  let norm = 0;
+  for (let j = 0; j < basis.dim; j += 1) norm += vector[j] ** 2;
+  norm = Math.sqrt(norm) || 1;
+  return basis.components.map((component) => {
+    let sum = 0;
+    for (let j = 0; j < basis.dim; j += 1) sum += (vector[j] / norm - basis.mean[j]) * component[j];
+    return sum;
+  });
+}
+
+/** The factor that fits the coordinates into a box. Anything added later must use the same one. */
+export function boxScale(projection: Projection, half = 1): number {
+  let largest = 0;
+  for (const value of projection.coords) largest = Math.max(largest, Math.abs(value));
+  return largest > 0 ? half / largest : 0;
 }
 
 /** Coordinates scaled into a box of the given half-width, so the view does not depend on the data's units. */
 export function fitToBox(projection: Projection, half = 1): Float32Array {
+  const scale = boxScale(projection, half);
   const out = new Float32Array(projection.coords.length);
-  let largest = 0;
-  for (const value of projection.coords) largest = Math.max(largest, Math.abs(value));
-  const scale = largest > 0 ? half / largest : 0;
   for (let i = 0; i < out.length; i += 1) out[i] = projection.coords[i] * scale;
   return out;
 }

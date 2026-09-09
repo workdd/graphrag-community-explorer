@@ -17,7 +17,6 @@ import { SystemMap } from "./SystemMap";
 import { RecordPanel } from "./RecordPanel";
 import { readableLink, readableTitle } from "./label";
 import { ScenarioPanel } from "./ScenarioPanel";
-import { EmbeddingSearch } from "./EmbeddingSearch";
 
 // Cytoscape is heavy and only the evidence graph needs it, so it loads with the first answer.
 const EvidenceGraph = lazy(() => import("./EvidenceGraph").then((m) => ({ default: m.EvidenceGraph })));
@@ -298,6 +297,7 @@ export function SearchView(props: Props) {
         </p>
       ) : null}
 
+      <div className="presets">
       {examples.length > 0 && !busy ? (
         <div className="examples">
           <span className="muted">{t("Try one:")}</span>
@@ -329,6 +329,8 @@ export function SearchView(props: Props) {
           setMethod(nextMethod);
         }}
       />
+      </div>
+
 
       <details className="system" open>
         <summary>{t("How a question reaches an answer")}</summary>
@@ -357,7 +359,6 @@ export function SearchView(props: Props) {
         {busy ? <button className="btn" onClick={() => abort.current?.abort()}>{t("Stop")}</button> : null}
       </div>
 
-      {retrieval && props.embeddings ? <EmbeddingSearch index={props.embeddings} dataset={props.dataset} observation={retrieval} /> : null}
 
       {notes.map((note, i) => (
         <p key={i} className="notice warn">{note}</p>
@@ -435,6 +436,7 @@ export function SearchView(props: Props) {
                   cited={cited}
                   selection={selection}
                   onSelect={setSelection}
+                  observation={retrieval}
                 />
               ) : (
                 <EvidenceGraph context={run.context} cited={cited} selection={selection} onSelect={setSelection} />

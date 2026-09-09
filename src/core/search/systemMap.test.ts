@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 import type { Community, Dataset, Partition } from "../model";
-import { describeSystem, leavingFlows, type SystemInput } from "./systemMap";
+import { describeSystem, leavingFlows, modelCalls, type SystemInput } from "./systemMap";
 import { emptyContext, type SearchRun } from "./types";
 
 const dataset: Dataset = {
@@ -28,38 +28,41 @@ const run: SearchRun = {
 const input: SystemInput = { dataset, partition, embeddings, method: "local", run };
 
 describe("describeSystem for local", () => {
-  it("puts the files, the browser steps and the provider in their own zones", () => {
-    const zones = new Set(describeSystem(input).nodes.map((n) => n.zone));
-    expect(zones).toEqual(new Set(["offline", "files", "browser", "provider"]));
+  it("walks retrieval, context, the model call and the response", () => {
+    const zones = describeSystem(input).nodes.map((n) => n.zone);
+    expect(new Set(zones)).toEqual(new Set(["retrieval", "context", "model", "response"]));
   });
 
-  it("marks exactly the two flows that leave the browser", () => {
+  it("marks the one call that carries the evidence out", () => {
     const leaving = leavingFlows(describeSystem(input));
-    expect(leaving.map((f) => f.to)).toEqual(["embedApi", "chatApi"]);
-    expect(leaving.every((f) => f.label !== null)).toBe(true);
+    expect(leaving.map((f) => f.to)).toEqual(["chatCall"]);
+    expect(leaving[0].label).toBe("the evidence text");
   });
 
-  it("carries the measured figures onto the parts that produced them", () => {
-    const nodes = describeSystem(input).nodes;
-    expect(nodes.find((n) => n.id === "prompt")?.value).toBe("4,780");
-    expect(nodes.find((n) => n.id === "embedApi")?.value).toBe("120ms");
-    expect(nodes.find((n) => n.id === "vectors")?.value).toBe("1 × 8");
+  it("names the calls a run pays for", () => {
+    expect(modelCalls(describeSystem(input)).map((n) => n.id)).toEqual(["embedCall", "chatCall"]);
   });
 
-  it("draws the shape with empty figures before anything has been asked", () => {
+  it("uses the provider's own prompt token count", () => {
+    expect(describeSystem(input).nodes.find((n) => n.id === "prompt")?.value).toBe("4,780");
+  });
+
+  it("marks an estimate when the provider counted nothing", () => {
+    const r = { ...run, stats: { ...run.stats, promptTokens: null }, messages: [{ stage: "chat" as const, role: "user" as const, content: "abcd abcd" }] };
+    expect(describeSystem({ ...input, run: r }).nodes.find((n) => n.id === "prompt")?.value?.startsWith("~")).toBe(true);
+  });
+
+  it("says the sidecar is missing rather than naming a model that was never used", () => {
+    const node = describeSystem({ ...input, embeddings: undefined }).nodes.find((n) => n.id === "embedCall");
+    expect(node?.note).toBe("needs the sidecar");
+    expect(node?.noteVars).toBeUndefined();
+  });
+
+  it("draws the shape with empty figures before anything is asked", () => {
     const nodes = describeSystem({ ...input, run: null }).nodes;
-    expect(nodes.find((n) => n.id === "rank")?.value).toBeNull();
-    expect(nodes.find((n) => n.id === "entities")?.value).toBe("1");
-  });
-
-  it("leaves the vector file blank when no sidecar was loaded", () => {
-    const nodes = describeSystem({ ...input, embeddings: undefined }).nodes;
-    expect(nodes.find((n) => n.id === "vectors")?.value).toBeNull();
-  });
-
-  it("counts only the communities that carry a summary", () => {
-    const bare: Partition = { ...partition, communities: new Map([["k", { ...community, report: undefined }]]) };
-    expect(describeSystem({ ...input, partition: bare }).nodes.find((n) => n.id === "reports")?.value).toBe("0");
+    expect(nodes.find((n) => n.id === "vector")?.value).toBeNull();
+    // The model name is a placeholder value now, so the note can be translated.
+    expect(nodes.find((n) => n.id === "embedCall")?.noteVars).toEqual({ model: "embed-1", dim: "8" });
   });
 });
 
@@ -70,17 +73,21 @@ describe("describeSystem for global", () => {
     run: { ...run, method: "global", stages: [{ name: "map", ms: 3500, calls: 4 }, { name: "reduce", ms: 900 }] },
   };
 
-  it("has no ranking step, because global does not rank entities", () => {
-    expect(describeSystem(g).nodes.some((n) => n.id === "rank")).toBe(false);
+  it("has no cosine step, because global ranks nothing", () => {
+    expect(describeSystem(g).nodes.some((n) => n.id === "vector")).toBe(false);
   });
 
-  it("shows both calls leaving the browser and says what each carries", () => {
+  it("shows both completions and what each one carries out", () => {
     const leaving = leavingFlows(describeSystem(g));
-    expect(leaving.map((f) => f.to)).toEqual(["mapApi", "reduceApi"]);
-    expect(leaving[0].label).toBe("every summary at the level");
+    expect(leaving.map((f) => f.to)).toEqual(["mapCall", "reduceCall"]);
+    expect(leaving[0].label).toBe("every summary");
   });
 
   it("reports how many batches the run actually made", () => {
     expect(describeSystem(g).nodes.find((n) => n.id === "batch")?.value).toBe("4");
+  });
+
+  it("counts both completions as calls", () => {
+    expect(modelCalls(describeSystem(g))).toHaveLength(2);
   });
 });

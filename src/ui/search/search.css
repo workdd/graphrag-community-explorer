@@ -127,9 +127,10 @@
 .search .system-map svg { min-width: 720px; }
 .search .system-map .zone { font-size: 10px; font-weight: 700; fill: var(--ink-3); letter-spacing: .02em; }
 .search .system-map .node rect { fill: #ffffff; stroke: #cfd8cd; stroke-width: 1; }
-.search .system-map .node.provider rect { stroke: #dbb9b6; }
+.search .system-map .node.call rect { stroke: #a3423c; stroke-width: 2; }
 .search .system-map .node .name { font-size: 11px; font-weight: 600; fill: var(--ink); }
 .search .system-map .node .value { font-size: 11px; fill: var(--ink-2); }
+.search .system-map .node .note { font-size: 9px; fill: var(--ink-3); }
 .search .system-map .flow path { fill: none; stroke: #8c96a0; stroke-width: 1.2; }
 .search .system-map .flow.out path { stroke: #a3423c; stroke-width: 2; }
 .search .system-map .flow-label { font-size: 9px; fill: var(--ink-3); text-anchor: middle; }
@@ -137,3 +138,20 @@
 .search .legend-out { display: flex; align-items: center; gap: 6px; margin: 6px 2px 0; font-size: 11px; }
 .search .legend-out i { display: inline-block; width: 18px; height: 2px; background: #a3423c; }
 .search details.system > summary { font-size: 12px; color: var(--ink-2); cursor: pointer; margin-bottom: 6px; }
+.search .space-ranking { width: 100%; border-collapse: collapse; font-size: 12px; margin-top: 8px; }
+.search .space-ranking th, .search .space-ranking td { text-align: left; padding: 3px 6px; border-bottom: 1px solid var(--rule); }
+.search .space-ranking th { color: var(--ink-2); font-weight: 600; }
+.search .space-ranking td.n { width: 28px; color: var(--ink-3); }
+.search .space-ranking td.s { width: 70px; text-align: right; font-variant-numeric: tabular-nums; }
+.search .space-ranking tbody tr { cursor: pointer; }
+.search .space-ranking tbody tr:hover { background: var(--depth-1); }
+.search .space-ranking tbody tr.dropped td { color: var(--ink-3); }
+.search .space-ranking tbody tr.picked { background: var(--depth-1); box-shadow: inset 3px 0 0 var(--accent); }
+.search .legend-space { display: flex; align-items: center; gap: 6px; margin: 6px 2px 0; font-size: 11px; }
+.search .legend-space i { display: inline-block; width: 10px; height: 10px; }
+.search .legend-space i.q { background: #b8860b; transform: rotate(45deg); }
+.search .legend-space i.kept { border-radius: 50%; background: #6b8f5e; }
+.search .legend-space i.cut { border-radius: 50%; border: 2px solid #c8a95e; }
+
+/* One place for prepared questions: the quick chips and the evaluation set, not two blocks. */
+.search .presets { display: flex; flex-direction: column; gap: 8px; max-width: 100ch; }

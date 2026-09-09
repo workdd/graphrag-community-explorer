@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { centreRows, fitToBox, normalizeRows, project, topComponents, totalSpread, type Matrix } from "./projection";
+import { boxScale, centreRows, fitToBox, normalizeRows, project, projectInto, topComponents, totalSpread, type Matrix } from "./projection";
 
 const matrix = (dim: number, rows: number[][]): Matrix => ({
   ids: rows.map((_, i) => `e${i}`),
@@ -123,5 +123,47 @@ describe("axes the data does not have", () => {
     const p = project(matrix(2, [[1, 0], [-1, 0], [0, 1], [0, -1]]), 3, 20);
     expect(p.variance.reduce((a, b) => a + b, 0)).toBeCloseTo(1, 4);
     expect(p.variance[2]).toBeCloseTo(0, 8);
+  });
+});
+
+describe("projectInto", () => {
+  it("puts a vector already in the data where the projection put it", () => {
+    const rows = [[2, 0, 0], [-2, 0, 0], [0, 1, 0], [0, -1, 0]];
+    const p = project(matrix(3, rows), 2, 30);
+    const again = projectInto(Float32Array.from(rows[0]), p.basis);
+    expect(again[0]).toBeCloseTo(p.coords[0], 4);
+    expect(again[1]).toBeCloseTo(p.coords[1], 4);
+  });
+
+  it("places a vector that was never in the data", () => {
+    const p = project(matrix(3, [[1, 0, 0], [-1, 0, 0], [0, 1, 0], [0, -1, 0]]), 2, 30);
+    const out = projectInto(Float32Array.from([0.7, 0.7, 0]), p.basis);
+    expect(out).toHaveLength(2);
+    expect(out.every((v) => Number.isFinite(v))).toBe(true);
+  });
+
+  it("ignores the length of the new vector, as it did for the rest", () => {
+    const p = project(matrix(3, [[1, 0, 0], [-1, 0, 0], [0, 1, 0], [0, -1, 0]]), 2, 30);
+    const small = projectInto(Float32Array.from([0.3, 0, 0]), p.basis);
+    const large = projectInto(Float32Array.from([30, 0, 0]), p.basis);
+    expect(small[0]).toBeCloseTo(large[0], 6);
+  });
+
+  it("refuses a vector of another width rather than drawing it somewhere wrong", () => {
+    const p = project(matrix(3, [[1, 0, 0], [-1, 0, 0]]), 2, 5);
+    expect(() => projectInto(Float32Array.from([1, 0]), p.basis)).toThrow(/dimensions/);
+  });
+});
+
+describe("boxScale", () => {
+  it("is the factor fitToBox applied", () => {
+    const p = project(matrix(2, [[-2, 0], [2, 0], [0, 1], [0, -1]]), 2, 20);
+    const scale = boxScale(p, 1);
+    const fitted = fitToBox(p, 1);
+    expect(fitted[0]).toBeCloseTo(p.coords[0] * scale, 6);
+  });
+
+  it("is zero when every point sits on the centre", () => {
+    expect(boxScale(project(matrix(2, [[1, 1], [1, 1]]), 2, 5), 1)).toBe(0);
   });
 });
