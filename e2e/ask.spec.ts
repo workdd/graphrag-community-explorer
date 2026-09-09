@@ -98,6 +98,10 @@ test("picking a citation reads the record beside the answer without leaving the 
   await expect(page.locator(".search .usage")).toContainText("cited 2 of the 3");
   await expect(page.locator(".search .used tbody tr.cited")).toHaveCount(2);
 
+  // The embedding space reads the same sidecar local search needs, so it is off without one.
+  await expect(page.getByRole("tab", { name: "Embedding space" })).toBeDisabled();
+  await expect(page.getByRole("tab", { name: "Relationships" })).toHaveAttribute("aria-selected", "true");
+
   // Nothing is open until something is picked.
   await expect(page.locator(".search .record-pane.empty")).toBeVisible();
 

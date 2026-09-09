@@ -1,10 +1,10 @@
-import { lazy, Suspense, useMemo, useRef, useState } from "react";
+import { lazy, Suspense, useEffect, useMemo, useRef, useState } from "react";
 import type { EmbeddingIndex } from "../../core/loaders/embeddings";
 import type { Dataset, Partition } from "../../core/model";
 import { mismatches } from "../../core/search/fingerprint";
 import { DEFAULT_GLOBAL } from "../../core/search/global";
 import { DEFAULT_LOCAL } from "../../core/search/local";
-import { newTrace, plannedCalls, runGlobal, runLocal } from "../../core/search/run";
+import { newTrace, plannedCalls, runGlobal, runLocal, type RetrievalObservation } from "../../core/search/run";
 import { suggestQuestions } from "../../core/search/suggestions";
 import { parseTraceJson, traceJson, TraceError } from "../../core/search/trace";
 import { emptyContext, type SearchContext, type SearchMethod, type SearchRun, type SearchTrace } from "../../core/search/types";
@@ -15,9 +15,11 @@ import { Answer } from "./Answer";
 import { RecordPanel } from "./RecordPanel";
 import { readableLink, readableTitle } from "./label";
 import { ScenarioPanel } from "./ScenarioPanel";
+import { EmbeddingSearch } from "./EmbeddingSearch";
 
 // Cytoscape is heavy and only the evidence graph needs it, so it loads with the first answer.
 const EvidenceGraph = lazy(() => import("./EvidenceGraph").then((m) => ({ default: m.EvidenceGraph })));
+const EmbeddingSpace = lazy(() => import("./EmbeddingSpace").then((m) => ({ default: m.EmbeddingSpace })));
 import { fromEnvironment, isConfigured, maskKey, PRESETS, readProvider, writeProvider, clearProvider } from "./provider";
 import "./search.css";
 
@@ -65,10 +67,13 @@ export function SearchView(props: Props) {
   const [busy, setBusy] = useState(false);
   const [run, setRun] = useState<SearchRun | null>(null);
   const [runQuery, setRunQuery] = useState("");
+  const [retrieval, setRetrieval] = useState<RetrievalObservation | null>(null);
+  useEffect(() => setRetrieval(null), [props.dataset, props.embeddings]);
   const [imported, setImported] = useState<SearchTrace | null>(null);
   const [notes, setNotes] = useState<string[]>([]);
   const abort = useRef<AbortController | null>(null);
   const [selection, setSelection] = useState<Selection | null>(null);
+  const [pane, setPane] = useState<"graph" | "space">("graph");
   const fileInput = useRef<HTMLInputElement>(null);
 
   const ready = isConfigured(provider);
@@ -93,6 +98,8 @@ export function SearchView(props: Props) {
     if (query === "" || busy || !ready || (method === "local" ? !localReady : globalPlan.reports === 0)) return;
     abort.current = new AbortController();
     setBusy(true);
+    if (method === "global") setRetrieval(null);
+    let observed = false;
     setImported(null);
     setNotes([]);
     try {
@@ -105,6 +112,7 @@ export function SearchView(props: Props) {
               provider,
               query,
               options: DEFAULT_LOCAL,
+              onRetrieval: (value) => { observed = true; setRetrieval(value); },
               responseLanguage: t("English"),
               signal: abort.current.signal,
             })
@@ -116,6 +124,7 @@ export function SearchView(props: Props) {
               responseLanguage: t("English"),
               signal: abort.current.signal,
             });
+      if (!observed) setRetrieval(null);
       setRun(result);
       setRunQuery(query);
       setSelection(null);
@@ -132,6 +141,7 @@ export function SearchView(props: Props) {
   };
 
   const importTrace = async (file: File) => {
+    setRetrieval(null);
     try {
       const load = parseTraceJson(await file.text());
       setImported(load.trace);
@@ -334,6 +344,8 @@ export function SearchView(props: Props) {
         {busy ? <button className="btn" onClick={() => abort.current?.abort()}>{t("Stop")}</button> : null}
       </div>
 
+      {retrieval && props.embeddings ? <EmbeddingSearch index={props.embeddings} dataset={props.dataset} observation={retrieval} /> : null}
+
       {notes.map((note, i) => (
         <p key={i} className="notice warn">{note}</p>
       ))}
@@ -382,9 +394,36 @@ export function SearchView(props: Props) {
             {t("The answer cited {cited} of the {retrieved} records that were sent to the model.", { cited: usage.cited, retrieved: usage.retrieved })}
           </p>
 
+          <div className="segmented pane-switch" role="tablist">
+            <button role="tab" aria-selected={pane === "graph"} className={pane === "graph" ? "active" : ""} onClick={() => setPane("graph")}>
+              {t("Relationships")}
+            </button>
+            <button
+              role="tab"
+              aria-selected={pane === "space"}
+              className={pane === "space" ? "active" : ""}
+              disabled={props.embeddings === undefined}
+              title={props.embeddings ? undefined : t("Needs embeddings.parquet")}
+              onClick={() => setPane("space")}
+            >
+              {t("Embedding space")}
+            </button>
+          </div>
+
           <div className="split">
             <Suspense fallback={<p className="muted">{t("Drawing the evidence…")}</p>}>
-              <EvidenceGraph context={run.context} cited={cited} selection={selection} onSelect={setSelection} />
+              {pane === "space" && props.embeddings ? (
+                <EmbeddingSpace
+                  dataset={props.dataset}
+                  embeddings={props.embeddings}
+                  context={run.context}
+                  cited={cited}
+                  selection={selection}
+                  onSelect={setSelection}
+                />
+              ) : (
+                <EvidenceGraph context={run.context} cited={cited} selection={selection} onSelect={setSelection} />
+              )}
             </Suspense>
             <RecordPanel
               dataset={props.dataset}

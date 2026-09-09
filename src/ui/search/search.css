@@ -82,3 +82,13 @@
 .search .used tbody tr.picked { background: var(--depth-1); box-shadow: inset 3px 0 0 var(--accent); }
 .search .used-mark { margin-left: 6px; padding: 0 5px; border: 1px solid #a3423c; border-radius: 8px; color: #a3423c; font-size: 10px; font-weight: 700; }
 .search .cite button.picked { background: var(--accent); color: var(--accent-ink); border-radius: 7px; padding: 0 5px; }
+
+/* The relationship graph and the embedding space answer different questions about the same run:
+   what is wired to what, and what sits near what. They share the left half and the selection. */
+.search .pane-switch { align-self: flex-start; }
+.search .space-pane { border: 1px solid var(--rule); border-radius: 6px; background: var(--surface); padding: 6px; min-width: 0; display: flex; flex-direction: column; }
+.search .space-pane .canvas { height: 440px; width: 100%; cursor: grab; }
+.search .space-pane .canvas:active { cursor: grabbing; }
+.search .space-pane .legend { display: flex; flex-wrap: wrap; gap: 12px; align-items: center; padding: 6px 4px 0; font-size: 12px; color: var(--ink-2); }
+.search .space-pane .legend .btn { padding: 3px 10px; }
+.search .space-pane .caveat { margin: 6px 4px 2px; font-size: 11px; line-height: 1.5; }

@@ -99,6 +99,20 @@ const KO: Record<string, string> = {
     "이 커뮤니티 열기",
   "Close":
     "닫기",
+  "Embedding space":
+    "임베딩 공간",
+  "Projecting {count} vectors of {dim} dimensions…":
+    "{dim}차원 벡터 {count}개를 투영하는 중…",
+  "Show 2D":
+    "2D 로 보기",
+  "Show 3D":
+    "3D 로 보기",
+  "Drag to turn":
+    "끌어서 회전",
+  "{shown} of the spread is on screen; {hidden} is not.":
+    "분포의 {shown}가 화면에 있고 {hidden}는 없습니다.",
+  "Distance on screen is not the cosine similarity the search used. Vectors are scaled to unit length and reduced with PCA, so records that overlap here can still be far apart, and the axes carry no business meaning.":
+    "화면의 거리는 검색이 쓴 코사인 유사도가 아닙니다. 벡터를 단위 길이로 맞춘 뒤 PCA로 줄인 것이라, 여기서 겹쳐 보이는 레코드도 원래 공간에서는 멀 수 있고 축에는 업무적 의미가 없습니다.",
   // search
   "Reports": "보고서",
   "Ask": "질문",
