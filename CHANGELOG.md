@@ -2,6 +2,9 @@
 
 ## Unreleased
 
+- A folder may carry an `example-run.json`, and the Ask tab offers it as one click. The shipped
+  sample has one, so the demo answers a question, resolves its citations and draws its evidence
+  graph without an API key.
 - Ask tab: local and global search against any OpenAI-compatible provider. The key stays in the
   browser, never in a saved run; `VITE_LLM_*` supplies the defaults and the build refuses to
   publish an inlined key unless `ALLOW_EMBEDDED_KEY=1`.

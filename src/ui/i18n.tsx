@@ -328,6 +328,10 @@ const KO: Record<string, string> = {
     "Global 은 이 레벨의 요약 {reports}건을 컨텍스트 창 {batches}개로 나눠 읽으므로 이 질문에 모델 호출이 약 {calls}회 듭니다.",
   "The vectors were made with {stored} and the question would be embedded with {asked}. A ranking is only meaningful when both come from the same model.":
     "벡터는 {stored} 로 만들었는데 질문은 {asked} 로 임베딩됩니다. 두 모델이 같아야 순위에 의미가 있습니다.",
+  "See a saved run": "저장된 실행 보기",
+  "A run recorded earlier, to read without calling a model": "이전에 기록해 둔 실행입니다. 모델을 호출하지 않고 읽습니다",
+  "This index carries a run recorded earlier, so the tab can be read before any provider is set up.":
+    "이 색인에는 이전에 기록해 둔 실행이 함께 있어, 제공자를 설정하기 전에도 이 탭을 볼 수 있습니다.",
   "Ask about this index": "이 색인에 대해 질문하세요",
   "Showing a saved run from {tool} {version}, made on {when}.": "{tool} {version} 이 {when} 에 저장한 실행입니다.",
   "This trace was made from another index ({files}), so its citations are not linked.":

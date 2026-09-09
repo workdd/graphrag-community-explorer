@@ -49,6 +49,8 @@ export interface LoadResult {
   embeddings?: EmbeddingIndex;
   /** Why an embeddings file that was present is not usable. */
   embeddingsNote?: string;
+  /** A saved run shipped with the index, as JSON text, when the folder carried one. */
+  exampleRun?: string;
 }
 
 export const str = (v: unknown): string | undefined => {

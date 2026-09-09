@@ -16,7 +16,7 @@ test("ask tab reports what it needs and never hides the network call", async ({ 
   await expect(page.getByRole("tab", { name: "Global" })).toBeEnabled();
 
   // The cost of a global question is shown before anything is spent.
-  await expect(page.locator(".search .notice.info").nth(1)).toContainText("model calls");
+  await expect(page.locator(".search .notice.info").last()).toContainText("model calls");
 
   // No key, no asking.
   await page.getByRole("textbox", { name: "Ask about this index" }).fill("what is this index about?");
@@ -117,4 +117,30 @@ test("picking a citation reads the record beside the answer without leaving the 
 
   await page.getByRole("button", { name: "Close" }).click();
   await expect(page.locator(".search .record-pane.empty")).toBeVisible();
+});
+
+// The sample carries a run recorded earlier. Without it a visitor with no API key reaches the tab
+// that the whole product is pointed at and can do nothing in it.
+test("the sample offers a saved run, so the tab reads without a provider", async ({ page }) => {
+  await page.goto("/");
+  await page.getByRole("button", { name: "Open the sample dataset" }).click();
+  await page.getByRole("tab", { name: "Ask", exact: true }).click();
+
+  // Offered before anything is configured, and it says what it is.
+  await expect(page.locator(".search .notice.info", { hasText: "recorded earlier" })).toBeVisible();
+  await page.getByRole("button", { name: "See a saved run" }).first().click();
+
+  // A real answer with citations that resolve against the sample this browser just loaded.
+  await expect(page.locator(".search .answer")).toContainText("Search events 7");
+  await expect(page.locator(".search .answer .cite").first()).toBeVisible();
+  await expect(page.locator(".search .usage")).toContainText("cited");
+  await expect(page.locator(".search")).not.toContainText("not linked");
+
+  // And it reads backwards: a citation opens the record beside the answer, in this tab.
+  await page.locator(".search .answer .cite button").first().click();
+  await expect(page.locator(".search .record-pane h3")).toBeVisible();
+  await expect(page.getByRole("tab", { name: "Ask", exact: true })).toHaveAttribute("aria-selected", "true");
+
+  // Nothing here called a model: the run was recorded, and the tab says so.
+  await expect(page.locator(".search")).toContainText("Showing a saved run");
 });

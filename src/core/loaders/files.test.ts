@@ -1,5 +1,6 @@
 import { describe, expect, it } from "vitest";
-import { classifyFile } from "./files";
+import { afterEach, vi } from "vitest";
+import { classifyFile, isExampleRun, readExampleRun } from "./files";
 
 describe("classifyFile", () => {
   it("maps GraphRAG file names of every version to tables", () => {
@@ -32,5 +33,49 @@ describe("a community set brought alongside the index", () => {
   it("ignores a name that only looks like one", () => {
     expect(classifyFile("reports.parquet")).toBeNull();
     expect(classifyFile("community_reports_backup.parquet")).toBeNull();
+  });
+});
+
+describe("a saved run left in the index folder", () => {
+  const answer = (body: string | null, type = "application/json", ok = true) =>
+    vi.fn().mockResolvedValue({
+      ok,
+      headers: { get: () => type },
+      text: async () => body ?? "",
+    });
+
+  afterEach(() => {
+    vi.unstubAllGlobals();
+  });
+
+  it("is recognized by name, whatever the folder or the case", () => {
+    expect(isExampleRun("example-run.json")).toBe(true);
+    expect(isExampleRun("output/Example-Run.JSON")).toBe(true);
+    expect(isExampleRun("example-run.parquet")).toBe(false);
+    expect(isExampleRun("run.json")).toBe(false);
+  });
+
+  it("is not one of the index tables, so it is never fingerprinted as data", () => {
+    expect(classifyFile("example-run.json")).toBeNull();
+  });
+
+  it("comes back as text when the folder has one", async () => {
+    vi.stubGlobal("fetch", answer('{"schemaVersion":"1.0"}'));
+    await expect(readExampleRun("/data/demo")).resolves.toBe('{"schemaVersion":"1.0"}');
+  });
+
+  it("is simply absent when the folder has none", async () => {
+    vi.stubGlobal("fetch", answer(null, "application/json", false));
+    await expect(readExampleRun("/data/demo")).resolves.toBeUndefined();
+  });
+
+  it("is absent when a dev server answers with its index page instead", async () => {
+    vi.stubGlobal("fetch", answer("<!doctype html>", "text/html"));
+    await expect(readExampleRun("/data/demo")).resolves.toBeUndefined();
+  });
+
+  it("never stops the index from loading when the request itself fails", async () => {
+    vi.stubGlobal("fetch", vi.fn().mockRejectedValue(new Error("offline")));
+    await expect(readExampleRun("/data/demo")).resolves.toBeUndefined();
   });
 });

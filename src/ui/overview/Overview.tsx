@@ -292,6 +292,7 @@ export function Overview({ result, label, onReset, datasets, activeData, onOpenD
             partition={realPartition ?? null}
             embeddings={result.embeddings}
             embeddingsNote={result.embeddingsNote}
+            exampleRun={result.exampleRun}
             fingerprints={result.fingerprints ?? {}}
             label={label}
             version={APP_VERSION}

@@ -18,6 +18,13 @@ export const CANONICAL_FILES: Record<TableName, string[]> = {
 
 export const EMBEDDINGS_FILE = "embeddings.parquet";
 
+/**
+ * A saved run left in the index folder. The Ask tab offers it as one click, so a reader can see how
+ * an answer maps back to records before deciding whether to configure a provider at all. It is data
+ * about a past run, not part of the index, so it is not fingerprinted with the tables.
+ */
+export const EXAMPLE_RUN_FILE = "example-run.json";
+
 export type FileRole =
   | { table: TableName }
   | { partition: string }
@@ -46,7 +53,7 @@ interface Loaded {
   buffer: ArrayBuffer;
 }
 
-async function assemble(files: Loaded[]): Promise<LoadResult> {
+async function assemble(files: Loaded[], exampleRun?: string): Promise<LoadResult> {
   const tables: Partial<Record<TableName, Row[]>> = {};
   const extraPartitions: Record<string, Row[]> = {};
   const extraReports: Record<string, Row[]> = {};
@@ -96,8 +103,10 @@ async function assemble(files: Loaded[]): Promise<LoadResult> {
     extraPartitions,
     extraReports,
   };
-  return { ...buildDataset(input, used), fingerprints, embeddings, embeddingsNote };
+  return { ...buildDataset(input, used), fingerprints, embeddings, embeddingsNote, exampleRun };
 }
+
+export const isExampleRun = (name: string): boolean => name.split("/").pop()!.toLowerCase() === EXAMPLE_RUN_FILE;
 
 export async function loadFromFiles(files: File[]): Promise<LoadResult> {
   const loaded = await Promise.all(
@@ -105,7 +114,8 @@ export async function loadFromFiles(files: File[]): Promise<LoadResult> {
       .filter((f) => classifyFile(f.name) !== null)
       .map(async (f) => ({ name: f.name, role: classifyFile(f.name), buffer: await f.arrayBuffer() })),
   );
-  return assemble(loaded);
+  const example = files.find((f) => isExampleRun(f.name));
+  return assemble(loaded, example ? await example.text() : undefined);
 }
 
 /**
@@ -134,7 +144,18 @@ export async function loadFromUrl(base: string): Promise<LoadResult> {
   );
   const present = loaded.filter((f): f is Loaded => f !== null);
   if (present.length === 0) throw new Error(`No Parquet files found under ${root}.`);
-  return assemble(present);
+  return assemble(present, await readExampleRun(root));
+}
+
+/** A missing or unreadable example is simply no example; it never stops an index from loading. */
+export async function readExampleRun(root: string): Promise<string | undefined> {
+  try {
+    const response = await fetch(`${root}/${EXAMPLE_RUN_FILE}`);
+    if (!response.ok || !(response.headers.get("content-type") ?? "").includes("json")) return undefined;
+    return await response.text();
+  } catch {
+    return undefined;
+  }
 }
 
 export interface DatasetRef {

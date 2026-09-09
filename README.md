@@ -1,10 +1,34 @@
 # GraphRAG Community Explorer
 
-Community-first explorer for [Microsoft GraphRAG](https://github.com/microsoft/graphrag) outputs.
-Open the Parquet files GraphRAG writes, read the schema and the community hierarchy first, then
-descend into the entities and relationships inside each community, and ask a question whose answer
-links back to the records it used. Browsing runs entirely in your browser; no file is uploaded
-anywhere. Asking a question is the one exception, and the app says so on the screen where it happens.
+**Open a [Microsoft GraphRAG](https://github.com/microsoft/graphrag) index in your browser, ask it a
+question, and follow the answer back to the exact records it used.** No server, no install, nothing
+uploaded.
+
+[![live demo](https://img.shields.io/badge/demo-live-1f6feb)](https://workdd.github.io/graphrag-community-explorer/)
+[![license MIT](https://img.shields.io/badge/license-MIT-black)](LICENSE)
+[![runs in the browser](https://img.shields.io/badge/backend-none-black)](#try-it)
+[![GraphRAG 0.3 to 2.x](https://img.shields.io/badge/GraphRAG-0.3%20to%202.x-black)](#what-it-reads)
+
+![Opening the sample index on its schema, drawing the whole graph with community clouds, then asking a question and following one citation to the record it names and to the evidence graph](docs/screenshots/ask.gif)
+
+**[Open the demo](https://workdd.github.io/graphrag-community-explorer/) → Ask → See a saved run.**
+No API key needed: the sample ships with a recorded run, so the whole answer-to-evidence path is one
+click away.
+
+## Why this and not a graph viewer
+
+A graph viewer draws your nodes. This draws the way GraphRAG actually organizes them, and then shows
+you what a search does with them.
+
+- **Communities first, not a hairball.** The index opens on its own schema and its community
+  hierarchy, because that is what GraphRAG builds and what nothing else shows.
+- **Answers you can check.** Every citation is a button that opens the record it names, with the
+  exact text that went into the prompt. Records that were retrieved and *not* cited stay on screen
+  too, so what the model ignored is as visible as what it used.
+- **The pipeline is on screen.** The retrieval, the token budget, each model call with its measured
+  milliseconds, and the prompt verbatim. Local and global search both, following GraphRAG's methods.
+- **Nothing to stand up.** A folder of Parquet and a browser tab. The official
+  `unified-search-app` needs Python, Streamlit and a pinned GraphRAG install.
 
 Status: 0.2, alpha. Loader, schema view, network view, community hierarchy and map, report
 inspector, integrity checks, quality metrics, partition comparison, source-text evidence and the
@@ -70,6 +94,12 @@ answer here is not guaranteed to match what `graphrag query` returns from the sa
   scored points from each window, keeps the best of them and asks once more for the answer. It needs
   `community_reports.parquet` and no embeddings, which is how GraphRAG's global search works too.
 
+Before configuring anything, you can read a run that was recorded earlier. The shipped sample
+carries one, and the tab offers it as **See a saved run**: a real answer, with its citations, its
+evidence graph and the records it passed over, all resolving against the index in front of you. Drop
+an `example-run.json` next to your own index and it does the same there; **Save this run** writes
+the file.
+
 Any OpenAI-compatible endpoint will do. The key lives in your browser's local storage, never in a
 saved run and never in a log line. Presets for Upstage and OpenAI fill in the two model names; the
 embedding model matters, because a question embedded with a different model than the sidecar was
@@ -127,6 +157,7 @@ their schema type, weighted towards the kinds of record people ask impact questi
 | `covariates.parquet` | Claims about entities, listed on the entity panel and offered to local search. |
 | `embeddings.parquet` | Optional sidecar of entity vectors written by `tools/embed_index`. Local search and the embedding space need it; nothing else does. |
 | `<label>_communities.parquet` | Any additional community set (for example `leiden_communities.parquet`) becomes a switchable partition. |
+| `example-run.json` | Optional saved run. When a folder carries one, the Ask tab offers it as one click, so the tab can be read before any provider is configured. |
 
 Levels are shown from the root down: the root reads L0 and children count up, which is GraphRAG's
 own numbering. A file that numbers its roots highest (Apache AGE resource tiers) or starts at one is
@@ -288,6 +319,7 @@ GraphRAG 산출물(Parquet)을 커뮤니티 단위로 읽는 뷰어입니다. �
 
 - 실행: `npm install` 후 `npm run dev`, 그리고 **Open the sample dataset** 또는 GraphRAG `output/` 폴더를 드롭. 상단의 **한국어** 버튼으로 화면 언어를 바꿀 수 있습니다.
 - 로컬 실데이터: `local-data/<이름>/` 에 두고 `?data=./data/<이름>` 으로 엽니다. 이 폴더는 Git 이 무시하고 빌드에도 들어가지 않습니다. `.env.development.local` 에 `VITE_DEFAULT_DATA=./data/<이름>` 을 적으면 시작 시 바로 열립니다.
+- 키 없이 보기: 표본에는 미리 기록해 둔 실행이 들어 있습니다. 질문 탭의 **저장된 실행 보기** 를 누르면 실제 답변과 인용, 근거 그래프, 검색되었지만 인용되지 않은 레코드까지 그대로 열립니다. 직접 만든 색인 폴더에 `example-run.json` 을 두면 똑같이 동작하며, 그 파일은 **이 실행 저장** 이 만들어 줍니다.
 - 질문 탭: OpenAI 호환 엔드포인트면 무엇이든 됩니다. 키는 브라우저에만 남고 저장된 실행 기록에는 들어가지 않습니다. `.env.development.local` 의 `VITE_LLM_*` 로 미리 지정할 수 있으며, 키를 넣은 채로 빌드하면 `ALLOW_EMBEDDED_KEY=1` 을 붙이지 않는 한 빌드가 거부합니다.
 - Local 검색은 엔티티 벡터가 필요합니다. `tools/embed_index/embed_index.py --index <색인 경로>` 로 `embeddings.parquet` 을 만들어 색인 옆에 둡니다. Global 검색은 커뮤니티 보고서만 읽으므로 벡터가 필요 없습니다.
 - 추가 커뮤니티 집합: `<라벨>_communities.parquet` 파일을 함께 올리면 상단에서 전환할 수 있습니다.

@@ -29,6 +29,8 @@ interface Props {
   partition: Partition | null;
   embeddings?: EmbeddingIndex;
   embeddingsNote?: string;
+  /** A saved run shipped with the index, offered as one click so the tab can be read without a key. */
+  exampleRun?: string;
   fingerprints: Record<string, string>;
   label: string;
   version: string;
@@ -147,10 +149,10 @@ export function SearchView(props: Props) {
     downloadText("search-trace.json", traceJson(trace));
   };
 
-  const importTrace = async (file: File) => {
+  const showTrace = (json: string) => {
     setRetrieval(null);
     try {
-      const load = parseTraceJson(await file.text());
+      const load = parseTraceJson(json);
       setImported(load.trace);
       setRun(load.trace.runs[0] ?? null);
       setSelection(null);
@@ -168,6 +170,8 @@ export function SearchView(props: Props) {
       setNotes([error instanceof TraceError ? error.message : String(error)]);
     }
   };
+
+  const importTrace = async (file: File) => showTrace(await file.text());
 
   const linked = imported === null || mismatches(imported.index.files, props.fingerprints).length === 0;
 
@@ -205,6 +209,11 @@ export function SearchView(props: Props) {
         <button className="btn" onClick={() => setShowSettings((v) => !v)}>
           {ready ? t("Provider: {key}", { key: maskKey(provider.apiKey) }) : t("Set up a provider")}
         </button>
+        {props.exampleRun && run === null ? (
+          <button className="btn" onClick={() => showTrace(props.exampleRun!)} title={t("A run recorded earlier, to read without calling a model")}>
+            {t("See a saved run")}
+          </button>
+        ) : null}
         <button className="btn" onClick={() => fileInput.current?.click()}>{t("Open a trace")}</button>
         <button className="btn" onClick={exportTrace} disabled={!run || imported !== null}>{t("Save this run")}</button>
         <input
@@ -223,6 +232,13 @@ export function SearchView(props: Props) {
       <p className="notice info">
         <Rich text={t("Browsing stays in this tab. **Asking a question sends the selected evidence to the provider you configure.**")} />
       </p>
+
+      {props.exampleRun && run === null && !ready ? (
+        <p className="notice info">
+          {t("This index carries a run recorded earlier, so the tab can be read before any provider is set up.")}{" "}
+          <button className="btn small" onClick={() => showTrace(props.exampleRun!)}>{t("See a saved run")}</button>
+        </p>
+      ) : null}
 
       {showSettings ? (
         <div className="settings">
