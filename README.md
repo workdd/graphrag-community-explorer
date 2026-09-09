@@ -141,6 +141,12 @@ a cloud reads that community in the inspector and dragging one pulls it aside. L
 a community is mostly the links between its members, so a clickable link would leave the community
 unclickable over most of its area. Links are read from the inspector, which lists them by name.
 
+Clicking a record reads it where it stands. The graph stays exactly as it was; two hops around the
+record light up, everything else fades to a ghost rather than disappearing, and the record and its
+two rings hold a size on screen so they can be found with the whole graph in view. Double-clicking
+is the deliberate step that redraws the picture around that one record, with a few of its
+neighbours named and the rest counted.
+
 `Arrange: layers` puts one column per entity type and orders the columns so that as many
 relationships as possible run forward, using a greedy feedback arc set. It reports the share that
 made it, and draws the rest dashed red. Long columns wrap into sub-columns so the picture stays

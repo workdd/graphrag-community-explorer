@@ -6,16 +6,28 @@ export interface LabellerOptions {
   priority?: (node: cytoscape.NodeSingular) => number;
   /** Names drawn at most, whatever the room. */
   limit?: number;
+  /**
+   * Smallest this node may be on screen, in pixels. A node the reader just picked out has to stay
+   * findable when the whole graph is in view, where everything else is a couple of pixels across.
+   */
+  floor?: (node: cytoscape.NodeSingular) => number | undefined;
+}
+
+export interface Labeller {
+  /** Places the names again: call it when the ranking has changed but the camera has not. */
+  refresh: () => void;
+  detach: () => void;
 }
 
 /**
  * Names appear as there is room for them. On every pan and zoom the visible nodes are measured in
  * screen pixels, the best are placed first and anything that would collide is left unnamed, so
- * zooming in reveals names rather than piling them on top of each other. Returns a detach function.
+ * zooming in reveals names rather than piling them on top of each other.
  */
-export function attachLabeller(cy: cytoscape.Core, options: LabellerOptions = {}): () => void {
+export function attachLabeller(cy: cytoscape.Core, options: LabellerOptions = {}): Labeller {
   const limit = options.limit ?? 140;
   const priority = options.priority ?? ((node) => node.degree(false));
+  const floor = options.floor ?? (() => undefined);
   let frame: number | undefined;
 
   const run = () => {
@@ -57,9 +69,15 @@ export function attachLabeller(cy: cytoscape.Core, options: LabellerOptions = {}
         node.toggleClass("nolabel", !on);
         // Cytoscape scales everything with the view. Zooming in should spread the picture out, not
         // magnify it, so the text and the dots are divided back down to a steady size on screen.
-        const steady = 1 / Math.max(zoom, 1);
-        if (on) node.style("font-size", (Number(node.data("fontSize")) || 10) * steady);
+        let steady = 1 / Math.max(zoom, 1);
         const size = Number(node.data("size"));
+        // A floor is given in screen pixels, so it is divided back through the zoom to reach the
+        // model size that draws that many pixels.
+        const least = floor(node);
+        if (least !== undefined && Number.isFinite(size) && size > 0) {
+          steady = Math.max(steady, least / (size * zoom));
+        }
+        if (on) node.style("font-size", (Number(node.data("fontSize")) || 10) * steady);
         if (Number.isFinite(size) && size > 0) node.style({ width: size * steady, height: size * steady });
       }
     });
@@ -72,8 +90,11 @@ export function attachLabeller(cy: cytoscape.Core, options: LabellerOptions = {}
 
   cy.on("zoom pan resize", schedule);
   schedule();
-  return () => {
-    cy.off("zoom pan resize", schedule);
-    if (frame !== undefined) cancelAnimationFrame(frame);
+  return {
+    refresh: schedule,
+    detach: () => {
+      cy.off("zoom pan resize", schedule);
+      if (frame !== undefined) cancelAnimationFrame(frame);
+    },
   };
 }

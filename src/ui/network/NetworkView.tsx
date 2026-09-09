@@ -12,7 +12,7 @@ import { exportCytoscapePng } from "../download";
 import { fmt } from "../format";
 import { attachClouds, cloudColors, type CloudGroup } from "../graph/clouds";
 import { fadeable } from "../graph/focus";
-import { attachLabeller } from "../graph/labeller";
+import { attachLabeller, type Labeller } from "../graph/labeller";
 import type { GraphFocus } from "../graph/CommunityGraph";
 import { loadCachedLayout, requestLayout, saveCachedLayout } from "../graph/layoutClient";
 import { useT } from "../i18n";
@@ -127,6 +127,7 @@ export function NetworkView({ dataset, partition, focus, onFocus, selectedCommun
   const wrap = useRef<HTMLDivElement>(null);
   const cyRef = useRef<cytoscape.Core | undefined>(undefined);
   const cloudsRef = useRef<CloudGroup[]>([]);
+  const labellerRef = useRef<Labeller | undefined>(undefined);
   const [legend, setLegend] = useState<CommunityLegend[]>([]);
   const [layoutMs, setLayoutMs] = useState<number | null>(null);
   const [ready, setReady] = useState<{ signature: string; positions: Positions } | null>(null);
@@ -602,6 +603,8 @@ export function NetworkView({ dataset, partition, focus, onFocus, selectedCommun
         { selector: "edge.on", style: { width: 2, "line-color": "#8b9dd4", "target-arrow-color": "#8b9dd4", opacity: 1, label: "data(label)", "font-size": 10, color: "#5a6fbe", "text-background-color": "#ffffff", "text-background-opacity": 0.85, "z-index": 3 } },
         // A hub with hundreds of links would drown the picture in repeated labels.
         { selector: "edge.on.many", style: { label: "", width: 1.2, opacity: 0.5 } },
+        { selector: "node.hop2", style: { "border-width": 1.5, "border-color": "#aab2bb", "z-index": 15 } },
+        { selector: "edge.on.far", style: { width: 1.2, "line-color": "#b9c4de", "target-arrow-color": "#b9c4de", label: "", opacity: 0.75, "z-index": 2 } },
         { selector: "edge.picked", style: { width: 2.5, "line-color": "#c08a4e", "target-arrow-color": "#c08a4e", opacity: 1, "z-index": 4 } },
       ],
       layout: { name: "preset" },
@@ -657,14 +660,6 @@ export function NetworkView({ dataset, partition, focus, onFocus, selectedCommun
       const id = (event.target.id() as string).replace(/^comm:/, "");
       propsRef.current.onOpenCommunityGraph(id);
     });
-    cy.on("tap", "node.record", (event) => {
-      const id = event.target.id();
-      propsRef.current.onFocus({ kind: "entity", id });
-      // Clicking a record moves the centre there: a few of its neighbours by name, the rest counted.
-      propsRef.current.onSeed(id);
-      setOpenGroups(new Set());
-      setArrange("focus");
-    });
     cy.on("tap", "node.summary", (event) => {
       const type = event.target.data("fullType") as string | undefined;
       if (type) {
@@ -674,12 +669,25 @@ export function NetworkView({ dataset, partition, focus, onFocus, selectedCommun
       const key = event.target.data("groupKey") as string;
       if (key) setOpenGroups((prev) => new Set([...prev, key]));
     });
-    // Everything that is not a record has its own handler above; this one must not claim them, or a
-    // community would be read as an entity that does not exist.
-    const notARecord = ["typenode", "typebox", "record", "commgroup", "summary", "band"];
+    // Everything that is not a record has its own handler above; these two must not claim them, or
+    // a community would be read as an entity that does not exist. A record carries the `record`
+    // class in the schema arrangement and no class at all in the others, so it is named by what it
+    // is not.
+    const notARecord = ["typenode", "typebox", "commgroup", "summary", "band"];
+    const isRecord = (node: cytoscape.NodeSingular) => !notARecord.some((name) => node.hasClass(name));
+    // A click reads a record where it already is, so the graph it sits in stays on screen. Moving
+    // the centre onto it redraws the picture entirely, which is a bigger step than one click.
     cy.on("tap", "node", (event) => {
-      if (notARecord.some((name) => event.target.hasClass(name))) return;
+      if (!isRecord(event.target)) return;
       propsRef.current.onFocus({ kind: "entity", id: event.target.id() });
+    });
+    cy.on("dbltap", "node", (event) => {
+      if (!isRecord(event.target)) return;
+      const id = event.target.id();
+      propsRef.current.onFocus({ kind: "entity", id });
+      propsRef.current.onSeed(id);
+      setOpenGroups(new Set());
+      setArrange("focus");
     });
     cy.on("tap", (event) => {
       if (event.target === cy) propsRef.current.onFocus(null);
@@ -688,17 +696,30 @@ export function NetworkView({ dataset, partition, focus, onFocus, selectedCommun
     const detach = attachClouds(cy, wrap.current, () => cloudsRef.current);
     // Members of a community are named before loose records, and hubs before the rest, which is
     // what makes a crowded picture still say what it is about.
-    const stopLabels = attachLabeller(cy, {
+    const labeller = attachLabeller(cy, {
       priority: (node) => {
-        if (node.hasClass("seed")) return 1e9;
+        if (node.hasClass("seed") || node.hasClass("focus")) return 1e9;
         if (node.hasClass("typenode") || node.hasClass("typebox") || node.hasClass("summary")) return 1e8;
+        // What the reader just clicked, and what it touches, is named before anything else on screen.
+        if (node.hasClass("neighbor")) return 1e7 + node.degree(false);
+        if (node.hasClass("hop2")) return 5e6 + node.degree(false);
         const inCommunity = primaryRef.current.has(node.id()) ? 1e6 : 0;
         return inCommunity + node.degree(false);
       },
+      // Zoomed right out every record is a couple of pixels wide. The record that was clicked and
+      // the ring around it hold a size on screen instead, so the reader can see where they are.
+      floor: (node) => {
+        if (node.hasClass("focus")) return 14;
+        if (node.hasClass("neighbor")) return 10;
+        if (node.hasClass("hop2")) return 7;
+        return undefined;
+      },
     });
     if (import.meta.env.DEV) (window as unknown as { __cyNetwork?: cytoscape.Core }).__cyNetwork = cy;
+    labellerRef.current = labeller;
     return () => {
-      stopLabels();
+      labellerRef.current = undefined;
+      labeller.detach();
       detach();
       cy.destroy();
       cyRef.current = undefined;
@@ -771,7 +792,7 @@ export function NetworkView({ dataset, partition, focus, onFocus, selectedCommun
     const cy = cyRef.current;
     if (!cy) return;
     cy.batch(() => {
-      cy.elements().removeClass("dim focus neighbor on picked");
+      cy.elements().removeClass("dim focus neighbor hop2 on far many picked");
       cy.nodes(".commgroup").removeClass("selected");
       if (selectedCommunityId) cy.getElementById(`comm:${selectedCommunityId}`).addClass("selected");
       // The focus arrangement is already the neighbourhood of one record, so dimming it would only
@@ -781,14 +802,26 @@ export function NetworkView({ dataset, partition, focus, onFocus, selectedCommun
       if (focus?.kind === "entity") {
         const node = cy.getElementById(focus.id);
         if (node.empty()) return;
-        const near = node.closedNeighborhood();
-        fades.not(near).addClass("dim");
+        // Two hops, always: one hop shows what a record touches, the second shows what that reaches
+        // in turn, which is what makes the record's place in the graph readable.
+        const hop1 = node.closedNeighborhood();
+        const hop2 = hop1.closedNeighborhood();
+        fades.not(hop2).addClass("dim");
         node.addClass("focus");
-        near.nodes().not(node).addClass("neighbor");
+        hop1.nodes().not(node).addClass("neighbor");
+        hop2.nodes().not(hop1).addClass("hop2");
         const links = node.connectedEdges();
         links.addClass("on");
         if (links.length > 30) links.addClass("many");
-        cy.animate({ center: { eles: node }, zoom: Math.max(cy.zoom(), 0.9) }, { duration: 250 });
+        // The second hop is drawn without labels; naming every link out there buries the first hop.
+        hop2.edges().not(links).addClass("on far");
+        // Only move the camera when the record is off screen. Panning a picture the reader is
+        // already looking at reads as the view being replaced.
+        const extent = cy.extent();
+        const at = node.position();
+        if (at.x < extent.x1 || at.x > extent.x2 || at.y < extent.y1 || at.y > extent.y2) {
+          cy.animate({ center: { eles: node } }, { duration: 250 });
+        }
       } else if (focus?.kind === "relationship") {
         const edge = cy.getElementById(focus.id);
         if (edge.empty()) return;
@@ -796,6 +829,8 @@ export function NetworkView({ dataset, partition, focus, onFocus, selectedCommun
         edge.addClass("picked");
       }
     });
+    // The ranking changed even when the camera did not, so the names are placed again.
+    labellerRef.current?.refresh();
   }, [focus, ready, arrange, selectedCommunityId]);
 
   const find = () => {
@@ -1009,7 +1044,7 @@ export function NetworkView({ dataset, partition, focus, onFocus, selectedCommun
         )}
         {arrange === "layers" && layers.total > 0 && t("Columns are ordered so {share} of relationships point forward; the ones that do not are dashed red.", { share: `${Math.round((layers.forward / layers.total) * 100)}%` })}{" "}
         {arrange === "force" && layoutMs !== null && layoutMs > 0 && t("Layout {ms} ms off the main thread.", { ms: Math.round(layoutMs) })}{" "}
-        {t("Click a node for its neighbours, a community for its summary, the background to clear.")}
+        {t("Click a node to light up two hops around it, double-click to draw it on its own. A community reads its summary; the background clears.")}
         {focused && focusedCommunity && (
           <>
             {" "}

@@ -129,3 +129,36 @@ test("links take no clicks, so a tap inside a community reads the community", as
   // and at least one of those clicks landed on a community rather than on nothing
   expect(headings.filter((heading) => heading !== "").length).toBeGreaterThan(0);
 });
+
+// A click reads a record where it stands. The graph it sits in has to stay on screen.
+test("clicking a record keeps the graph and centres it only on a double-click", async ({ page }) => {
+  await page.goto("/?data=./samples/demo#view=network");
+  await expect(page.locator(".graph-stats")).toContainText("types drawn", { timeout: 30_000 });
+  const arrange = page.locator(".control", { hasText: new RegExp("^Arrange") }).locator("select");
+  await arrange.selectOption("force");
+  await expect(page.locator(".graph-stats")).toContainText("entities and", { timeout: 30_000 });
+
+  const canvas = page.locator(".graph-canvas");
+  const box = (await canvas.boundingBox())!;
+  const record = page.locator(".inspector button", { hasText: "Explore neighbourhood" });
+  let hit: { x: number; y: number } | null = null;
+  for (let i = 0; i < 60 && !hit; i++) {
+    const x = box.x + box.width * (0.2 + 0.1 * (i % 7));
+    const y = box.y + box.height * (0.2 + 0.1 * Math.floor(i / 7));
+    await page.mouse.click(x, y);
+    // Longer than Cytoscape's double-tap window, or two probes in one community read as one
+    // double-click and open that community's own graph.
+    await page.waitForTimeout(320);
+    if (await record.count()) hit = { x, y };
+  }
+  expect(hit).not.toBeNull();
+
+  // The arrangement is untouched: the reader is still looking at the same picture.
+  await expect(arrange).toHaveValue("force");
+  await expect(page.locator(".chip.static", { hasText: "centred on" })).toHaveCount(0);
+
+  // Centring on the record is a second, deliberate click.
+  await page.mouse.dblclick(hit!.x, hit!.y);
+  await expect(arrange).toHaveValue("focus", { timeout: 30_000 });
+  await expect(page.locator(".chip.static", { hasText: "centred on" })).toHaveCount(1);
+});
