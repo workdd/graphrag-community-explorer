@@ -1,5 +1,7 @@
 # GraphRAG Community Explorer
 
+**English** · [한국어](README.ko.md)
+
 **Open a [Microsoft GraphRAG](https://github.com/microsoft/graphrag) index in your browser, ask it a
 question, and follow the answer back to the exact records it used.** No server, no install, nothing
 uploaded.
@@ -310,17 +312,7 @@ branch and is not used by the current application.
 
 ---
 
-## 한국어 안내
+## 한국어
 
-GraphRAG 산출물(Parquet)을 커뮤니티 단위로 읽는 뷰어입니다. 스키마와 계층 트리, 커뮤니티 표, 보고서(요약·발견·순위),
-무결성 검사가 먼저 나오고, 그래프는 그 위에서 엽니다. **질문** 탭에서는 열려 있는 색인을 근거로 답을 받고, 답이 인용한
-레코드를 그 자리에서 되짚을 수 있습니다. 탐색은 모두 브라우저 안에서 끝나며 파일은 어디에도 업로드되지 않습니다. 질문만
-예외이고, 그 사실을 질문 화면에 적어 두었습니다.
-
-- 실행: `npm install` 후 `npm run dev`, 그리고 **Open the sample dataset** 또는 GraphRAG `output/` 폴더를 드롭. 상단의 **한국어** 버튼으로 화면 언어를 바꿀 수 있습니다.
-- 로컬 실데이터: `local-data/<이름>/` 에 두고 `?data=./data/<이름>` 으로 엽니다. 이 폴더는 Git 이 무시하고 빌드에도 들어가지 않습니다. `.env.development.local` 에 `VITE_DEFAULT_DATA=./data/<이름>` 을 적으면 시작 시 바로 열립니다.
-- 키 없이 보기: 표본에는 미리 기록해 둔 실행이 들어 있습니다. 질문 탭의 **저장된 실행 보기** 를 누르면 실제 답변과 인용, 근거 그래프, 검색되었지만 인용되지 않은 레코드까지 그대로 열립니다. 직접 만든 색인 폴더에 `example-run.json` 을 두면 똑같이 동작하며, 그 파일은 **이 실행 저장** 이 만들어 줍니다.
-- 질문 탭: OpenAI 호환 엔드포인트면 무엇이든 됩니다. 키는 브라우저에만 남고 저장된 실행 기록에는 들어가지 않습니다. `.env.development.local` 의 `VITE_LLM_*` 로 미리 지정할 수 있으며, 키를 넣은 채로 빌드하면 `ALLOW_EMBEDDED_KEY=1` 을 붙이지 않는 한 빌드가 거부합니다.
-- Local 검색은 엔티티 벡터가 필요합니다. `tools/embed_index/embed_index.py --index <색인 경로>` 로 `embeddings.parquet` 을 만들어 색인 옆에 둡니다. Global 검색은 커뮤니티 보고서만 읽으므로 벡터가 필요 없습니다.
-- 추가 커뮤니티 집합: `<라벨>_communities.parquet` 파일을 함께 올리면 상단에서 전환할 수 있습니다.
-- 푸시 전 검사: `npm run hooks` 로 pre-push 훅을 설치하면 실데이터·환경 파일·사내 식별자가 섞인 커밋을 막습니다.
+한국어 문서는 [README.ko.md](README.ko.md) 에 있습니다. 화면 언어도 상단의 **한국어** 버튼으로 바꿀 수
+있으며, 선택은 브라우저에 기억됩니다.
