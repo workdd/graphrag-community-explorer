@@ -1,6 +1,6 @@
 # Changelog
 
-## Unreleased
+## 0.3.0 (2026-09-09)
 
 - A folder may carry an `example-run.json`, and the Ask tab offers it as one click. The shipped
   sample has one, so the demo answers a question, resolves its citations and draws its evidence

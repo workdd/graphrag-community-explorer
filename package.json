@@ -1,6 +1,6 @@
 {
   "name": "graphrag-community-explorer",
-  "version": "0.2.0",
+  "version": "0.3.0",
   "description": "Community-first explorer for Microsoft GraphRAG outputs and Apache AGE exports. Runs entirely in the browser.",
   "license": "MIT",
   "type": "module",
