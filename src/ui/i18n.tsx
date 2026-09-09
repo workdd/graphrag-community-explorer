@@ -113,6 +113,20 @@ const KO: Record<string, string> = {
     "분포의 {shown}가 화면에 있고 {hidden}는 없습니다.",
   "Distance on screen is not the cosine similarity the search used. Vectors are scaled to unit length and reduced with PCA, so records that overlap here can still be far apart, and the axes carry no business meaning.":
     "화면의 거리는 검색이 쓴 코사인 유사도가 아닙니다. 벡터를 단위 길이로 맞춘 뒤 PCA로 줄인 것이라, 여기서 겹쳐 보이는 레코드도 원래 공간에서는 멀 수 있고 축에는 업무적 의미가 없습니다.",
+  "Zoom to the cited":
+    "인용된 것에 맞추기",
+  "Question similarity":
+    "질문과의 유사도",
+  "Similarity to the selected":
+    "선택한 것과의 유사도",
+  "Not in this run":
+    "이 실행에 쓰이지 않음",
+  "Drag to turn, shift-drag to move, wheel to zoom":
+    "끌면 회전, shift+끌면 이동, 휠로 확대",
+  "Drag to move, wheel to zoom":
+    "끌면 이동, 휠로 확대",
+  "Show only this type":
+    "이 유형만 보기",
   // search
   "Reports": "보고서",
   "Ask": "질문",
