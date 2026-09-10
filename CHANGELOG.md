@@ -1,6 +1,6 @@
 # Changelog
 
-## Unreleased
+## 0.4.0 (2026-09-10)
 
 - **Health**: the quality numbers stated as named problems. Entities no community claims, one
   community swallowing a level, communities global search cannot read, modularity that says the

@@ -69,7 +69,7 @@ you what a search does with them.
 - **Nothing to stand up.** A folder of Parquet and a browser tab. The official
   `unified-search-app` needs Python, Streamlit and a pinned GraphRAG install.
 
-Status: 0.3, alpha. Loader, schema view, network view, community hierarchy and map, report
+Status: 0.4, alpha. Loader, schema view, network view, community hierarchy and map, report
 inspector, integrity checks, quality metrics, partition comparison, source-text evidence and the
 Ask tab (local and global search against your own provider) are in place; see
 [docs/ROADMAP.md](docs/ROADMAP.md) for what comes next.
