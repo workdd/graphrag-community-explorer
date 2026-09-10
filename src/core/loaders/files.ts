@@ -1,6 +1,7 @@
 import { sha256 } from "../search/fingerprint";
 import { readEmbeddings } from "./embeddings";
 import { buildDataset, type LoadResult, type Tables } from "./graphrag";
+import { buildCsvDataset, type CsvSource } from "./csvDataset";
 import { readParquet, type Row } from "./parquet";
 
 export type TableName = "entities" | "relationships" | "communities" | "community_reports" | "text_units" | "documents" | "covariates";
@@ -24,6 +25,21 @@ export const EMBEDDINGS_FILE = "embeddings.parquet";
  * about a past run, not part of the index, so it is not fingerprinted with the tables.
  */
 export const EXAMPLE_RUN_FILE = "example-run.json";
+
+/**
+ * A graph as two tables. Most graphs do not arrive as a GraphRAG index; they arrive as a node table
+ * and an edge table out of a database, a spreadsheet or a script. The edge table alone is enough,
+ * and its ends become the nodes.
+ */
+export const CSV_NODE_FILES = ["nodes.csv", "entities.csv", "vertices.csv"];
+export const CSV_EDGE_FILES = ["edges.csv", "relationships.csv", "links.csv"];
+
+export const csvRole = (name: string): "nodes" | "edges" | null => {
+  const base = name.split("/").pop()!.toLowerCase();
+  if (CSV_NODE_FILES.includes(base)) return "nodes";
+  if (CSV_EDGE_FILES.includes(base)) return "edges";
+  return null;
+};
 
 export type FileRole =
   | { table: TableName }
@@ -185,7 +201,14 @@ export async function loadFromUrl(base: string): Promise<LoadResult> {
     }
   }
 
-  if (present.length === 0) throw new Error(`No Parquet files found under ${root}.`);
+  if (present.length === 0) {
+    // No Parquet: the folder may hold the two tables instead, which is how most graphs travel.
+    const edges = await readText(root, CSV_EDGE_FILES);
+    if (edges !== undefined) {
+      return fromCsv({ nodes: await readText(root, CSV_NODE_FILES), edges }, await readExampleRun(root));
+    }
+    throw new Error(`No Parquet or CSV files found under ${root}.`);
+  }
   return assemble(present, await readExampleRun(root));
 }
 
@@ -222,4 +245,32 @@ export async function listDatasets(base: string): Promise<DatasetRef[]> {
   } catch {
     return [];
   }
+}
+
+/** The first of these names the folder answers to, as text. */
+async function readText(root: string, names: string[]): Promise<string | undefined> {
+  for (const name of names) {
+    try {
+      const response = await fetch(`${root}/${name}`);
+      if (!response.ok || (response.headers.get("content-type") ?? "").includes("text/html")) continue;
+      return await response.text();
+    } catch {
+      // try the next name
+    }
+  }
+  return undefined;
+}
+
+function fromCsv(source: CsvSource, exampleRun: string | undefined): LoadResult {
+  const built = buildCsvDataset(source);
+  return {
+    dataset: built.dataset,
+    notes: built.notes.map((message) => ({ kind: "csv", label: message, count: 0, samples: [] })),
+    tables: [
+      { name: "nodes", rows: built.dataset.entities.size, columns: ["id", "title", "type", "description"] },
+      { name: "edges", rows: built.dataset.relationships.length, columns: ["source", "target", "type", "weight", "description"] },
+    ],
+    fingerprints: {},
+    ...(exampleRun === undefined ? {} : { exampleRun }),
+  };
 }

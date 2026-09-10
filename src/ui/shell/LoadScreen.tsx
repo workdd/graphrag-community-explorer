@@ -8,6 +8,8 @@ interface Props {
   state: LoadState;
   onFiles: (files: File[]) => void;
   onSample: () => void;
+  /** A graph that never went near GraphRAG: two CSV tables and nothing else. */
+  onGraphSample: () => void;
   defaultData?: string;
   onDefault: () => void;
   datasets: DatasetRef[];
@@ -39,7 +41,7 @@ async function filesFromDrop(items: DataTransferItemList, fallback: FileList): P
   return out;
 }
 
-export function LoadScreen({ state, onFiles, onSample, defaultData, onDefault, datasets, onOpenDataset }: Props) {
+export function LoadScreen({ state, onFiles, onSample, onGraphSample, defaultData, onDefault, datasets, onOpenDataset }: Props) {
   const { t } = useT();
   const input = useRef<HTMLInputElement>(null);
   const [active, setActive] = useState(false);
@@ -105,6 +107,14 @@ export function LoadScreen({ state, onFiles, onSample, defaultData, onDefault, d
             {t("Open the sample dataset")}
           </button>
           <span className="note">{t("A synthetic e-commerce platform with three levels of communities.")}</span>
+        </div>
+        <div className="load-actions">
+          <button className="btn" onClick={onGraphSample} disabled={state.status === "loading"}>
+            {t("Open a plain graph")}
+          </button>
+          <span className="note">
+            {t("A node table and an edge table, with no communities and nothing GraphRAG wrote. The Health view offers to find the communities itself.")}
+          </span>
         </div>
 
         {window.location.hash.length > 1 && state.status !== "loading" && (

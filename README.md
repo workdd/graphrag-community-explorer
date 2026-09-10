@@ -2,9 +2,13 @@
 
 **English** · [한국어](README.ko.md)
 
-**Open a [Microsoft GraphRAG](https://github.com/microsoft/graphrag) index in your browser, ask it a
-question, and follow the answer back to the exact records it used.** No server, no install, nothing
-uploaded.
+**Open a graph in your browser, find out whether it is any good, ask it a question, and follow the
+answer back to the exact records it used.** No server, no install, nothing uploaded.
+
+A [Microsoft GraphRAG](https://github.com/microsoft/graphrag) index is one way a graph arrives.
+A node table and an edge table are another, and everything except the reports, the source text and
+the vectors works the same on both: the schema is counted from the rows, and the communities are
+found here when the graph did not bring any.
 
 [![ci](https://github.com/workdd/graphrag-inspector/actions/workflows/ci.yml/badge.svg)](https://github.com/workdd/graphrag-inspector/actions/workflows/ci.yml)
 [![live demo](https://img.shields.io/badge/demo-live-1f6feb)](https://workdd.github.io/graphrag-inspector/)
@@ -200,6 +204,7 @@ their schema type, weighted towards the kinds of record people ask impact questi
 | `covariates.parquet` | Claims about entities, listed on the entity panel and offered to local search. |
 | `embeddings.parquet` | Optional sidecar of entity vectors, written by `tools/embed_index`. Local search and the embedding space need vectors; without this file the Ask tab offers to build them in the browser instead. |
 | `<label>_communities.parquet` | Any additional community set (for example `leiden_communities.parquet`) becomes a switchable partition. |
+| `nodes.csv`, `edges.csv` | A graph that never went near GraphRAG. Two tables, or just the edge table with its ends taken as the nodes. Column names are guessed from the usual ones and what was guessed is reported. |
 | `example-run.json` | Optional saved run. When a folder carries one, the Ask tab offers it as one click, so the tab can be read before any provider is configured. |
 
 Levels are shown from the root down: the root reads L0 and children count up, which is GraphRAG's

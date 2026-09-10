@@ -2,8 +2,12 @@
 
 [English](README.md) · **한국어**
 
-**[Microsoft GraphRAG](https://github.com/microsoft/graphrag) 색인을 브라우저에서 열고, 질문하고,
-그 답변이 실제로 사용한 레코드까지 되짚습니다.** 서버도 설치도 없고, 파일은 어디에도 올라가지 않습니다.
+**그래프를 브라우저에서 열고, 쓸 만한지 판단하고, 질문하고, 답변이 실제로 사용한 레코드까지 되짚습니다.**
+서버도 설치도 없고, 파일은 어디에도 올라가지 않습니다.
+
+[Microsoft GraphRAG](https://github.com/microsoft/graphrag) 색인은 그래프가 도착하는 한 가지 방식입니다.
+노드 표와 엣지 표도 마찬가지이고, 보고서·원문·벡터를 제외하면 양쪽에서 똑같이 동작합니다. 스키마는 행에서
+세어 만들고, 커뮤니티는 그래프가 가져오지 않았으면 여기서 찾습니다.
 
 [![ci](https://github.com/workdd/graphrag-inspector/actions/workflows/ci.yml/badge.svg)](https://github.com/workdd/graphrag-inspector/actions/workflows/ci.yml)
 [![라이브 데모](https://img.shields.io/badge/demo-live-1f6feb)](https://workdd.github.io/graphrag-inspector/)
@@ -178,6 +182,7 @@ EMBED_API_KEY=… python3 tools/embed_index/embed_index.py --index ~/graphrag/ou
 | `embeddings.parquet` | 선택. `tools/embed_index` 가 만드는 엔티티 벡터 사이드카입니다. 이 파일이 없으면 질문 탭이 브라우저에서 직접 만들자고 제안합니다 |
 | `example-run.json` | 선택. 저장해 둔 실행입니다. 폴더에 있으면 질문 탭이 클릭 한 번으로 제안하므로, 제공자를 설정하기 전에도 탭을 읽을 수 있습니다 |
 | `<라벨>_communities.parquet` | 추가 커뮤니티 집합(예: `leiden_communities.parquet`)이며 전환 가능한 파티션이 됩니다 |
+| `nodes.csv`, `edges.csv` | GraphRAG 를 전혀 거치지 않은 그래프. 표 두 장이거나, 엣지 표 하나만 있어도 그 양끝이 노드가 됩니다. 컬럼 이름은 흔한 것들로 추측하고 무엇을 무엇으로 읽었는지 알려 줍니다 |
 
 레벨은 루트에서 내려가는 순서로 표시합니다. 루트가 L0 이고 자식으로 갈수록 숫자가 커지는 GraphRAG 자신의
 번호 체계입니다. 루트에 가장 큰 번호를 매기는 파일(Apache AGE 자원 계층)이나 1부터 시작하는 파일은 표시용으로만

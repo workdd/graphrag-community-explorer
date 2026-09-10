@@ -84,9 +84,18 @@ export interface Covariate {
   textUnitId?: string;
 }
 
+/** A community set this app worked out, rather than one the index shipped. */
+export interface ComputedPartition {
+  algorithm: "leiden";
+  modularity: number;
+  resolution: number;
+}
+
 export interface Partition {
   id: string;
   label: string;
+  /** Set when the communities were computed here. Views say so rather than implying they were given. */
+  computed?: ComputedPartition;
   communities: Map<string, Community>;
   /** Ascending. */
   levels: number[];
@@ -94,7 +103,7 @@ export interface Partition {
   rootLevel: number;
 }
 
-export type SourceKind = "graphrag" | "age-export" | "unknown";
+export type SourceKind = "graphrag" | "age-export" | "csv" | "unknown";
 
 export interface Dataset {
   source: { kind: SourceKind; files: string[] };

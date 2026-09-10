@@ -371,6 +371,17 @@ const KO: Record<string, string> = {
   "failed": "실패",
   "Nothing here judges the wording. A question that retrieved nothing is the index's problem; one that was handed evidence and cited none of it is where an answer stops being checkable.":
     "여기서 문장의 좋고 나쁨은 따지지 않습니다. 검색이 닿지 못한 질문은 색인의 문제이고, 근거를 받고도 하나도 인용하지 않은 답은 검증이 불가능해지는 지점입니다.",
+  // 커뮤니티 직접 계산
+  "This graph has no communities": "이 그래프에는 커뮤니티가 없습니다",
+  "Without a grouping there is no hierarchy, no map, no coverage and no modularity, and global search has nothing to read. A graph exported from a database or a spreadsheet never brings one.":
+    "묶음이 없으면 계층도 지도도 커버리지도 모듈성도 없고, Global 검색은 읽을 것이 없습니다. 데이터베이스나 스프레드시트에서 내보낸 그래프에는 애초에 없습니다.",
+  "Leiden runs here, on this graph, in the browser. What it finds is marked as computed and never mixed up with a set the index shipped.":
+    "Leiden 을 이 그래프 위에서 브라우저로 돌립니다. 찾아낸 결과는 계산된 것으로 표시되며, 색인이 함께 실어 온 집합과 섞이지 않습니다.",
+  "Find communities": "커뮤니티 찾기",
+  "Finding communities…": "커뮤니티 찾는 중…",
+  "Open a plain graph": "일반 그래프 열기",
+  "A node table and an edge table, with no communities and nothing GraphRAG wrote. The Health view offers to find the communities itself.":
+    "노드 표와 엣지 표뿐이고, 커뮤니티도 GraphRAG 산출물도 없습니다. 상태 화면이 커뮤니티를 직접 찾아 주겠다고 제안합니다.",
   "Views": "화면",
   "Health": "상태",
   "Types": "스키마",

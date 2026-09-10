@@ -1,0 +1,77 @@
+id,name,type,description
+checkout-cart-1,cart 1,queue,cart in the checkout domain
+checkout-cart-2,cart 2,store,cart in the checkout domain
+checkout-cart-3,cart 3,queue,cart in the checkout domain
+checkout-pricing-1,pricing 1,queue,pricing in the checkout domain
+checkout-pricing-2,pricing 2,store,pricing in the checkout domain
+checkout-pricing-3,pricing 3,store,pricing in the checkout domain
+checkout-payment-1,payment 1,service,payment in the checkout domain
+checkout-payment-2,payment 2,service,payment in the checkout domain
+checkout-payment-3,payment 3,store,payment in the checkout domain
+checkout-tax-1,tax 1,queue,tax in the checkout domain
+checkout-tax-2,tax 2,store,tax in the checkout domain
+checkout-tax-3,tax 3,store,tax in the checkout domain
+checkout-invoice-1,invoice 1,service,invoice in the checkout domain
+checkout-invoice-2,invoice 2,service,invoice in the checkout domain
+checkout-invoice-3,invoice 3,queue,invoice in the checkout domain
+checkout-refund-1,refund 1,queue,refund in the checkout domain
+checkout-refund-2,refund 2,service,refund in the checkout domain
+checkout-refund-3,refund 3,service,refund in the checkout domain
+catalog-search-1,search 1,store,search in the catalog domain
+catalog-search-2,search 2,store,search in the catalog domain
+catalog-search-3,search 3,store,search in the catalog domain
+catalog-ranking-1,ranking 1,service,ranking in the catalog domain
+catalog-ranking-2,ranking 2,store,ranking in the catalog domain
+catalog-ranking-3,ranking 3,queue,ranking in the catalog domain
+catalog-media-1,media 1,queue,media in the catalog domain
+catalog-media-2,media 2,store,media in the catalog domain
+catalog-media-3,media 3,store,media in the catalog domain
+catalog-inventory-1,inventory 1,store,inventory in the catalog domain
+catalog-inventory-2,inventory 2,store,inventory in the catalog domain
+catalog-inventory-3,inventory 3,service,inventory in the catalog domain
+catalog-pricing-feed-1,pricing-feed 1,store,pricing feed in the catalog domain
+catalog-pricing-feed-2,pricing-feed 2,service,pricing feed in the catalog domain
+catalog-pricing-feed-3,pricing-feed 3,store,pricing feed in the catalog domain
+identity-signin-1,signin 1,service,signin in the identity domain
+identity-signin-2,signin 2,service,signin in the identity domain
+identity-signin-3,signin 3,service,signin in the identity domain
+identity-session-1,session 1,service,session in the identity domain
+identity-session-2,session 2,service,session in the identity domain
+identity-session-3,session 3,store,session in the identity domain
+identity-profile-1,profile 1,service,profile in the identity domain
+identity-profile-2,profile 2,queue,profile in the identity domain
+identity-profile-3,profile 3,queue,profile in the identity domain
+identity-consent-1,consent 1,queue,consent in the identity domain
+identity-consent-2,consent 2,store,consent in the identity domain
+identity-consent-3,consent 3,service,consent in the identity domain
+identity-audit-1,audit 1,store,audit in the identity domain
+identity-audit-2,audit 2,service,audit in the identity domain
+identity-audit-3,audit 3,store,audit in the identity domain
+delivery-routing-1,routing 1,queue,routing in the delivery domain
+delivery-routing-2,routing 2,queue,routing in the delivery domain
+delivery-routing-3,routing 3,service,routing in the delivery domain
+delivery-warehouse-1,warehouse 1,store,warehouse in the delivery domain
+delivery-warehouse-2,warehouse 2,service,warehouse in the delivery domain
+delivery-warehouse-3,warehouse 3,queue,warehouse in the delivery domain
+delivery-tracking-1,tracking 1,store,tracking in the delivery domain
+delivery-tracking-2,tracking 2,queue,tracking in the delivery domain
+delivery-tracking-3,tracking 3,queue,tracking in the delivery domain
+delivery-carrier-1,carrier 1,store,carrier in the delivery domain
+delivery-carrier-2,carrier 2,service,carrier in the delivery domain
+delivery-carrier-3,carrier 3,store,carrier in the delivery domain
+insight-events-1,events 1,queue,events in the insight domain
+insight-events-2,events 2,queue,events in the insight domain
+insight-events-3,events 3,service,events in the insight domain
+insight-warehouse-etl-1,warehouse-etl 1,store,warehouse etl in the insight domain
+insight-warehouse-etl-2,warehouse-etl 2,queue,warehouse etl in the insight domain
+insight-warehouse-etl-3,warehouse-etl 3,service,warehouse etl in the insight domain
+insight-report-1,report 1,service,report in the insight domain
+insight-report-2,report 2,store,report in the insight domain
+insight-report-3,report 3,service,report in the insight domain
+insight-forecast-1,forecast 1,queue,forecast in the insight domain
+insight-forecast-2,forecast 2,service,forecast in the insight domain
+insight-forecast-3,forecast 3,queue,forecast in the insight domain
+config,config,store,shared store every domain touches
+secrets,secrets,store,shared store every domain touches
+gateway,gateway,service,shared service every domain touches
+bus,bus,queue,shared queue every domain touches

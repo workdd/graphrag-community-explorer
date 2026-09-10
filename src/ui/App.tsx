@@ -72,6 +72,7 @@ export function App() {
       state={state}
       onFiles={(files) => run(`${files.length} files`, () => loadFromFiles(files))}
       onSample={() => run("Sample dataset", () => loadFromUrl(`${import.meta.env.BASE_URL}samples/demo`), `${import.meta.env.BASE_URL}samples/demo`)}
+      onGraphSample={() => run("Plain graph", () => loadFromUrl(`${import.meta.env.BASE_URL}samples/graph`), `${import.meta.env.BASE_URL}samples/graph`)}
       defaultData={DEFAULT_DATA}
       onDefault={() => DEFAULT_DATA && run(DEFAULT_DATA, () => loadFromUrl(DEFAULT_DATA), DEFAULT_DATA)}
       datasets={datasets}

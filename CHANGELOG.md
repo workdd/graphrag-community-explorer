@@ -2,6 +2,15 @@
 
 ## Unreleased
 
+- **A graph no longer has to be a GraphRAG index.** `nodes.csv` and `edges.csv` open the same way,
+  and the edge table alone is enough: its ends become the nodes. Column names are guessed from the
+  ones people actually use, and what was guessed is reported rather than assumed.
+- **Communities are computed when the graph did not bring any.** Leiden was already running in the
+  browser as an animation; its result is now a community set the hierarchy, the map, the quality
+  view and global search can all use. It is marked as computed and never mixed up with a set the
+  index shipped.
+- A second sample that never went near GraphRAG: 76 nodes and 486 edges as two CSV tables.
+
 - **Local search no longer needs Python.** The Ask tab builds the entity vectors itself, through the
   provider already configured: the entity count and the request count are shown before anything is
   spent, the run can be stopped and keeps what it paid for, and the vectors are cached in the browser

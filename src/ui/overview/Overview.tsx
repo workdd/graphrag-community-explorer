@@ -15,6 +15,7 @@ import { fmt, pct } from "../format";
 import { CommunityTable } from "./CommunityTable";
 import { version as APP_VERSION } from "../../../package.json";
 import { countBySeverity, diagnose, type Destination } from "../../core/metrics/diagnosis";
+import { derivePartition } from "../../core/community/derive";
 import { levelQuality } from "../../core/metrics/quality";
 import { Health } from "./Health";
 import { ViewTabs, type TabSpec } from "./ViewTabs";
@@ -96,6 +97,10 @@ export function Overview({ result, label, onReset, datasets, activeData, onOpenD
   const { dataset, notes } = result;
   const [initial] = useState(() => readHash(dataset));
   const [partitionId, setPartitionId] = useState(initial.set);
+  // A graph that arrived without communities can have them worked out here. What is computed is
+  // kept beside what was loaded, never merged into it.
+  const [derived, setDerived] = useState<Partition | null>(null);
+  const [deriving, setDeriving] = useState(false);
   const [selectedId, setSelectedId] = useState<string | null>(initial.community);
   const [view, setView] = useState<View>(initial.view);
   const [mapExpanded, setMapExpanded] = useState<Set<string>>(() => new Set(initial.open));
@@ -105,7 +110,25 @@ export function Overview({ result, label, onReset, datasets, activeData, onOpenD
   const [focus, setFocus] = useState<GraphFocus>(() => (initial.entity ? { kind: "entity", id: initial.entity } : null));
   const [extraIds, setExtraIds] = useState<string[]>([]);
   const [graphMode, setGraphMode] = useState<GraphMode>(() => (initial.entity ? { kind: "neighborhood", entityId: initial.entity, hops: initial.hops } : { kind: "communities" }));
-  const realPartition = dataset.partitions.find((p) => p.id === partitionId) ?? dataset.partitions[0];
+  const partitions = useMemo(
+    () => (derived ? [...dataset.partitions, derived] : dataset.partitions),
+    [dataset.partitions, derived],
+  );
+  const realPartition = partitions.find((p) => p.id === partitionId) ?? partitions[0];
+
+  const derive = () => {
+    setDeriving(true);
+    // Yield first, so the button can say it is working before the run blocks the thread.
+    setTimeout(() => {
+      try {
+        const found = derivePartition(dataset, { seed: 1 });
+        setDerived(found);
+        setPartitionId(found.id);
+      } finally {
+        setDeriving(false);
+      }
+    }, 0);
+  };
   const partition = realPartition ?? EMPTY_PARTITION;
   // Only a properly nested hierarchy can open a community inside its parents on the map.
   const nested = useMemo(() => nestingRatio(partition) >= 0.9, [partition]);
@@ -284,9 +307,9 @@ export function Overview({ result, label, onReset, datasets, activeData, onOpenD
             ))}
           </select>
         )}
-        {dataset.partitions.length > 1 && (
+        {partitions.length > 1 && (
           <select aria-label={t("Community set")} value={realPartition?.id} onChange={(e) => changePartition(e.target.value)}>
-            {dataset.partitions.map((p) => (
+            {partitions.map((p) => (
               <option key={p.id} value={p.id}>
                 {p.label} ({p.communities.size})
               </option>
@@ -458,7 +481,7 @@ export function Overview({ result, label, onReset, datasets, activeData, onOpenD
               {counts.isolatedEntities > 0 && <Rich text=" **{isolated}** entities have no relationships." vars={{ isolated: fmt(counts.isolatedEntities) }} />}
             </p>
 
-            <Health findings={findings} onOpen={openFrom} />
+            <Health findings={findings} onOpen={openFrom} onDerive={derive} deriving={deriving} />
 
             <IntegrityPanel notes={notes} findings={integrity} />
 

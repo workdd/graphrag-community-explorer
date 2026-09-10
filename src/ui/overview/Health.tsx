@@ -10,6 +10,9 @@ interface Props {
   findings: Finding[];
   /** Opens the view that shows the records behind a finding. */
   onOpen: (to: Destination) => void;
+  /** Runs the community detection a finding offers. */
+  onDerive: () => void;
+  deriving: boolean;
 }
 
 const AFFECTS: Record<Affects, string> = {
@@ -22,7 +25,7 @@ const AFFECTS: Record<Affects, string> = {
 
 const SEVERITY_ORDER: Severity[] = ["fix", "watch"];
 
-export function Health({ findings, onOpen }: Props) {
+export function Health({ findings, onOpen, onDerive, deriving }: Props) {
   const { t } = useT();
   const problems = findings.filter((finding) => SEVERITY_ORDER.includes(finding.severity));
   const fine = findings.filter((finding) => finding.severity === "ok");
@@ -57,6 +60,11 @@ export function Health({ findings, onOpen }: Props) {
               </div>
               <p>{fill(t(finding.detail), finding.vars)}</p>
               {finding.fix ? <p className="fix">{fill(t(finding.fix), finding.vars)}</p> : null}
+              {finding.action === "derive" ? (
+                <button className="btn small" onClick={onDerive} disabled={deriving}>
+                  {deriving ? t("Finding communities…") : t("Find communities")}
+                </button>
+              ) : null}
               {finding.link ? (
                 <button className="btn small" onClick={() => onOpen(finding.link!.to)}>
                   {t(finding.link.label)}

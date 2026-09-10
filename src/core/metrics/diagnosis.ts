@@ -30,6 +30,8 @@ export interface Finding {
   fix: string | null;
   vars: Record<string, string | number>;
   link?: { to: Destination; label: string };
+  /** Something the reader can do here, rather than somewhere else. */
+  action?: "derive";
 }
 
 export interface DiagnosisInput {
@@ -109,6 +111,21 @@ export function diagnose(input: DiagnosisInput): Finding[] {
   const { dataset, partition, levels, hasEmbeddings } = input;
   const found: Finding[] = [];
   const entities = dataset.entities.size;
+
+  // No community set at all: half the product is dark until there is one.
+  if (!partition) {
+    found.push({
+      id: "no-communities",
+      severity: "fix",
+      affects: "both",
+      title: "This graph has no communities",
+      detail:
+        "Without a grouping there is no hierarchy, no map, no coverage and no modularity, and global search has nothing to read. A graph exported from a database or a spreadsheet never brings one.",
+      fix: "Leiden runs here, on this graph, in the browser. What it finds is marked as computed and never mixed up with a set the index shipped.",
+      vars: {},
+      action: "derive",
+    });
+  }
 
   // Entities no community claims. Global search never sees them, whatever they say.
   if (partition) {
