@@ -6,6 +6,7 @@
 question, and follow the answer back to the exact records it used.** No server, no install, nothing
 uploaded.
 
+[![ci](https://github.com/workdd/graphrag-community-explorer/actions/workflows/ci.yml/badge.svg)](https://github.com/workdd/graphrag-community-explorer/actions/workflows/ci.yml)
 [![live demo](https://img.shields.io/badge/demo-live-1f6feb)](https://workdd.github.io/graphrag-community-explorer/)
 [![license MIT](https://img.shields.io/badge/license-MIT-black)](LICENSE)
 [![runs in the browser](https://img.shields.io/badge/backend-none-black)](#try-it)

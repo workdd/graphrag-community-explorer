@@ -5,6 +5,7 @@
 **[Microsoft GraphRAG](https://github.com/microsoft/graphrag) 색인을 브라우저에서 열고, 질문하고,
 그 답변이 실제로 사용한 레코드까지 되짚습니다.** 서버도 설치도 없고, 파일은 어디에도 올라가지 않습니다.
 
+[![ci](https://github.com/workdd/graphrag-community-explorer/actions/workflows/ci.yml/badge.svg)](https://github.com/workdd/graphrag-community-explorer/actions/workflows/ci.yml)
 [![라이브 데모](https://img.shields.io/badge/demo-live-1f6feb)](https://workdd.github.io/graphrag-community-explorer/)
 [![라이선스 MIT](https://img.shields.io/badge/license-MIT-black)](LICENSE)
 [![백엔드 없음](https://img.shields.io/badge/backend-none-black)](#사용-방법)
