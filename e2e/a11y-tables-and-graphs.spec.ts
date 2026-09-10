@@ -15,13 +15,25 @@ test("the community table sorts and selects from the keyboard", async ({ page })
   await page.keyboard.press("Enter");
   await expect(entitiesHeader).toHaveAttribute("aria-sort", "ascending");
 
+  // One stop for the whole table, not one per row: this table lists every community, and the
+  // 9,211-entity stress set has 1,537 of them.
+  await expect(page.locator('.ctable tbody tr[tabindex="0"]')).toHaveCount(1);
   const firstRow = page.locator(".ctable tbody tr").first();
   await expect(firstRow).toHaveAttribute("tabindex", "0");
-  await expect(firstRow).toHaveAttribute("aria-selected", "false");
+  await expect(firstRow).not.toHaveAttribute("aria-current", "true");
+
   await firstRow.focus();
   await page.keyboard.press("Enter");
   await expect(firstRow).toHaveClass(/selected/);
-  await expect(firstRow).toHaveAttribute("aria-selected", "true");
+  await expect(firstRow).toHaveAttribute("aria-current", "true");
+
+  // The arrows move inside the table without selecting; the stop follows the selection.
+  await page.keyboard.press("ArrowDown");
+  await expect(page.locator(".ctable tbody tr").nth(1)).toBeFocused();
+  await expect(page.locator(".ctable tbody tr").nth(1)).not.toHaveAttribute("aria-current", "true");
+  await page.keyboard.press("End");
+  await expect(page.locator(".ctable tbody tr").last()).toBeFocused();
+  await expect(page.locator('.ctable tbody tr[tabindex="0"]')).toHaveCount(1);
 });
 
 test("the quality table sorts from the keyboard", async ({ page }) => {

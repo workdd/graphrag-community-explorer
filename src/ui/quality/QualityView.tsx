@@ -1,4 +1,5 @@
 import { useMemo, useState } from "react";
+import { onRowKeys, rowIsTabbable } from "../table/rowKeys";
 import { depthOfLevel, levelsByDepth } from "../../core/hierarchy";
 import { LevelTag, levelLabel } from "../level";
 import { comparePartitions } from "../../core/metrics/compare";
@@ -142,7 +143,7 @@ export function QualityView({ dataset, partition, selectedId, onSelect }: Props)
             </tr>
           </thead>
           <tbody>
-            {rows.map((id) => {
+            {rows.map((id, index) => {
               const c = partition.communities.get(id)!;
               const q = quality.get(id)!;
               return (
@@ -150,9 +151,10 @@ export function QualityView({ dataset, partition, selectedId, onSelect }: Props)
                   key={id}
                   className={id === selectedId ? "selected" : undefined}
                   onClick={() => onSelect(id)}
-                  onKeyDown={(e) => { if (e.key === "Enter" || e.key === " ") { e.preventDefault(); onSelect(id); } }}
-                  tabIndex={0}
-                  aria-selected={id === selectedId}
+                  onKeyDown={(event) => onRowKeys(event, () => onSelect(id))}
+                  tabIndex={rowIsTabbable(index, id, selectedId, rows) ? 0 : -1}
+                  // aria-selected is only defined inside a grid; aria-current says the same thing here.
+                  aria-current={id === selectedId ? "true" : undefined}
                 >
                   <td className="title" title={c.title}>{c.title}</td>
                   <td><LevelTag partition={partition} level={c.level} /></td>

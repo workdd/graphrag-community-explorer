@@ -87,8 +87,10 @@
 .ctable th, .ctable td { padding: 7px 10px; border-bottom: 1px solid var(--rule-2); text-align: left; vertical-align: middle; }
 .ctable th { padding: 0; font-weight: 600; color: var(--ink-2); white-space: nowrap; user-select: none; }
 .ctable th.num, .ctable td.num { text-align: right; }
-.ctable th[aria-sort="ascending"]::after { content: " ↑"; }
-.ctable th[aria-sort="descending"]::after { content: " ↓"; }
+/* Inside the button: as a sibling of a block-level button the arrow wraps, and a table equalises
+   its cells, so one wrapped arrow makes every header taller. */
+.ctable th[aria-sort="ascending"] .sort-btn::after { content: " ↑"; }
+.ctable th[aria-sort="descending"] .sort-btn::after { content: " ↓"; }
 .sort-btn { display: block; width: 100%; padding: 7px 10px; text-align: inherit; cursor: pointer; }
 .sort-btn:hover { background: var(--rule-2); }
 .ctable tbody tr { cursor: pointer; }
