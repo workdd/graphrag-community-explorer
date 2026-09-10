@@ -302,7 +302,7 @@ export function diagnose(input: DiagnosisInput): Finding[] {
       title: "No entity vectors, so local search is off",
       detail:
         "GraphRAG writes entity embeddings to a vector store rather than to Parquet, and a browser cannot read one. Global search does not need them.",
-      fix: "tools/embed_index writes an embeddings.parquet sidecar next to the index.",
+      fix: "The Ask tab can build them here, through the provider you configure, or tools/embed_index writes them to a file.",
       vars: {},
       link: { to: "ask", label: "Open the Ask tab" },
     });

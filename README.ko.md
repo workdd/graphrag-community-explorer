@@ -130,7 +130,11 @@ OpenAI 호환 엔드포인트면 무엇이든 됩니다. 키는 브라우저의 
 우선합니다.
 
 Local 검색에는 엔티티 벡터가 필요한데, GraphRAG 는 이를 Parquet 이 아니라 벡터 저장소에 씁니다.
-`tools/embed_index` 가 브라우저가 읽을 수 있는 사이드카를 만듭니다.
+**질문 탭에서 바로 만들 수 있습니다.** 이미 설정한 제공자로 만들며, 시작 전에 엔티티 수와 요청 수를 알려주고,
+중간에 멈출 수 있고, 만든 벡터는 그 브라우저에 남아 같은 색인을 다시 열 때 재사용됩니다. Local 검색에 그 밖에
+필요한 것은 없습니다.
+
+한 번 만들어 다른 컴퓨터로 옮기려면 `tools/embed_index` 가 같은 벡터를 파일로 씁니다.
 
 ```sh
 EMBED_API_KEY=… python3 tools/embed_index/embed_index.py --index ~/graphrag/output
@@ -171,7 +175,7 @@ EMBED_API_KEY=… python3 tools/embed_index/embed_index.py --index ~/graphrag/ou
 | `community_reports.parquet` | 요약·발견·순위. Global 검색이 읽습니다 |
 | `text_units.parquet`, `documents.parquet` | 원문 청크와 문서. 인스펙터가 엔티티·관계·커뮤니티 뒤의 텍스트를 보여줍니다 |
 | `covariates.parquet` | 엔티티에 대한 주장. 엔티티 패널에 나열되고 Local 검색에도 쓰입니다 |
-| `embeddings.parquet` | 선택. `tools/embed_index` 가 만드는 엔티티 벡터 사이드카입니다. Local 검색과 임베딩 공간에만 필요합니다 |
+| `embeddings.parquet` | 선택. `tools/embed_index` 가 만드는 엔티티 벡터 사이드카입니다. 이 파일이 없으면 질문 탭이 브라우저에서 직접 만들자고 제안합니다 |
 | `example-run.json` | 선택. 저장해 둔 실행입니다. 폴더에 있으면 질문 탭이 클릭 한 번으로 제안하므로, 제공자를 설정하기 전에도 탭을 읽을 수 있습니다 |
 | `<라벨>_communities.parquet` | 추가 커뮤니티 집합(예: `leiden_communities.parquet`)이며 전환 가능한 파티션이 됩니다 |
 

@@ -10,10 +10,17 @@ test("ask tab reports what it needs and never hides the network call", async ({ 
   // The product promise is that browsing is local. This tab is the exception and says so.
   await expect(page.locator(".search .notice.info").first()).toContainText("sends the selected evidence");
 
-  // The sample ships no embeddings.parquet, so local search is off and says why.
+  // The sample ships no vectors, so local search is off, says why, and offers to build them with
+  // the count and the number of requests before anything is spent.
   await expect(page.getByRole("tab", { name: "Local" })).toBeDisabled();
-  await expect(page.locator(".search")).toContainText("embeddings.parquet");
   await expect(page.getByRole("tab", { name: "Global" })).toBeEnabled();
+  const offer = page.locator(".build-vectors");
+  await expect(offer).toContainText("a vector for every entity");
+  await expect(offer).toContainText("189 entities");
+  await expect(offer).toContainText("3 requests");
+  // Nothing to spend it with yet, so the button is not live and says what is missing.
+  await expect(offer.getByRole("button", { name: "Build them here" })).toBeDisabled();
+  await expect(offer).toContainText("Set up a provider first");
 
   // The cost of a global question is shown before anything is spent.
   await expect(page.locator(".search .notice.info").last()).toContainText("model calls");

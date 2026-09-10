@@ -149,7 +149,13 @@ publish a key unless `ALLOW_EMBEDDED_KEY=1` says it may. Anything typed in the a
 environment.
 
 Local search needs entity vectors, which GraphRAG writes to a vector store rather than to Parquet.
-`tools/embed_index` builds the sidecar the browser can read:
+**The Ask tab can build them for you**, through the provider you have already configured: it says how
+many entities and how many requests before it starts, it can be stopped, and the vectors stay in that
+browser and are reused the next time you open the same index. Nothing else is needed for a local
+search.
+
+To build them once and carry them between machines, `tools/embed_index` writes the same vectors to a
+file:
 
 ```sh
 EMBED_API_KEY=… python3 tools/embed_index/embed_index.py --index ~/graphrag/output
@@ -192,7 +198,7 @@ their schema type, weighted towards the kinds of record people ask impact questi
 | `community_reports.parquet` | Summaries, findings and ranks. Global search reads these. |
 | `text_units.parquet`, `documents.parquet` | Source chunks and documents; the inspector shows the text behind an entity, relationship or community. |
 | `covariates.parquet` | Claims about entities, listed on the entity panel and offered to local search. |
-| `embeddings.parquet` | Optional sidecar of entity vectors written by `tools/embed_index`. Local search and the embedding space need it; nothing else does. |
+| `embeddings.parquet` | Optional sidecar of entity vectors, written by `tools/embed_index`. Local search and the embedding space need vectors; without this file the Ask tab offers to build them in the browser instead. |
 | `<label>_communities.parquet` | Any additional community set (for example `leiden_communities.parquet`) becomes a switchable partition. |
 | `example-run.json` | Optional saved run. When a folder carries one, the Ask tab offers it as one click, so the tab can be read before any provider is configured. |
 

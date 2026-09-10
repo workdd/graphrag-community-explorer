@@ -118,5 +118,8 @@ export function fingerprintMatches(index: EmbeddingIndex, loaded: Record<string,
  */
 const ROLE = /-(passage|query|document|search_document|search_query)$/;
 
+/** The model without the half it was being used as, which is what decides whether two agree. */
+export const embeddingFamily = (model: string): string => model.trim().toLowerCase().replace(ROLE, "");
+
 export const sameEmbeddingModel = (stored: string, asked: string): boolean =>
-  stored.trim().toLowerCase().replace(ROLE, "") === asked.trim().toLowerCase().replace(ROLE, "");
+  embeddingFamily(stored) === embeddingFamily(asked);

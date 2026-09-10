@@ -1,5 +1,19 @@
 # Changelog
 
+## Unreleased
+
+- **Local search no longer needs Python.** The Ask tab builds the entity vectors itself, through the
+  provider already configured: the entity count and the request count are shown before anything is
+  spent, the run can be stopped and keeps what it paid for, and the vectors are cached in the browser
+  against the digests of the files they were built from. Re-opening the index reuses them;
+  re-indexing does not. A model split into a passage half and a query half is one model to the cache.
+  `tools/embed_index` still writes the portable file.
+- Keyboard paths through the tables, and a name for every graph canvas (#13, from an outside
+  contribution). One tab stop for a table rather than one per row, arrows to move inside it.
+- A level of communities wider than the panel says so, and fades where it continues.
+- The embedding space says what its axes carry in words, rather than as a percentage of "the spread".
+- Opening an index no longer fires eight requests that are meant to miss.
+
 ## 0.4.0 (2026-09-10)
 
 - **Health**: the quality numbers stated as named problems. Entities no community claims, one

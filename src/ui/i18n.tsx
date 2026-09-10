@@ -320,8 +320,19 @@ const KO: Record<string, string> = {
     "키는 이 브라우저에만 보관되며 저장한 실행 파일에는 들어가지 않습니다. 공용 컴퓨터에서는 지우세요.",
   "The embeddings file was made from a different index ({files}). Local search is off.":
     "임베딩 파일이 다른 색인에서 만들어졌습니다({files}). Local 검색을 끕니다.",
-  "Local search needs an embeddings.parquet next to the index. The embed_index tool writes one.":
-    "Local 검색은 색인 옆의 embeddings.parquet 이 필요합니다. embed_index 도구가 만들어 줍니다.",
+  "Local search needs a vector for every entity, and GraphRAG writes them to a store a browser cannot read.":
+    "Local 검색은 엔티티마다 벡터가 필요한데, GraphRAG 는 이를 브라우저가 읽을 수 없는 저장소에 씁니다.",
+  "{entities} entities, {batches} requests to {model}. They stay in this browser and are reused next time.":
+    "엔티티 {entities}건, {model} 에 요청 {batches}회. 만든 벡터는 이 브라우저에 남아 다음에 다시 쓰입니다.",
+  "Build them here": "여기서 만들기",
+  "Set up a provider first": "제공자를 먼저 설정하세요",
+  "Embedding {done} of {total}, request {batch} of {batches}": "임베딩 {done}/{total}, 요청 {batch}/{batches}",
+  "Stopped after {done} of {total} entities. What was paid for is kept.":
+    "엔티티 {total}건 중 {done}건에서 멈췄습니다. 이미 비용을 치른 만큼은 남습니다.",
+  "Vectors cover {have} of {total} entities. Local search can only rank the ones it has.":
+    "벡터가 엔티티 {total}건 중 {have}건을 덮습니다. Local 검색은 가진 것만 순위에 올릴 수 있습니다.",
+  "tools/embed_index writes the same vectors to a file, for carrying between machines.":
+    "tools/embed_index 는 같은 벡터를 파일로 씁니다. 컴퓨터 사이로 옮길 때 쓰십시오.",
   "Global reads every summary at this level ({reports}) in one context window, so this question costs about {calls} model calls.":
     "Global 은 이 레벨의 요약 {reports}건을 한 컨텍스트 창에 담아 읽으므로 이 질문에 모델 호출이 약 {calls}회 듭니다.",
   "Global reads every summary at this level ({reports}) in {batches} context windows, so this question costs about {calls} model calls.":
@@ -419,7 +430,8 @@ const KO: Record<string, string> = {
   "No entity vectors, so local search is off": "엔티티 벡터가 없어 Local 검색이 꺼져 있습니다",
   "GraphRAG writes entity embeddings to a vector store rather than to Parquet, and a browser cannot read one. Global search does not need them.":
     "GraphRAG 는 엔티티 임베딩을 Parquet 이 아니라 벡터 저장소에 쓰는데, 브라우저는 그 형식을 읽지 못합니다. Global 검색에는 필요하지 않습니다.",
-  "tools/embed_index writes an embeddings.parquet sidecar next to the index.": "tools/embed_index 가 색인 옆에 embeddings.parquet 사이드카를 만들어 줍니다.",
+  "The Ask tab can build them here, through the provider you configure, or tools/embed_index writes them to a file.":
+    "질문 탭에서 설정한 제공자로 바로 만들 수 있습니다. 파일로 만들려면 tools/embed_index 를 쓰십시오.",
   "Open the Ask tab": "질문 탭 열기",
 
   "Ask about this index": "이 색인에 대해 질문하세요",

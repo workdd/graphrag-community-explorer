@@ -156,3 +156,9 @@
 
 /* One place for prepared questions: the quick chips and the evaluation set, not two blocks. */
 .search .presets { display: flex; flex-direction: column; gap: 8px; max-width: 100ch; }
+
+/* Building the vectors local search needs, in the tab that needs them. */
+.search .build-vectors { display: flex; flex-direction: column; gap: 6px; }
+.search .build-vectors .row { display: flex; align-items: center; gap: 10px; flex-wrap: wrap; margin: 0; }
+.search .build-vectors progress { width: 180px; height: 8px; }
+.search .build-vectors p { margin: 0; }

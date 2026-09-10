@@ -1,5 +1,9 @@
 import { lazy, Suspense, useEffect, useMemo, useRef, useState } from "react";
 import { sameEmbeddingModel, type EmbeddingIndex } from "../../core/loaders/embeddings";
+import { embedEntities, planEmbedding, type EmbedProgress } from "../../core/search/embedIndex";
+import { embed as embedCall, ProviderError } from "../../core/search/llm";
+import { readVectors, vectorKey, writeVectors } from "./vectorStore";
+import { fmt } from "../format";
 import type { Dataset, Partition } from "../../core/model";
 import { mismatches } from "../../core/search/fingerprint";
 import { DEFAULT_GLOBAL } from "../../core/search/global";
@@ -83,12 +87,20 @@ export function SearchView(props: Props) {
   const [pane, setPane] = useState<"graph" | "space">(start.current.pane);
   const fileInput = useRef<HTMLInputElement>(null);
 
+  // Vectors built here rather than by the Python runner. A sidecar shipped with the index always
+  // wins: it is the portable form, and somebody put it there on purpose.
+  const [built, setBuilt] = useState<EmbeddingIndex | null>(null);
+  const [building, setBuilding] = useState<EmbedProgress | null>(null);
+  const [buildNote, setBuildNote] = useState<string | null>(null);
+  const buildStop = useRef<AbortController | null>(null);
+  const embeddings = props.embeddings ?? built ?? undefined;
+
   // Another index is another conversation. Its own remembered state, or a clean tab.
   const settled = useRef(key);
   useEffect(() => {
     if (settled.current === key) return;
     settled.current = key;
-    const next = recall(key) ?? emptyAsk(props.embeddings !== undefined);
+    const next = recall(key) ?? emptyAsk(embeddings !== undefined);
     setMethod(next.method);
     setQuestion(next.question);
     setRun(next.run);
@@ -98,29 +110,82 @@ export function SearchView(props: Props) {
     setNotes(next.notes);
     setSelection(next.selection);
     setPane(next.pane);
-  }, [key, props.embeddings]);
+  }, [key, embeddings]);
 
   useEffect(() => {
     remember(key, { method, question, runQuery, run, imported, notes, selection, pane, retrieval });
   }, [key, method, question, runQuery, run, imported, notes, selection, pane, retrieval]);
 
   const ready = isConfigured(provider);
+
+  // Vectors built earlier for this index and this model. A different index is a different key, so
+  // re-indexing never quietly ranks against the old ones.
+  useEffect(() => {
+    let alive = true;
+    setBuilt(null);
+    setBuildNote(null);
+    if (props.embeddings) return;
+    void readVectors(vectorKey(key, provider.embedModel)).then((found) => {
+      if (alive && found) setBuilt(found);
+    });
+    return () => {
+      alive = false;
+    };
+  }, [key, provider.embedModel, props.embeddings]);
+
+  const plan = useMemo(() => planEmbedding(props.dataset, provider), [props.dataset, provider]);
+
+  const buildVectors = async () => {
+    const controller = new AbortController();
+    buildStop.current = controller;
+    setBuildNote(null);
+    setBuilding({ done: 0, total: plan.entities, batchesDone: 0, batches: plan.batches });
+    try {
+      const { index, stopped } = await embedEntities(
+        {
+          dataset: props.dataset,
+          provider,
+          sourceFiles: props.fingerprints,
+          signal: controller.signal,
+          onProgress: setBuilding,
+        },
+        embedCall,
+      );
+      if (index.vectors.size > 0) {
+        setBuilt(index);
+        void writeVectors(vectorKey(key, provider.embedModel), index);
+      }
+      if (stopped) {
+        setBuildNote(
+          t("Stopped after {done} of {total} entities. What was paid for is kept.", {
+            done: fmt(index.vectors.size),
+            total: fmt(plan.entities),
+          }),
+        );
+      }
+    } catch (error) {
+      setBuildNote(error instanceof ProviderError ? error.message : String(error));
+    } finally {
+      setBuilding(null);
+      buildStop.current = null;
+    }
+  };
   const stale = useMemo(
-    () => (props.embeddings ? mismatches(props.embeddings.sourceFiles, props.fingerprints) : []),
-    [props.embeddings, props.fingerprints],
+    () => (embeddings ? mismatches(embeddings.sourceFiles, props.fingerprints) : []),
+    [embeddings, props.fingerprints],
   );
   const globalPlan = useMemo(() => plannedCalls(props.partition, DEFAULT_GLOBAL), [props.partition]);
   const examples = useMemo(
-    () => suggestQuestions({ dataset: props.dataset, partition: props.partition, hasEmbeddings: props.embeddings !== undefined }),
-    [props.dataset, props.partition, props.embeddings],
+    () => suggestQuestions({ dataset: props.dataset, partition: props.partition, hasEmbeddings: embeddings !== undefined }),
+    [props.dataset, props.partition, embeddings],
   );
-  const localReady = props.embeddings !== undefined && stale.length === 0;
+  const localReady = embeddings !== undefined && stale.length === 0;
   // Same dimension, different model, silently meaningless numbers. Said out loud rather than
   // enforced: only the caller knows whether two names are two halves of one model.
   const wrongModel =
-    props.embeddings !== undefined &&
+    embeddings !== undefined &&
     provider.embedModel.trim() !== "" &&
-    !sameEmbeddingModel(props.embeddings.model, provider.embedModel);
+    !sameEmbeddingModel(embeddings.model, provider.embedModel);
 
   const save = (next: typeof provider) => {
     setProvider(next);
@@ -138,11 +203,11 @@ export function SearchView(props: Props) {
     setNotes([]);
     try {
       const result =
-        method === "local" && props.embeddings
+        method === "local" && embeddings
           ? await runLocal({
               dataset: props.dataset,
               partition: props.partition,
-              embeddings: props.embeddings,
+              embeddings: embeddings,
               provider,
               query,
               options: DEFAULT_LOCAL,
@@ -329,16 +394,54 @@ export function SearchView(props: Props) {
           {t("The embeddings file was made from a different index ({files}). Local search is off.", { files: stale.join(", ") })}
         </p>
       ) : null}
-      {!props.embeddings && !props.embeddingsNote ? (
+      {!embeddings && !props.embeddingsNote ? (
+        <div className="notice warn build-vectors">
+          <p>{t("Local search needs a vector for every entity, and GraphRAG writes them to a store a browser cannot read.")}</p>
+          {building ? (
+            <p className="row">
+              <progress value={building.done} max={Math.max(1, building.total)} />
+              <span>
+                {t("Embedding {done} of {total}, request {batch} of {batches}", {
+                  done: fmt(building.done),
+                  total: fmt(building.total),
+                  batch: building.batchesDone,
+                  batches: building.batches,
+                })}
+              </span>
+              <button className="btn small" onClick={() => buildStop.current?.abort()}>{t("Stop")}</button>
+            </p>
+          ) : (
+            <p className="row">
+              <span>
+                {t("{entities} entities, {batches} requests to {model}. They stay in this browser and are reused next time.", {
+                  entities: fmt(plan.entities),
+                  batches: plan.batches,
+                  model: plan.model,
+                })}
+              </span>
+              <button className="btn small" onClick={() => void buildVectors()} disabled={!ready || plan.entities === 0}>
+                {t("Build them here")}
+              </button>
+              {ready ? null : <span className="muted">{t("Set up a provider first")}</span>}
+            </p>
+          )}
+          <p className="muted">{t("tools/embed_index writes the same vectors to a file, for carrying between machines.")}</p>
+        </div>
+      ) : null}
+      {buildNote ? <p className="notice warn">{buildNote}</p> : null}
+      {embeddings && embeddings.vectors.size < props.dataset.entities.size ? (
         <p className="notice warn">
-          {t("Local search needs an embeddings.parquet next to the index. The embed_index tool writes one.")}
+          {t("Vectors cover {have} of {total} entities. Local search can only rank the ones it has.", {
+            have: fmt(embeddings.vectors.size),
+            total: fmt(props.dataset.entities.size),
+          })}
         </p>
       ) : null}
       {wrongModel ? (
         <p className="notice warn">
           {t(
             "The vectors were made with {stored} and the question would be embedded with {asked}. A ranking is only meaningful when both come from the same model.",
-            { stored: props.embeddings?.model ?? "", asked: provider.embedModel },
+            { stored: embeddings?.model ?? "", asked: provider.embedModel },
           )}
         </p>
       ) : null}
@@ -397,7 +500,7 @@ export function SearchView(props: Props) {
         <SystemMap
           dataset={props.dataset}
           partition={props.partition}
-          embeddings={props.embeddings}
+          embeddings={embeddings}
           method={method}
           run={run}
         />
@@ -478,8 +581,8 @@ export function SearchView(props: Props) {
               role="tab"
               aria-selected={pane === "space"}
               className={pane === "space" ? "active" : ""}
-              disabled={props.embeddings === undefined}
-              title={props.embeddings ? undefined : t("Needs embeddings.parquet")}
+              disabled={embeddings === undefined}
+              title={embeddings ? undefined : t("Needs embeddings.parquet")}
               onClick={() => setPane("space")}
             >
               {t("Embedding space")}
@@ -488,10 +591,10 @@ export function SearchView(props: Props) {
 
           <div className="split">
             <Suspense fallback={<p className="muted">{t("Drawing the evidence…")}</p>}>
-              {pane === "space" && props.embeddings ? (
+              {pane === "space" && embeddings ? (
                 <EmbeddingSpace
                   dataset={props.dataset}
-                  embeddings={props.embeddings}
+                  embeddings={embeddings}
                   context={run.context}
                   cited={cited}
                   selection={selection}
