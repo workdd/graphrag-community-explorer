@@ -1,0 +1,1055 @@
+{
+  "schemaVersion": "1.0",
+  "producer": {
+    "tool": "explorer",
+    "version": "0.2.0"
+  },
+  "createdAt": "2026-09-09T08:31:14.039Z",
+  "index": {
+    "label": "demo",
+    "files": {
+      "entities.parquet": "sha256:4bab0926a8a7eb02e3788920a1735151913e691142cbe962b4e3e711648bd058",
+      "relationships.parquet": "sha256:ae2687a802b1cec203b012c6701d1a12b2141216ef0221294796cc7c31358157",
+      "communities.parquet": "sha256:b7bc4c3e4ceae21ea76aad37acbd743f7ccd6c956e57ebdbbeb6a9fae5e0eb98",
+      "community_reports.parquet": "sha256:ac03ae1e4879388f2b686170bc362644dc7c52a5955f65fd0b88f1d52b8aa915",
+      "text_units.parquet": "sha256:605755fef0a3e8409d962493f7a1c41b8b485b07ed3e883b70edf25a2b187b23",
+      "documents.parquet": "sha256:6cdb6232bf06e161e9532d8173a8bbfeb382736e597f2071b10b7052c4d5fd58",
+      "covariates.parquet": "sha256:f139378eff5b7aedda476ae5a8c6d7e7f7cd12c1efbe52ac8e41efef9dbc0c6c",
+      "embeddings.parquet": "sha256:e078b38407ea3a2c47ae0717b9849d4d919b245d411fe56502c0031925727af7"
+    }
+  },
+  "query": "If Queue Search events 7 were removed or scaled down, what else would be affected?",
+  "runs": [
+    {
+      "method": "local",
+      "engine": "explorer",
+      "settings": {
+        "chatModel": "solar-pro2",
+        "embedModel": "solar-embedding-1-large-query",
+        "topK": 10,
+        "tokenBudget": 8000
+      },
+      "stages": [
+        {
+          "name": "embed",
+          "ms": 103,
+          "calls": 1
+        },
+        {
+          "name": "select",
+          "ms": 5
+        },
+        {
+          "name": "chat",
+          "ms": 5336,
+          "calls": 1
+        }
+      ],
+      "messages": [
+        {
+          "stage": "chat",
+          "role": "system",
+          "content": "You answer questions about a knowledge graph using only the data supplied. Support each statement with the data you were given. Cite it inline as [Data: <Kind> (<numbers>)], for example [Data: Entities (1, 4); Reports (2)]. Use only the numbers listed below. Never invent a number and never cite a kind that is empty. If the data does not answer the question, say so plainly instead of guessing. Write the answer in English."
+        },
+        {
+          "stage": "chat",
+          "role": "user",
+          "content": "# Data\n\n## Entities\n1. Search events 7 (Queue): Search events 7 carries asynchronous messages between search and ranking services.\n2. INC-984 Search quota breach (Incident): INC-984 Search quota breach affected search and ranking for 40 minutes.\n3. Web events 7 (Queue): Web events 7 carries asynchronous messages between web storefront services.\n4. Campaigns events 7 (Queue): Campaigns events 7 carries asynchronous messages between campaigns services.\n5. INC-992 Search failed deploy (Incident): INC-992 Search failed deploy affected search and ranking for 15 minutes.\n6. Messaging events 7 (Queue): Messaging events 7 carries asynchronous messages between messaging services.\n7. INC-946 Recommendations quota breach (Incident): INC-946 Recommendations quota breach affected recommendations for 21 minutes.\n8. INC-374 Data quota breach (Incident): INC-374 Data quota breach affected data platform for 21 minutes.\n9. INC-171 Cart partial outage (Incident): INC-171 Cart partial outage affected cart and pricing for 16 minutes.\n10. INC-252 Messaging quota breach (Incident): INC-252 Messaging quota breach affected messaging for 70 minutes.\n\n## Relationships\n1. Messaging events 7 → INC-252 Messaging quota breach (related): Messaging events 7 relates to INC-252 Messaging quota breach.\n2. INC-984 Search quota breach → Search events 7 (related): INC-984 Search quota breach relates to Search events 7.\n3. Search team 1 → Search events 7 (related): Search team 1 relates to Search events 7.\n4. INC-984 Search quota breach → Search team 1 (related): INC-984 Search quota breach relates to Search team 1.\n5. Campaigns events 7 → Globex Campaigns 1 (related): Campaigns events 7 relates to Globex Campaigns 1.\n6. Hooli Data 10 → INC-374 Data quota breach (related): Hooli Data 10 relates to INC-374 Data quota breach.\n7. Product API 1 → Search events 7 (related): Product API 1 publishes Search events 7.\n8. Campaigns events 7 → INC-992 Campaigns partial outage (related): Campaigns events 7 relates to INC-992 Campaigns partial outage.\n9. Search events 7 → Payments scheduler 3 (related): Search events 7 delivers to Payments scheduler 3.\n10. INC-984 Search quota breach → Search team 9 (related): INC-984 Search quota breach relates to Search team 9.\n11. Messaging gateway 2 → INC-252 Messaging quota breach (related): Messaging gateway 2 affected INC-252 Messaging quota breach.\n12. Acme Data 3 → INC-374 Data quota breach (related): Acme Data 3 relates to INC-374 Data quota breach.\n13. Acme Product 6 → Search events 7 (related): Acme Product 6 relates to Search events 7.\n14. Search events 7 → Search team 9 (related): Search events 7 relates to Search team 9.\n15. Campaigns events 7 → Recommendations gateway 3 (related): Campaigns events 7 delivers to Recommendations gateway 3.\n16. INC-984 Search quota breach → Search store 3 (related): INC-984 Search quota breach relates to Search store 3.\n17. Search events 7 → Search service 4 (related): Search events 7 delivers to Search service 4.\n18. Campaigns events 7 → Campaigns events 6 (related): Campaigns events 7 relates to Campaigns events 6.\n19. Recommendations gateway 3 → INC-946 Recommendations quota breach (related): Recommendations gateway 3 affected INC-946 Recommendations quota breach.\n20. Messaging events 5 → Messaging events 7 (related): Messaging events 5 relates to Messaging events 7.\n21. Web events 7 → Web worker 6 (related): Web events 7 delivers to Web worker 6.\n22. Observability API 9 → INC-374 Data quota breach (related): Observability API 9 affected INC-374 Data quota breach.\n23. INC-374 Data quota breach → Initech Product 8 (related): INC-374 Data quota breach relates to Initech Product 8.\n24. Cart team 3 → INC-171 Cart partial outage (related): Cart team 3 relates to INC-171 Cart partial outage.\n25. Messaging gateway 2 → Messaging events 7 (related): Messaging gateway 2 publishes Messaging events 7.\n26. Web events 7 → INC-857 Web partial outage (related): Web events 7 relates to INC-857 Web partial outage.\n27. Campaigns events 7 → Initech Campaigns 2 (related): Campaigns events 7 relates to Initech Campaigns 2.\n28. Campaigns scheduler 4 → Campaigns events 7 (related): Campaigns scheduler 4 publishes Campaigns events 7.\n29. INC-992 Search failed deploy → Initech Product 8 (related): INC-992 Search failed deploy relates to Initech Product 8.\n30. Umbrella Returns 2 → Search events 7 (related): Umbrella Returns 2 relates to Search events 7.\n\n## Reports\n1. Commerce: Commerce groups 74 entities (Database, Incident, Queue, Service, Team, Vendor) with 96 internal relationships. Search events 7 is the most connected member.\n2. Search and ranking: Search and ranking groups 9 entities (Database, Incident, Queue, Service, Team, Vendor) with 10 internal relationships. Search events 7 is the most connected member.\n3. Platform: Platform groups 29 entities (Database, Incident, Queue, Service, Team, Vendor) with 35 internal relationships. Acme Data 3 is the most connected member.\n4. Catalog: Catalog groups 19 entities (Database, Incident, Queue, Service, Team, Vendor) with 23 internal relationships. Search events 7 is the most connected member.\n5. Content: Content groups 42 entities (Database, Incident, Queue, Service, Team, Vendor) with 57 internal relationships. Globex Campaigns 1 is the most connected member.\n6. Identity and platform: Identity and platform groups 53 entities (Database, Incident, Queue, Service, Team, Vendor) with 63 internal relationships. Acme Data 3 is the most connected member.\n7. Messaging: Messaging groups 8 entities (Incident, Queue, Service, Vendor) with 7 internal relationships. Messaging service 1 is the most connected member.\n8. Marketing: Marketing groups 21 entities (Database, Incident, Queue, Service, Team, Vendor) with 30 internal relationships. Globex Campaigns 1 is the most connected member.\n9. Campaigns: Campaigns groups 10 entities (Database, Incident, Queue, Service, Team, Vendor) with 17 internal relationships. Globex Campaigns 1 is the most connected member.\n10. Checkout: Checkout groups 27 entities (Database, Incident, Queue, Service, Team, Vendor) with 33 internal relationships. Payments worker 2 is the most connected member.\n11. Web storefront: Web storefront groups 8 entities (Database, Incident, Queue, Service, Team, Vendor) with 8 internal relationships. Web store 3 is the most connected member.\n12. Storefront: Storefront groups 20 entities (Database, Incident, Queue, Service, Team, Vendor) with 25 internal relationships. Mobile team 1 is the most connected member.\n13. Data platform: Data platform groups 10 entities (Database, Incident, Queue, Service, Vendor) with 11 internal relationships. Acme Data 3 is the most connected member.\n14. Recommendations: Recommendations groups 9 entities (Incident, Service, Team, Vendor) with 11 internal relationships. Recommendations gateway 3 is the most connected member.\n15. Cart and pricing: Cart and pricing groups 8 entities (Incident, Service, Team) with 9 internal relationships. Cart team 3 is the most connected member.\n\n## Sources\n1. In the catalog area of commerce, the search and ranking topic covers 9 components. Search events 7 relates to Search team 9. Search service 4 provides Umbrella Search 6. Search team 1 relates to Search events 7. Search team 9 owns Search service 4. INC-984 Search quota breach relates to Search store 3.\n2. In the catalog area of commerce, the search and ranking topic covers 9 components. INC-984 Search quota breach relates to Search team 1. INC-984 Search quota breach relates to Search events 7. Search events 7 delivers to Search service 4. INC-984 Search quota breach relates to Search team 9. Search gateway 2 writes Search store 3.\n3. In the storefront area of content, the web storefront topic covers 8 components. INC-857 Web partial outage relates to Web team 8. Web team 2 relates to Initech Web 5. Web events 7 delivers to Web worker 6. Web team 8 owns Web worker 1.\n4. In the storefront area of content, the web storefront topic covers 8 components. Web events 7 relates to INC-857 Web partial outage. INC-857 Web partial outage relates to Initech Web 5. Initech Web 5 relates to Web store 3. Web worker 1 writes Web store 3.\n5. In the marketing area of content, the campaigns topic covers 10 components. Initech Campaigns 2 relates to Campaigns team 9. Campaigns events 7 relates to Campaigns events 6. Campaigns events 7 relates to Initech Campaigns 2. Campaigns store 8 writes Campaigns scheduler 4. Campaigns team 9 relates to Campaigns store 8. Campaigns store 8 relates to Globex Campaigns 1. Campaigns scheduler 4 publishes Campaigns events 7. Campaigns events 7 relates to Globex Campaigns 1.\n6. In the marketing area of content, the campaigns topic covers 10 components. Initech Campaigns 2 relates to Globex Campaigns 1. Campaigns scheduler 4 provides Initech Campaigns 2. Campaigns events 6 relates to INC-992 Campaigns partial outage. INC-954 Campaigns partial outage relates to Globex Campaigns 1. INC-992 Campaigns partial outage relates to Globex Campaigns 1. Globex Campaigns 1 provides Campaigns scheduler 4. Globex Campaigns 1 provides Campaigns API 3. Campaigns events 7 relates to INC-992 Campaigns partial outage. INC-954 Campaigns partial outage relates to Campaigns events 6.\n7. In the platform area of identity and platform, the messaging topic covers 8 components. Messaging gateway 2 publishes Messaging events 7. Messaging events 7 relates to INC-252 Messaging quota breach. Messaging gateway 2 affected INC-252 Messaging quota breach.\n8. In the platform area of identity and platform, the messaging topic covers 8 components. Messaging events 5 relates to Messaging events 7. Messaging service 1 publishes Messaging events 5. Messaging service 1 calls Messaging gateway 6. Initech Messaging 4 provides Messaging service 1.\n9. In the marketing area of content, the recommendations topic covers 9 components. Recommendations team 7 owns Recommendations gateway 5. Acme Recommendations 8 provides Recommendations gateway 3. Recommendations gateway 3 affected INC-946 Recommendations quota breach. Recommendations gateway 3 calls Recommendations service 4. Recommendations scheduler 6 provides Acme Recommendations 8.\n10. In the platform area of identity and platform, the data platform topic covers 10 components. Acme Data 3 relates to Data events 2. Data service 7 publishes Data events 8. Data store 5 relates to Acme Data 3. Data events 8 delivers to Data worker 6. Acme Data 3 relates to INC-374 Data quota breach. Hooli Data 10 relates to INC-374 Data quota breach.\n11. In the checkout area of commerce, the cart and pricing topic covers 8 components. Cart gateway 1 calls Cart scheduler 4. Cart team 3 relates to INC-171 Cart partial outage. INC-160 Cart quota breach affected Cart scheduler 8. Cart scheduler 4 calls Cart scheduler 8. Cart gateway 1 calls Cart scheduler 8.\n\n## Claims\n1. Search events 7 (DEPRECATION): Search events 7 is scheduled for retirement.\n2. Campaigns events 7 (INCIDENT): Campaigns events 7 caused an outage affecting Campaigns events 6.\n3. Messaging events 7 (INCIDENT): Messaging events 7 caused an outage affecting INC-252 Messaging quota breach.\n4. Messaging gateway 2 (DEPENDENCY): Messaging gateway 2 depends on Messaging events 7 in production.\n\n# Question\n\nIf Queue Search events 7 were removed or scaled down, what else would be affected?"
+        }
+      ],
+      "status": "ok",
+      "error": null,
+      "response": "If **Search events 7** (Queue) were removed or scaled down, the following entities and incidents would be affected, based on the provided data:\n\n1. **Search and Ranking Services**:  \n   - **Search events 7** carries asynchronous messages between search and ranking services [Data: Entities (1)].  \n   - It delivers to **Search service 4** [Data: Relationships (17)] and **Payments scheduler 3** [Data: Relationships (9)], which are critical for search functionality.  \n   - **INC-984 Search quota breach** (affected search and ranking for 40 minutes) is related to **Search events 7** [Data: Relationships (2)].  \n   - **INC-992 Search failed deploy** (affected search and ranking for 15 minutes) is part of the **Search and ranking** group, where **Search events 7** is the most connected member [Data: Reports (2)].  \n\n2. **Teams and Services**:  \n   - **Search team 1** and **Search team 9** are related to **Search events 7** [Data: Relationships (3, 14)].  \n   - **Product API 1**, **Acme Product 6**, and **Umbrella Returns 2** publish or relate to **Search events 7** [Data: Relationships (7, 13, 30)].  \n\n3. **Incidents and Outages**:  \n   - **INC-984 Search quota breach** directly relates to **Search events 7** [Data: Relationships (2)], and its removal could exacerbate quota issues.  \n   - **INC-992 Search failed deploy** (though not directly linked in relationships) is part of the same group as **Search events 7** [Data: Reports (2)].  \n\n4. **Commerce and Catalog Systems**:  \n   - **Search events 7** is the most connected member in the **Commerce** [Data: Reports (1)] and **Catalog** [Data: Reports (4)] groups, indicating widespread dependencies.  \n\n5. **Other Systems**:  \n   - **Search store 3** is related to **INC-984 Search quota breach**, which in turn relates to **Search events 7** [Data: Relationships (16)].  \n\n### Supporting Data:  \n- **Entities (1, 2, 5)**: Descriptions of **Search events 7**, **INC-984**, and **INC-992**.  \n- **Relationships (2, 3, 7, 9, 13, 14, 17, 30)**: Links to teams, services, and incidents.  \n- **Reports (1, 2, 4)**: **Search events 7**'s centrality in Commerce, Search and ranking, and Catalog.  \n\n### Conclusion:  \nRemoving or scaling down **Search events 7** would disrupt search and ranking services, impact multiple teams (e.g., Search team 1/9), and potentially trigger or worsen incidents like **INC-984** and **INC-992**. It would also affect upstream/downstream systems (e.g., **Product API 1**, **Payments scheduler 3**).  \n\n**Note**: The claim about **Search events 7** being scheduled for retirement [Data: Claims (1)] suggests this analysis is relevant for planning mitigation steps.",
+      "context": {
+        "entities": [
+          {
+            "id": "729d7179-e5fc-5fa4-a066-ac98b7090367",
+            "title": "Search events 7",
+            "text": "Search events 7 (Queue): Search events 7 carries asynchronous messages between search and ranking services.",
+            "score": 0.3330124305898558,
+            "raw": {
+              "id": "729d7179-e5fc-5fa4-a066-ac98b7090367",
+              "title": "Search events 7",
+              "type": "Queue",
+              "degree": 8
+            },
+            "shortId": "1",
+            "tokens": 32
+          },
+          {
+            "id": "18fe0e26-5dfa-506a-ac32-63481dbddab8",
+            "title": "INC-984 Search quota breach",
+            "text": "INC-984 Search quota breach (Incident): INC-984 Search quota breach affected search and ranking for 40 minutes.",
+            "score": 0.2686342374864801,
+            "raw": {
+              "id": "18fe0e26-5dfa-506a-ac32-63481dbddab8",
+              "title": "INC-984 Search quota breach",
+              "type": "Incident",
+              "degree": 4
+            },
+            "shortId": "2",
+            "tokens": 35
+          },
+          {
+            "id": "a45681b2-de19-5201-bc8b-4055e81692a3",
+            "title": "Web events 7",
+            "text": "Web events 7 (Queue): Web events 7 carries asynchronous messages between web storefront services.",
+            "score": 0.26529575118028537,
+            "raw": {
+              "id": "a45681b2-de19-5201-bc8b-4055e81692a3",
+              "title": "Web events 7",
+              "type": "Queue",
+              "degree": 2
+            },
+            "shortId": "3",
+            "tokens": 29
+          },
+          {
+            "id": "607b39de-27aa-5cc8-98fb-ab36cb4e1a79",
+            "title": "Campaigns events 7",
+            "text": "Campaigns events 7 (Queue): Campaigns events 7 carries asynchronous messages between campaigns services.",
+            "score": 0.25968987131127313,
+            "raw": {
+              "id": "607b39de-27aa-5cc8-98fb-ab36cb4e1a79",
+              "title": "Campaigns events 7",
+              "type": "Queue",
+              "degree": 6
+            },
+            "shortId": "4",
+            "tokens": 32
+          },
+          {
+            "id": "eeb5644e-bd6f-5a14-be16-cd108382decf",
+            "title": "INC-992 Search failed deploy",
+            "text": "INC-992 Search failed deploy (Incident): INC-992 Search failed deploy affected search and ranking for 15 minutes.",
+            "score": 0.2591556948666039,
+            "raw": {
+              "id": "eeb5644e-bd6f-5a14-be16-cd108382decf",
+              "title": "INC-992 Search failed deploy",
+              "type": "Incident",
+              "degree": 1
+            },
+            "shortId": "5",
+            "tokens": 35
+          },
+          {
+            "id": "42e4d33e-4fb8-57c7-869e-7bf4cee0ef84",
+            "title": "Messaging events 7",
+            "text": "Messaging events 7 (Queue): Messaging events 7 carries asynchronous messages between messaging services.",
+            "score": 0.2536645026201794,
+            "raw": {
+              "id": "42e4d33e-4fb8-57c7-869e-7bf4cee0ef84",
+              "title": "Messaging events 7",
+              "type": "Queue",
+              "degree": 3
+            },
+            "shortId": "6",
+            "tokens": 32
+          },
+          {
+            "id": "acd30770-5683-5ca2-813b-b1679f749946",
+            "title": "INC-946 Recommendations quota breach",
+            "text": "INC-946 Recommendations quota breach (Incident): INC-946 Recommendations quota breach affected recommendations for 21 minutes.",
+            "score": 0.2431060374157931,
+            "raw": {
+              "id": "acd30770-5683-5ca2-813b-b1679f749946",
+              "title": "INC-946 Recommendations quota breach",
+              "type": "Incident",
+              "degree": 1
+            },
+            "shortId": "7",
+            "tokens": 38
+          },
+          {
+            "id": "a24afea9-f932-5fea-995e-8c7897318c0b",
+            "title": "INC-374 Data quota breach",
+            "text": "INC-374 Data quota breach (Incident): INC-374 Data quota breach affected data platform for 21 minutes.",
+            "score": 0.24270763461128994,
+            "raw": {
+              "id": "a24afea9-f932-5fea-995e-8c7897318c0b",
+              "title": "INC-374 Data quota breach",
+              "type": "Incident",
+              "degree": 4
+            },
+            "shortId": "8",
+            "tokens": 31
+          },
+          {
+            "id": "48ec7d8e-da7b-59e2-93bf-b1a812a567d1",
+            "title": "INC-171 Cart partial outage",
+            "text": "INC-171 Cart partial outage (Incident): INC-171 Cart partial outage affected cart and pricing for 16 minutes.",
+            "score": 0.2396774165610662,
+            "raw": {
+              "id": "48ec7d8e-da7b-59e2-93bf-b1a812a567d1",
+              "title": "INC-171 Cart partial outage",
+              "type": "Incident",
+              "degree": 1
+            },
+            "shortId": "9",
+            "tokens": 32
+          },
+          {
+            "id": "5bba0bf0-da65-5eaf-84ad-db499b01451a",
+            "title": "INC-252 Messaging quota breach",
+            "text": "INC-252 Messaging quota breach (Incident): INC-252 Messaging quota breach affected messaging for 70 minutes.",
+            "score": 0.23934580631228822,
+            "raw": {
+              "id": "5bba0bf0-da65-5eaf-84ad-db499b01451a",
+              "title": "INC-252 Messaging quota breach",
+              "type": "Incident",
+              "degree": 2
+            },
+            "shortId": "10",
+            "tokens": 35
+          }
+        ],
+        "relationships": [
+          {
+            "id": "dff63911-38ad-57b3-ab9f-21fc6aada585",
+            "title": "Messaging events 7 → INC-252 Messaging quota breach",
+            "text": "Messaging events 7 → INC-252 Messaging quota breach (related): Messaging events 7 relates to INC-252 Messaging quota breach.",
+            "score": 9,
+            "raw": {
+              "id": "dff63911-38ad-57b3-ab9f-21fc6aada585",
+              "source": "Messaging events 7",
+              "target": "INC-252 Messaging quota breach",
+              "type": "related",
+              "weight": 9
+            },
+            "shortId": "1",
+            "tokens": 42
+          },
+          {
+            "id": "f7ffe1d7-96d8-5c06-9b7c-9a2a929cedc9",
+            "title": "INC-984 Search quota breach → Search events 7",
+            "text": "INC-984 Search quota breach → Search events 7 (related): INC-984 Search quota breach relates to Search events 7.",
+            "score": 6,
+            "raw": {
+              "id": "f7ffe1d7-96d8-5c06-9b7c-9a2a929cedc9",
+              "source": "INC-984 Search quota breach",
+              "target": "Search events 7",
+              "type": "related",
+              "weight": 6
+            },
+            "shortId": "2",
+            "tokens": 38
+          },
+          {
+            "id": "abe50e73-5d0d-56f5-a8ed-e5f72c1fa779",
+            "title": "Search team 1 → Search events 7",
+            "text": "Search team 1 → Search events 7 (related): Search team 1 relates to Search events 7.",
+            "score": 9,
+            "raw": {
+              "id": "abe50e73-5d0d-56f5-a8ed-e5f72c1fa779",
+              "source": "Search team 1",
+              "target": "Search events 7",
+              "type": "related",
+              "weight": 9
+            },
+            "shortId": "3",
+            "tokens": 28
+          },
+          {
+            "id": "bf8009c9-23d3-56ee-822f-9044b5c56bb9",
+            "title": "INC-984 Search quota breach → Search team 1",
+            "text": "INC-984 Search quota breach → Search team 1 (related): INC-984 Search quota breach relates to Search team 1.",
+            "score": 9,
+            "raw": {
+              "id": "bf8009c9-23d3-56ee-822f-9044b5c56bb9",
+              "source": "INC-984 Search quota breach",
+              "target": "Search team 1",
+              "type": "related",
+              "weight": 9
+            },
+            "shortId": "4",
+            "tokens": 36
+          },
+          {
+            "id": "4ccdc40c-18c9-5a59-88c8-a292756ebe37",
+            "title": "Campaigns events 7 → Globex Campaigns 1",
+            "text": "Campaigns events 7 → Globex Campaigns 1 (related): Campaigns events 7 relates to Globex Campaigns 1.",
+            "score": 8,
+            "raw": {
+              "id": "4ccdc40c-18c9-5a59-88c8-a292756ebe37",
+              "source": "Campaigns events 7",
+              "target": "Globex Campaigns 1",
+              "type": "related",
+              "weight": 8
+            },
+            "shortId": "5",
+            "tokens": 34
+          },
+          {
+            "id": "9837f219-63d9-5d16-8aec-955778378f98",
+            "title": "Hooli Data 10 → INC-374 Data quota breach",
+            "text": "Hooli Data 10 → INC-374 Data quota breach (related): Hooli Data 10 relates to INC-374 Data quota breach.",
+            "score": 8,
+            "raw": {
+              "id": "9837f219-63d9-5d16-8aec-955778378f98",
+              "source": "Hooli Data 10",
+              "target": "INC-374 Data quota breach",
+              "type": "related",
+              "weight": 8
+            },
+            "shortId": "6",
+            "tokens": 34
+          },
+          {
+            "id": "74d43db6-b578-5691-832f-4e6d07285295",
+            "title": "Product API 1 → Search events 7",
+            "text": "Product API 1 → Search events 7 (related): Product API 1 publishes Search events 7.",
+            "score": 8,
+            "raw": {
+              "id": "74d43db6-b578-5691-832f-4e6d07285295",
+              "source": "Product API 1",
+              "target": "Search events 7",
+              "type": "related",
+              "weight": 8
+            },
+            "shortId": "7",
+            "tokens": 28
+          },
+          {
+            "id": "e51a2f9e-0305-54e6-9486-46028fafcb92",
+            "title": "Campaigns events 7 → INC-992 Campaigns partial outage",
+            "text": "Campaigns events 7 → INC-992 Campaigns partial outage (related): Campaigns events 7 relates to INC-992 Campaigns partial outage.",
+            "score": 8,
+            "raw": {
+              "id": "e51a2f9e-0305-54e6-9486-46028fafcb92",
+              "source": "Campaigns events 7",
+              "target": "INC-992 Campaigns partial outage",
+              "type": "related",
+              "weight": 8
+            },
+            "shortId": "8",
+            "tokens": 42
+          },
+          {
+            "id": "68cf366b-73a1-5ae5-9a5e-4008f78e30f9",
+            "title": "Search events 7 → Payments scheduler 3",
+            "text": "Search events 7 → Payments scheduler 3 (related): Search events 7 delivers to Payments scheduler 3.",
+            "score": 8,
+            "raw": {
+              "id": "68cf366b-73a1-5ae5-9a5e-4008f78e30f9",
+              "source": "Search events 7",
+              "target": "Payments scheduler 3",
+              "type": "related",
+              "weight": 8
+            },
+            "shortId": "9",
+            "tokens": 32
+          },
+          {
+            "id": "da52789b-51e8-566a-9645-d46da0561398",
+            "title": "INC-984 Search quota breach → Search team 9",
+            "text": "INC-984 Search quota breach → Search team 9 (related): INC-984 Search quota breach relates to Search team 9.",
+            "score": 7,
+            "raw": {
+              "id": "da52789b-51e8-566a-9645-d46da0561398",
+              "source": "INC-984 Search quota breach",
+              "target": "Search team 9",
+              "type": "related",
+              "weight": 7
+            },
+            "shortId": "10",
+            "tokens": 36
+          },
+          {
+            "id": "63e8cc9d-01bd-5487-aeeb-af123771a62e",
+            "title": "Messaging gateway 2 → INC-252 Messaging quota breach",
+            "text": "Messaging gateway 2 → INC-252 Messaging quota breach (related): Messaging gateway 2 affected INC-252 Messaging quota breach.",
+            "score": 7,
+            "raw": {
+              "id": "63e8cc9d-01bd-5487-aeeb-af123771a62e",
+              "source": "Messaging gateway 2",
+              "target": "INC-252 Messaging quota breach",
+              "type": "related",
+              "weight": 7
+            },
+            "shortId": "11",
+            "tokens": 41
+          },
+          {
+            "id": "ddeca7b6-2767-5819-99db-c2caf368d527",
+            "title": "Acme Data 3 → INC-374 Data quota breach",
+            "text": "Acme Data 3 → INC-374 Data quota breach (related): Acme Data 3 relates to INC-374 Data quota breach.",
+            "score": 7,
+            "raw": {
+              "id": "ddeca7b6-2767-5819-99db-c2caf368d527",
+              "source": "Acme Data 3",
+              "target": "INC-374 Data quota breach",
+              "type": "related",
+              "weight": 7
+            },
+            "shortId": "12",
+            "tokens": 32
+          },
+          {
+            "id": "287aa469-7ccc-5a28-b2f5-320f0b9de7d0",
+            "title": "Acme Product 6 → Search events 7",
+            "text": "Acme Product 6 → Search events 7 (related): Acme Product 6 relates to Search events 7.",
+            "score": 7,
+            "raw": {
+              "id": "287aa469-7ccc-5a28-b2f5-320f0b9de7d0",
+              "source": "Acme Product 6",
+              "target": "Search events 7",
+              "type": "related",
+              "weight": 7
+            },
+            "shortId": "13",
+            "tokens": 28
+          },
+          {
+            "id": "8ae0f946-98e9-555f-ad09-a2272964fdcb",
+            "title": "Search events 7 → Search team 9",
+            "text": "Search events 7 → Search team 9 (related): Search events 7 relates to Search team 9.",
+            "score": 6,
+            "raw": {
+              "id": "8ae0f946-98e9-555f-ad09-a2272964fdcb",
+              "source": "Search events 7",
+              "target": "Search team 9",
+              "type": "related",
+              "weight": 6
+            },
+            "shortId": "14",
+            "tokens": 28
+          },
+          {
+            "id": "c160202e-68ec-5767-b2bc-63a47802cf1b",
+            "title": "Campaigns events 7 → Recommendations gateway 3",
+            "text": "Campaigns events 7 → Recommendations gateway 3 (related): Campaigns events 7 delivers to Recommendations gateway 3.",
+            "score": 6,
+            "raw": {
+              "id": "c160202e-68ec-5767-b2bc-63a47802cf1b",
+              "source": "Campaigns events 7",
+              "target": "Recommendations gateway 3",
+              "type": "related",
+              "weight": 6
+            },
+            "shortId": "15",
+            "tokens": 36
+          },
+          {
+            "id": "b6ec66f7-b7a7-56de-abf8-43f04153fca1",
+            "title": "INC-984 Search quota breach → Search store 3",
+            "text": "INC-984 Search quota breach → Search store 3 (related): INC-984 Search quota breach relates to Search store 3.",
+            "score": 5,
+            "raw": {
+              "id": "b6ec66f7-b7a7-56de-abf8-43f04153fca1",
+              "source": "INC-984 Search quota breach",
+              "target": "Search store 3",
+              "type": "related",
+              "weight": 5
+            },
+            "shortId": "16",
+            "tokens": 38
+          },
+          {
+            "id": "a5db7126-0acc-598c-abe7-29ddc06797b3",
+            "title": "Search events 7 → Search service 4",
+            "text": "Search events 7 → Search service 4 (related): Search events 7 delivers to Search service 4.",
+            "score": 5,
+            "raw": {
+              "id": "a5db7126-0acc-598c-abe7-29ddc06797b3",
+              "source": "Search events 7",
+              "target": "Search service 4",
+              "type": "related",
+              "weight": 5
+            },
+            "shortId": "17",
+            "tokens": 30
+          },
+          {
+            "id": "5819229d-63bd-5cae-a36f-cc431d5012e0",
+            "title": "Campaigns events 7 → Campaigns events 6",
+            "text": "Campaigns events 7 → Campaigns events 6 (related): Campaigns events 7 relates to Campaigns events 6.",
+            "score": 5,
+            "raw": {
+              "id": "5819229d-63bd-5cae-a36f-cc431d5012e0",
+              "source": "Campaigns events 7",
+              "target": "Campaigns events 6",
+              "type": "related",
+              "weight": 5
+            },
+            "shortId": "18",
+            "tokens": 34
+          },
+          {
+            "id": "49313800-0378-5aa0-81a4-bc69a97bf551",
+            "title": "Recommendations gateway 3 → INC-946 Recommendations quota breach",
+            "text": "Recommendations gateway 3 → INC-946 Recommendations quota breach (related): Recommendations gateway 3 affected INC-946 Recommendations quota breach.",
+            "score": 5,
+            "raw": {
+              "id": "49313800-0378-5aa0-81a4-bc69a97bf551",
+              "source": "Recommendations gateway 3",
+              "target": "INC-946 Recommendations quota breach",
+              "type": "related",
+              "weight": 5
+            },
+            "shortId": "19",
+            "tokens": 45
+          },
+          {
+            "id": "12bd9901-a6c3-5cb1-8bdc-1e133ab38d2f",
+            "title": "Messaging events 5 → Messaging events 7",
+            "text": "Messaging events 5 → Messaging events 7 (related): Messaging events 5 relates to Messaging events 7.",
+            "score": 5,
+            "raw": {
+              "id": "12bd9901-a6c3-5cb1-8bdc-1e133ab38d2f",
+              "source": "Messaging events 5",
+              "target": "Messaging events 7",
+              "type": "related",
+              "weight": 5
+            },
+            "shortId": "20",
+            "tokens": 34
+          },
+          {
+            "id": "098df2d6-2589-5120-8cda-52c7d14841f1",
+            "title": "Web events 7 → Web worker 6",
+            "text": "Web events 7 → Web worker 6 (related): Web events 7 delivers to Web worker 6.",
+            "score": 4,
+            "raw": {
+              "id": "098df2d6-2589-5120-8cda-52c7d14841f1",
+              "source": "Web events 7",
+              "target": "Web worker 6",
+              "type": "related",
+              "weight": 4
+            },
+            "shortId": "21",
+            "tokens": 26
+          },
+          {
+            "id": "709aa8ed-fecc-5523-9401-d90ffa62de36",
+            "title": "Observability API 9 → INC-374 Data quota breach",
+            "text": "Observability API 9 → INC-374 Data quota breach (related): Observability API 9 affected INC-374 Data quota breach.",
+            "score": 4,
+            "raw": {
+              "id": "709aa8ed-fecc-5523-9401-d90ffa62de36",
+              "source": "Observability API 9",
+              "target": "INC-374 Data quota breach",
+              "type": "related",
+              "weight": 4
+            },
+            "shortId": "22",
+            "tokens": 37
+          },
+          {
+            "id": "86158c31-aa76-52b8-9564-0f22d8a02834",
+            "title": "INC-374 Data quota breach → Initech Product 8",
+            "text": "INC-374 Data quota breach → Initech Product 8 (related): INC-374 Data quota breach relates to Initech Product 8.",
+            "score": 4,
+            "raw": {
+              "id": "86158c31-aa76-52b8-9564-0f22d8a02834",
+              "source": "INC-374 Data quota breach",
+              "target": "Initech Product 8",
+              "type": "related",
+              "weight": 4
+            },
+            "shortId": "23",
+            "tokens": 36
+          },
+          {
+            "id": "d93742ed-d31e-58f3-a010-93f5206d0702",
+            "title": "Cart team 3 → INC-171 Cart partial outage",
+            "text": "Cart team 3 → INC-171 Cart partial outage (related): Cart team 3 relates to INC-171 Cart partial outage.",
+            "score": 2,
+            "raw": {
+              "id": "d93742ed-d31e-58f3-a010-93f5206d0702",
+              "source": "Cart team 3",
+              "target": "INC-171 Cart partial outage",
+              "type": "related",
+              "weight": 2
+            },
+            "shortId": "24",
+            "tokens": 32
+          },
+          {
+            "id": "f07ad178-d0a5-5136-a20a-30445634a57f",
+            "title": "Messaging gateway 2 → Messaging events 7",
+            "text": "Messaging gateway 2 → Messaging events 7 (related): Messaging gateway 2 publishes Messaging events 7.",
+            "score": 2,
+            "raw": {
+              "id": "f07ad178-d0a5-5136-a20a-30445634a57f",
+              "source": "Messaging gateway 2",
+              "target": "Messaging events 7",
+              "type": "related",
+              "weight": 2
+            },
+            "shortId": "25",
+            "tokens": 34
+          },
+          {
+            "id": "f78bf179-ccaf-562a-912a-864d6703e480",
+            "title": "Web events 7 → INC-857 Web partial outage",
+            "text": "Web events 7 → INC-857 Web partial outage (related): Web events 7 relates to INC-857 Web partial outage.",
+            "score": 1,
+            "raw": {
+              "id": "f78bf179-ccaf-562a-912a-864d6703e480",
+              "source": "Web events 7",
+              "target": "INC-857 Web partial outage",
+              "type": "related",
+              "weight": 1
+            },
+            "shortId": "26",
+            "tokens": 34
+          },
+          {
+            "id": "9dc63dda-383a-5295-b9d9-f8423fb1e849",
+            "title": "Campaigns events 7 → Initech Campaigns 2",
+            "text": "Campaigns events 7 → Initech Campaigns 2 (related): Campaigns events 7 relates to Initech Campaigns 2.",
+            "score": 1,
+            "raw": {
+              "id": "9dc63dda-383a-5295-b9d9-f8423fb1e849",
+              "source": "Campaigns events 7",
+              "target": "Initech Campaigns 2",
+              "type": "related",
+              "weight": 1
+            },
+            "shortId": "27",
+            "tokens": 34
+          },
+          {
+            "id": "fee87ba3-2e20-5d7c-8c67-12300eb0e960",
+            "title": "Campaigns scheduler 4 → Campaigns events 7",
+            "text": "Campaigns scheduler 4 → Campaigns events 7 (related): Campaigns scheduler 4 publishes Campaigns events 7.",
+            "score": 1,
+            "raw": {
+              "id": "fee87ba3-2e20-5d7c-8c67-12300eb0e960",
+              "source": "Campaigns scheduler 4",
+              "target": "Campaigns events 7",
+              "type": "related",
+              "weight": 1
+            },
+            "shortId": "28",
+            "tokens": 36
+          },
+          {
+            "id": "7bebd2b4-8101-5eb4-92da-8c1d4aa4979f",
+            "title": "INC-992 Search failed deploy → Initech Product 8",
+            "text": "INC-992 Search failed deploy → Initech Product 8 (related): INC-992 Search failed deploy relates to Initech Product 8.",
+            "score": 1,
+            "raw": {
+              "id": "7bebd2b4-8101-5eb4-92da-8c1d4aa4979f",
+              "source": "INC-992 Search failed deploy",
+              "target": "Initech Product 8",
+              "type": "related",
+              "weight": 1
+            },
+            "shortId": "29",
+            "tokens": 38
+          },
+          {
+            "id": "3e78724a-43ec-5aef-b019-db9e8c8dcaaa",
+            "title": "Umbrella Returns 2 → Search events 7",
+            "text": "Umbrella Returns 2 → Search events 7 (related): Umbrella Returns 2 relates to Search events 7.",
+            "score": 1,
+            "raw": {
+              "id": "3e78724a-43ec-5aef-b019-db9e8c8dcaaa",
+              "source": "Umbrella Returns 2",
+              "target": "Search events 7",
+              "type": "related",
+              "weight": 1
+            },
+            "shortId": "30",
+            "tokens": 30
+          }
+        ],
+        "reports": [
+          {
+            "id": "0",
+            "title": "Commerce",
+            "text": "Commerce: Commerce groups 74 entities (Database, Incident, Queue, Service, Team, Vendor) with 96 internal relationships. Search events 7 is the most connected member.",
+            "score": 4.3,
+            "raw": {
+              "id": "0",
+              "level": 0,
+              "rank": 4.3
+            },
+            "shortId": "1",
+            "tokens": 51
+          },
+          {
+            "id": "7",
+            "title": "Search and ranking",
+            "text": "Search and ranking: Search and ranking groups 9 entities (Database, Incident, Queue, Service, Team, Vendor) with 10 internal relationships. Search events 7 is the most connected member.",
+            "score": 9,
+            "raw": {
+              "id": "7",
+              "level": 2,
+              "rank": 9
+            },
+            "shortId": "2",
+            "tokens": 57
+          },
+          {
+            "id": "23",
+            "title": "Platform",
+            "text": "Platform: Platform groups 29 entities (Database, Incident, Queue, Service, Team, Vendor) with 35 internal relationships. Acme Data 3 is the most connected member.",
+            "score": 8.2,
+            "raw": {
+              "id": "23",
+              "level": 1,
+              "rank": 8.2
+            },
+            "shortId": "3",
+            "tokens": 49
+          },
+          {
+            "id": "5",
+            "title": "Catalog",
+            "text": "Catalog: Catalog groups 19 entities (Database, Incident, Queue, Service, Team, Vendor) with 23 internal relationships. Search events 7 is the most connected member.",
+            "score": 7.8,
+            "raw": {
+              "id": "5",
+              "level": 1,
+              "rank": 7.8
+            },
+            "shortId": "4",
+            "tokens": 51
+          },
+          {
+            "id": "12",
+            "title": "Content",
+            "text": "Content: Content groups 42 entities (Database, Incident, Queue, Service, Team, Vendor) with 57 internal relationships. Globex Campaigns 1 is the most connected member.",
+            "score": 4.8,
+            "raw": {
+              "id": "12",
+              "level": 0,
+              "rank": 4.8
+            },
+            "shortId": "5",
+            "tokens": 52
+          },
+          {
+            "id": "19",
+            "title": "Identity and platform",
+            "text": "Identity and platform: Identity and platform groups 53 entities (Database, Incident, Queue, Service, Team, Vendor) with 63 internal relationships. Acme Data 3 is the most connected member.",
+            "score": 4.5,
+            "raw": {
+              "id": "19",
+              "level": 0,
+              "rank": 4.5
+            },
+            "shortId": "6",
+            "tokens": 55
+          },
+          {
+            "id": "25",
+            "title": "Messaging",
+            "text": "Messaging: Messaging groups 8 entities (Incident, Queue, Service, Vendor) with 7 internal relationships. Messaging service 1 is the most connected member.",
+            "score": 8.3,
+            "raw": {
+              "id": "25",
+              "level": 2,
+              "rank": 8.3
+            },
+            "shortId": "7",
+            "tokens": 49
+          },
+          {
+            "id": "16",
+            "title": "Marketing",
+            "text": "Marketing: Marketing groups 21 entities (Database, Incident, Queue, Service, Team, Vendor) with 30 internal relationships. Globex Campaigns 1 is the most connected member.",
+            "score": 4.3,
+            "raw": {
+              "id": "16",
+              "level": 1,
+              "rank": 4.3
+            },
+            "shortId": "8",
+            "tokens": 54
+          },
+          {
+            "id": "17",
+            "title": "Campaigns",
+            "text": "Campaigns: Campaigns groups 10 entities (Database, Incident, Queue, Service, Team, Vendor) with 17 internal relationships. Globex Campaigns 1 is the most connected member.",
+            "score": 8.8,
+            "raw": {
+              "id": "17",
+              "level": 2,
+              "rank": 8.8
+            },
+            "shortId": "9",
+            "tokens": 54
+          },
+          {
+            "id": "1",
+            "title": "Checkout",
+            "text": "Checkout: Checkout groups 27 entities (Database, Incident, Queue, Service, Team, Vendor) with 33 internal relationships. Payments worker 2 is the most connected member.",
+            "score": 8.1,
+            "raw": {
+              "id": "1",
+              "level": 1,
+              "rank": 8.1
+            },
+            "shortId": "10",
+            "tokens": 51
+          },
+          {
+            "id": "14",
+            "title": "Web storefront",
+            "text": "Web storefront: Web storefront groups 8 entities (Database, Incident, Queue, Service, Team, Vendor) with 8 internal relationships. Web store 3 is the most connected member.",
+            "score": 7.9,
+            "raw": {
+              "id": "14",
+              "level": 2,
+              "rank": 7.9
+            },
+            "shortId": "11",
+            "tokens": 54
+          },
+          {
+            "id": "13",
+            "title": "Storefront",
+            "text": "Storefront: Storefront groups 20 entities (Database, Incident, Queue, Service, Team, Vendor) with 25 internal relationships. Mobile team 1 is the most connected member.",
+            "score": 7.4,
+            "raw": {
+              "id": "13",
+              "level": 1,
+              "rank": 7.4
+            },
+            "shortId": "12",
+            "tokens": 52
+          },
+          {
+            "id": "26",
+            "title": "Data platform",
+            "text": "Data platform: Data platform groups 10 entities (Database, Incident, Queue, Service, Vendor) with 11 internal relationships. Acme Data 3 is the most connected member.",
+            "score": 7,
+            "raw": {
+              "id": "26",
+              "level": 2,
+              "rank": 7
+            },
+            "shortId": "13",
+            "tokens": 49
+          },
+          {
+            "id": "18",
+            "title": "Recommendations",
+            "text": "Recommendations: Recommendations groups 9 entities (Incident, Service, Team, Vendor) with 11 internal relationships. Recommendations gateway 3 is the most connected member.",
+            "score": 5.1,
+            "raw": {
+              "id": "18",
+              "level": 2,
+              "rank": 5.1
+            },
+            "shortId": "14",
+            "tokens": 51
+          },
+          {
+            "id": "2",
+            "title": "Cart and pricing",
+            "text": "Cart and pricing: Cart and pricing groups 8 entities (Incident, Service, Team) with 9 internal relationships. Cart team 3 is the most connected member.",
+            "score": 5,
+            "raw": {
+              "id": "2",
+              "level": 2,
+              "rank": 5
+            },
+            "shortId": "15",
+            "tokens": 44
+          }
+        ],
+        "sources": [
+          {
+            "id": "a4c66512-7312-594f-ba50-b26fd5c886d0",
+            "title": "Commerce architecture notes",
+            "text": "In the catalog area of commerce, the search and ranking topic covers 9 components. Search events 7 relates to Search team 9. Search service 4 provides Umbrella Search 6. Search team 1 relates to Search events 7. Search team 9 owns Search service 4. INC-984 Search quota breach relates to Search store 3.",
+            "raw": {
+              "id": "a4c66512-7312-594f-ba50-b26fd5c886d0",
+              "documents": [
+                "Commerce architecture notes"
+              ]
+            },
+            "shortId": "1",
+            "tokens": 92
+          },
+          {
+            "id": "a8694aa9-a9ab-5762-9b49-6b743a7d1f76",
+            "title": "Commerce architecture notes",
+            "text": "In the catalog area of commerce, the search and ranking topic covers 9 components. INC-984 Search quota breach relates to Search team 1. INC-984 Search quota breach relates to Search events 7. Search events 7 delivers to Search service 4. INC-984 Search quota breach relates to Search team 9. Search gateway 2 writes Search store 3.",
+            "raw": {
+              "id": "a8694aa9-a9ab-5762-9b49-6b743a7d1f76",
+              "documents": [
+                "Commerce architecture notes"
+              ]
+            },
+            "shortId": "2",
+            "tokens": 103
+          },
+          {
+            "id": "157e7237-a878-543a-b861-5c5ea05b0571",
+            "title": "Content architecture notes",
+            "text": "In the storefront area of content, the web storefront topic covers 8 components. INC-857 Web partial outage relates to Web team 8. Web team 2 relates to Initech Web 5. Web events 7 delivers to Web worker 6. Web team 8 owns Web worker 1.",
+            "raw": {
+              "id": "157e7237-a878-543a-b861-5c5ea05b0571",
+              "documents": [
+                "Content architecture notes"
+              ]
+            },
+            "shortId": "3",
+            "tokens": 71
+          },
+          {
+            "id": "fe800d0a-fd9e-5162-9e4f-1446d5db6c70",
+            "title": "Content architecture notes",
+            "text": "In the storefront area of content, the web storefront topic covers 8 components. Web events 7 relates to INC-857 Web partial outage. INC-857 Web partial outage relates to Initech Web 5. Initech Web 5 relates to Web store 3. Web worker 1 writes Web store 3.",
+            "raw": {
+              "id": "fe800d0a-fd9e-5162-9e4f-1446d5db6c70",
+              "documents": [
+                "Content architecture notes"
+              ]
+            },
+            "shortId": "4",
+            "tokens": 79
+          },
+          {
+            "id": "2fb42492-38cc-54ac-952d-cd1310accef3",
+            "title": "Content architecture notes",
+            "text": "In the marketing area of content, the campaigns topic covers 10 components. Initech Campaigns 2 relates to Campaigns team 9. Campaigns events 7 relates to Campaigns events 6. Campaigns events 7 relates to Initech Campaigns 2. Campaigns store 8 writes Campaigns scheduler 4. Campaigns team 9 relates to Campaigns store 8. Campaigns store 8 relates to Globex Campaigns 1. Campaigns scheduler 4 publishes Campaigns events 7. Campaigns events 7 relates to Globex Campaigns 1.",
+            "raw": {
+              "id": "2fb42492-38cc-54ac-952d-cd1310accef3",
+              "documents": [
+                "Content architecture notes"
+              ]
+            },
+            "shortId": "5",
+            "tokens": 150
+          },
+          {
+            "id": "24a60920-bb1b-56eb-9589-5fbb0ae8efa4",
+            "title": "Content architecture notes",
+            "text": "In the marketing area of content, the campaigns topic covers 10 components. Initech Campaigns 2 relates to Globex Campaigns 1. Campaigns scheduler 4 provides Initech Campaigns 2. Campaigns events 6 relates to INC-992 Campaigns partial outage. INC-954 Campaigns partial outage relates to Globex Campaigns 1. INC-992 Campaigns partial outage relates to Globex Campaigns 1. Globex Campaigns 1 provides Campaigns scheduler 4. Globex Campaigns 1 provides Campaigns API 3. Campaigns events 7 relates to INC-992 Campaigns partial outage. INC-954 Campaigns partial outage relates to Campaigns events 6.",
+            "raw": {
+              "id": "24a60920-bb1b-56eb-9589-5fbb0ae8efa4",
+              "documents": [
+                "Content architecture notes"
+              ]
+            },
+            "shortId": "6",
+            "tokens": 185
+          },
+          {
+            "id": "ceeec904-1c7f-578a-b404-c55368314dad",
+            "title": "Identity and platform architecture notes",
+            "text": "In the platform area of identity and platform, the messaging topic covers 8 components. Messaging gateway 2 publishes Messaging events 7. Messaging events 7 relates to INC-252 Messaging quota breach. Messaging gateway 2 affected INC-252 Messaging quota breach.",
+            "raw": {
+              "id": "ceeec904-1c7f-578a-b404-c55368314dad",
+              "documents": [
+                "Identity and platform architecture notes"
+              ]
+            },
+            "shortId": "7",
+            "tokens": 80
+          },
+          {
+            "id": "8b7b28b3-cdfd-5d69-af0f-89eeb8fa8194",
+            "title": "Identity and platform architecture notes",
+            "text": "In the platform area of identity and platform, the messaging topic covers 8 components. Messaging events 5 relates to Messaging events 7. Messaging service 1 publishes Messaging events 5. Messaging service 1 calls Messaging gateway 6. Initech Messaging 4 provides Messaging service 1.",
+            "raw": {
+              "id": "8b7b28b3-cdfd-5d69-af0f-89eeb8fa8194",
+              "documents": [
+                "Identity and platform architecture notes"
+              ]
+            },
+            "shortId": "8",
+            "tokens": 87
+          },
+          {
+            "id": "0a464aa6-f917-5281-9229-461f7f133aaa",
+            "title": "Content architecture notes",
+            "text": "In the marketing area of content, the recommendations topic covers 9 components. Recommendations team 7 owns Recommendations gateway 5. Acme Recommendations 8 provides Recommendations gateway 3. Recommendations gateway 3 affected INC-946 Recommendations quota breach. Recommendations gateway 3 calls Recommendations service 4. Recommendations scheduler 6 provides Acme Recommendations 8.",
+            "raw": {
+              "id": "0a464aa6-f917-5281-9229-461f7f133aaa",
+              "documents": [
+                "Content architecture notes"
+              ]
+            },
+            "shortId": "9",
+            "tokens": 110
+          },
+          {
+            "id": "13d257de-5a58-5d94-a30e-818efc5c3161",
+            "title": "Identity and platform architecture notes",
+            "text": "In the platform area of identity and platform, the data platform topic covers 10 components. Acme Data 3 relates to Data events 2. Data service 7 publishes Data events 8. Data store 5 relates to Acme Data 3. Data events 8 delivers to Data worker 6. Acme Data 3 relates to INC-374 Data quota breach. Hooli Data 10 relates to INC-374 Data quota breach.",
+            "raw": {
+              "id": "13d257de-5a58-5d94-a30e-818efc5c3161",
+              "documents": [
+                "Identity and platform architecture notes"
+              ]
+            },
+            "shortId": "10",
+            "tokens": 102
+          },
+          {
+            "id": "e9d757c4-149a-5a98-b98e-8cbdadb55509",
+            "title": "Commerce architecture notes",
+            "text": "In the checkout area of commerce, the cart and pricing topic covers 8 components. Cart gateway 1 calls Cart scheduler 4. Cart team 3 relates to INC-171 Cart partial outage. INC-160 Cart quota breach affected Cart scheduler 8. Cart scheduler 4 calls Cart scheduler 8. Cart gateway 1 calls Cart scheduler 8.",
+            "raw": {
+              "id": "e9d757c4-149a-5a98-b98e-8cbdadb55509",
+              "documents": [
+                "Commerce architecture notes"
+              ]
+            },
+            "shortId": "11",
+            "tokens": 91
+          }
+        ],
+        "claims": [
+          {
+            "id": "e6c3783d-06c3-53c8-a0ac-30e307a93ae9",
+            "title": "Search events 7 (DEPRECATION)",
+            "text": "Search events 7 (DEPRECATION): Search events 7 is scheduled for retirement.",
+            "raw": {
+              "id": "e6c3783d-06c3-53c8-a0ac-30e307a93ae9",
+              "status": "FALSE"
+            },
+            "shortId": "1",
+            "tokens": 25
+          },
+          {
+            "id": "c92b3515-023a-5348-9137-66ba294c3c60",
+            "title": "Campaigns events 7 (INCIDENT)",
+            "text": "Campaigns events 7 (INCIDENT): Campaigns events 7 caused an outage affecting Campaigns events 6.",
+            "raw": {
+              "id": "c92b3515-023a-5348-9137-66ba294c3c60",
+              "status": "SUSPECTED"
+            },
+            "shortId": "2",
+            "tokens": 32
+          },
+          {
+            "id": "9ec442c1-5be0-53cf-b4f6-d882b83386c7",
+            "title": "Messaging events 7 (INCIDENT)",
+            "text": "Messaging events 7 (INCIDENT): Messaging events 7 caused an outage affecting INC-252 Messaging quota breach.",
+            "raw": {
+              "id": "9ec442c1-5be0-53cf-b4f6-d882b83386c7",
+              "status": "SUSPECTED"
+            },
+            "shortId": "3",
+            "tokens": 36
+          },
+          {
+            "id": "436284ba-f9fa-5530-87d1-1858cac29fd2",
+            "title": "Messaging gateway 2 (DEPENDENCY)",
+            "text": "Messaging gateway 2 (DEPENDENCY): Messaging gateway 2 depends on Messaging events 7 in production.",
+            "raw": {
+              "id": "436284ba-f9fa-5530-87d1-1858cac29fd2",
+              "status": "TRUE"
+            },
+            "shortId": "4",
+            "tokens": 32
+          }
+        ]
+      },
+      "stats": {
+        "elapsedMs": 5444,
+        "llmCalls": 2,
+        "promptTokens": 3150,
+        "completionTokens": 745
+      }
+    }
+  ]
+}
