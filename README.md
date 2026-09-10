@@ -344,6 +344,35 @@ comparison. Each has its own README section under [tools/README.md](tools/README
 
 See [CONTRIBUTING.md](CONTRIBUTING.md) for the workflow and [CHANGELOG.md](CHANGELOG.md) for releases.
 
+## Come and help
+
+**Issues and pull requests are welcome, and so is everything in between.** A screenshot of an index
+that looks wrong, a GraphRAG version that will not load, a sentence in the interface that reads
+badly, a question about why something works the way it does. You do not have to bring a fix with the
+report, and you do not have to be sure it is a bug.
+
+This is one person's project so far, and it would be a better one with more people in it. If you are
+looking for somewhere to start, the [open issues](https://github.com/workdd/graphrag-community-explorer/issues)
+carry what is planned, and the ones marked
+[good first issue](https://github.com/workdd/graphrag-community-explorer/labels/good%20first%20issue)
+are scoped small on purpose. [CONTRIBUTING.md](CONTRIBUTING.md) is the whole process; there is
+nothing hidden in a wiki.
+
+**Korean and English are both fine** — in issues, in pull requests, in commit messages, in review.
+한국어로 편하게 남기셔도 됩니다.
+
+What would help most right now:
+
+- **Indexes that do not load, or load wrongly.** GraphRAG's output has changed shape several times
+  and this reads all of it; the version that produced the index and the file names it wrote tell us
+  more than a stack trace does. Never attach a real index, and
+  [SECURITY.md](SECURITY.md) says what else to keep out.
+- **Whether the Health findings are true of your index.** The thresholds are named in
+  `src/core/metrics/diagnosis.ts` with the reason each one sits where it does. If a finding is wrong
+  about a real index, the reason is wrong and we would like to know.
+- **Anything the interface says badly.** Both languages. Wording is not a small contribution here;
+  half of this project is telling somebody what they are looking at.
+
 ## License
 
 MIT. This project started as a fork of

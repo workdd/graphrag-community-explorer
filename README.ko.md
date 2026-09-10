@@ -241,6 +241,29 @@ Leiden 재클러스터링, 재클러스터링한 집합의 커뮤니티 요약, 
 
 작업 방식은 [CONTRIBUTING.md](CONTRIBUTING.md), 릴리스 내역은 [CHANGELOG.md](CHANGELOG.md) 를 봅니다.
 
+## 함께 만들어 주십시오
+
+**이슈와 풀 리퀘스트를 언제든 환영합니다.** 그 사이의 무엇이든 좋습니다. 이상하게 보이는 색인의 화면 캡처,
+적재되지 않는 GraphRAG 버전, 어색하게 읽히는 화면 문구, 왜 이렇게 동작하는지에 대한 질문. 해결책을 함께
+가져오지 않아도 되고, 버그가 맞는지 확신하지 않아도 됩니다.
+
+지금까지는 한 사람의 프로젝트이며, 사람이 더 있으면 더 나은 프로젝트가 됩니다. 어디서 시작할지 찾고 계시다면
+[열린 이슈](https://github.com/workdd/graphrag-community-explorer/issues) 에 계획된 작업이 있고,
+[good first issue](https://github.com/workdd/graphrag-community-explorer/labels/good%20first%20issue)
+라벨이 붙은 것들은 일부러 작게 잘라 두었습니다.
+
+**한국어와 영어 모두 괜찮습니다.** 이슈, 풀 리퀘스트, 커밋 메시지, 리뷰 어디서든 편한 쪽으로 쓰십시오.
+
+지금 가장 도움이 되는 것은 다음과 같습니다.
+
+- **적재되지 않거나 이상하게 적재되는 색인.** GraphRAG 산출물은 여러 번 모양이 바뀌었고 이 도구는 그 전부를
+  읽습니다. 스택 트레이스보다 색인을 만든 버전과 기록된 파일 이름이 더 많은 것을 알려 줍니다. 실제 색인 파일은
+  절대 첨부하지 마십시오. 그 밖에 넣지 말아야 할 것은 [SECURITY.md](SECURITY.md) 에 있습니다.
+- **상태 화면의 진단이 실제 색인에 대해 맞는 말인지.** 임계값은 `src/core/metrics/diagnosis.ts` 에 이름과
+  근거가 함께 적혀 있습니다. 실제 색인에서 진단이 틀렸다면 근거가 틀린 것이므로 알려 주시면 좋겠습니다.
+- **어색하게 읽히는 화면 문구.** 두 언어 모두 해당합니다. 이 프로젝트에서 문구는 작은 기여가 아닙니다.
+  절반은 보고 있는 것이 무엇인지 설명하는 일입니다.
+
 ## 라이선스
 
 MIT. 이 프로젝트는 [GraphRAG Visualizer](https://github.com/noworneverev/graphrag-visualizer) 의
