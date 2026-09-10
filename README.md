@@ -1,4 +1,4 @@
-# GraphRAG Community Explorer
+# GraphRAG Inspector
 
 **English** · [한국어](README.ko.md)
 
@@ -6,15 +6,15 @@
 question, and follow the answer back to the exact records it used.** No server, no install, nothing
 uploaded.
 
-[![ci](https://github.com/workdd/graphrag-community-explorer/actions/workflows/ci.yml/badge.svg)](https://github.com/workdd/graphrag-community-explorer/actions/workflows/ci.yml)
-[![live demo](https://img.shields.io/badge/demo-live-1f6feb)](https://workdd.github.io/graphrag-community-explorer/)
+[![ci](https://github.com/workdd/graphrag-inspector/actions/workflows/ci.yml/badge.svg)](https://github.com/workdd/graphrag-inspector/actions/workflows/ci.yml)
+[![live demo](https://img.shields.io/badge/demo-live-1f6feb)](https://workdd.github.io/graphrag-inspector/)
 [![license MIT](https://img.shields.io/badge/license-MIT-black)](LICENSE)
 [![runs in the browser](https://img.shields.io/badge/backend-none-black)](#try-it)
 [![GraphRAG 0.3 to 2.x](https://img.shields.io/badge/GraphRAG-0.3%20to%202.x-black)](#what-it-reads)
 
 ![The sample index opened on the types it was counted from, then the Health view naming two things to fix, then the whole graph with community clouds, then a question answered with citations and one of them followed to the record it names and to the evidence graph](docs/screenshots/ask.gif)
 
-**[Open the demo](https://workdd.github.io/graphrag-community-explorer/) → Ask → See a saved run.**
+**[Open the demo](https://workdd.github.io/graphrag-inspector/) → Ask → See a saved run.**
 No API key needed: the sample ships with a recorded run, so the whole answer-to-evidence path is one
 click away.
 
@@ -96,7 +96,7 @@ npm run dev          # http://127.0.0.1:5173
 
 Click **Open the sample dataset**, or drop your GraphRAG `output/` folder onto the page.
 
-Live demo with the sample: https://workdd.github.io/graphrag-community-explorer/
+Live demo with the sample: https://workdd.github.io/graphrag-inspector/
 
 To work with your own index every day, put its files under `local-data/<name>/` (ignored by Git and
 served only by the dev server) and open `http://127.0.0.1:5173/?data=./data/<name>`. To make it open
@@ -352,9 +352,9 @@ badly, a question about why something works the way it does. You do not have to 
 report, and you do not have to be sure it is a bug.
 
 This is one person's project so far, and it would be a better one with more people in it. If you are
-looking for somewhere to start, the [open issues](https://github.com/workdd/graphrag-community-explorer/issues)
+looking for somewhere to start, the [open issues](https://github.com/workdd/graphrag-inspector/issues)
 carry what is planned, and the ones marked
-[good first issue](https://github.com/workdd/graphrag-community-explorer/labels/good%20first%20issue)
+[good first issue](https://github.com/workdd/graphrag-inspector/labels/good%20first%20issue)
 are scoped small on purpose. [CONTRIBUTING.md](CONTRIBUTING.md) is the whole process; there is
 nothing hidden in a wiki.
 

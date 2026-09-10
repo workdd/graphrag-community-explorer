@@ -1,6 +1,6 @@
 #!/usr/bin/env node
 // Serves the built app and, optionally, folders of Parquet files under /data/<name>/.
-//   npx graphrag-community-explorer --data ~/graphrag/output --port 4180
+//   npx graphrag-inspector --data ~/graphrag/output --port 4180
 //   node scripts/serve.mjs --data ~/graphrag/output          (in a checkout, after npm run build)
 // Then open http://127.0.0.1:4180/?data=./data/output
 import http from "node:http";
@@ -111,7 +111,7 @@ if (process.env.GCE_SERVE_NO_LISTEN !== "1") {
       process.exit(1);
     })
     .listen(port, "127.0.0.1", () => {
-      console.log(`GraphRAG Community Explorer at http://127.0.0.1:${port}/`);
+      console.log(`GraphRAG Inspector at http://127.0.0.1:${port}/`);
       for (const name of dataDirs.keys()) console.log(`  dataset: http://127.0.0.1:${port}/?data=./data/${name}`);
     });
 }

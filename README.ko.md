@@ -1,19 +1,19 @@
-# GraphRAG Community Explorer
+# GraphRAG Inspector
 
 [English](README.md) · **한국어**
 
 **[Microsoft GraphRAG](https://github.com/microsoft/graphrag) 색인을 브라우저에서 열고, 질문하고,
 그 답변이 실제로 사용한 레코드까지 되짚습니다.** 서버도 설치도 없고, 파일은 어디에도 올라가지 않습니다.
 
-[![ci](https://github.com/workdd/graphrag-community-explorer/actions/workflows/ci.yml/badge.svg)](https://github.com/workdd/graphrag-community-explorer/actions/workflows/ci.yml)
-[![라이브 데모](https://img.shields.io/badge/demo-live-1f6feb)](https://workdd.github.io/graphrag-community-explorer/)
+[![ci](https://github.com/workdd/graphrag-inspector/actions/workflows/ci.yml/badge.svg)](https://github.com/workdd/graphrag-inspector/actions/workflows/ci.yml)
+[![라이브 데모](https://img.shields.io/badge/demo-live-1f6feb)](https://workdd.github.io/graphrag-inspector/)
 [![라이선스 MIT](https://img.shields.io/badge/license-MIT-black)](LICENSE)
 [![백엔드 없음](https://img.shields.io/badge/backend-none-black)](#사용-방법)
 [![GraphRAG 0.3~2.x](https://img.shields.io/badge/GraphRAG-0.3%20to%202.x-black)](#읽는-파일)
 
 ![표본 색인을 스키마로 열고, 상태 화면에서 고칠 것 두 건을 확인한 뒤, 전체 그래프를 커뮤니티 구름과 함께 그리고, 질문한 답변의 인용 하나를 눌러 해당 레코드와 근거 그래프까지 따라가는 화면](docs/screenshots/ask.gif)
 
-**[데모 열기](https://workdd.github.io/graphrag-community-explorer/) → 질문 → 저장된 실행 보기.**
+**[데모 열기](https://workdd.github.io/graphrag-inspector/) → 질문 → 저장된 실행 보기.**
 API 키가 필요 없습니다. 표본에 실행 기록 하나가 들어 있어, 답변에서 근거까지 가는 경로 전체를 클릭 한 번으로
 볼 수 있습니다.
 
@@ -80,7 +80,7 @@ npm run dev          # http://127.0.0.1:5173
 **Open the sample dataset** 를 누르거나, GraphRAG `output/` 폴더를 화면에 끌어다 놓습니다. 상단의
 **한국어** 버튼으로 화면 언어를 바꿉니다.
 
-표본으로 도는 라이브 데모: https://workdd.github.io/graphrag-community-explorer/
+표본으로 도는 라이브 데모: https://workdd.github.io/graphrag-inspector/
 
 자기 색인을 매일 쓰려면 파일을 `local-data/<이름>/` 에 두고 `http://127.0.0.1:5173/?data=./data/<이름>`
 으로 엽니다. 이 폴더는 Git 이 무시하고 빌드에도 들어가지 않습니다. `.env.example` 을 `.env.development.local`
@@ -248,8 +248,8 @@ Leiden 재클러스터링, 재클러스터링한 집합의 커뮤니티 요약, 
 가져오지 않아도 되고, 버그가 맞는지 확신하지 않아도 됩니다.
 
 지금까지는 한 사람의 프로젝트이며, 사람이 더 있으면 더 나은 프로젝트가 됩니다. 어디서 시작할지 찾고 계시다면
-[열린 이슈](https://github.com/workdd/graphrag-community-explorer/issues) 에 계획된 작업이 있고,
-[good first issue](https://github.com/workdd/graphrag-community-explorer/labels/good%20first%20issue)
+[열린 이슈](https://github.com/workdd/graphrag-inspector/issues) 에 계획된 작업이 있고,
+[good first issue](https://github.com/workdd/graphrag-inspector/labels/good%20first%20issue)
 라벨이 붙은 것들은 일부러 작게 잘라 두었습니다.
 
 **한국어와 영어 모두 괜찮습니다.** 이슈, 풀 리퀘스트, 커밋 메시지, 리뷰 어디서든 편한 쪽으로 쓰십시오.

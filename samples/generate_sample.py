@@ -59,6 +59,8 @@ ISSUE = ["latency spike", "partial outage", "data drift", "failed deploy", "quot
 
 
 def stable_id(kind: str, key: str) -> str:
+    # A frozen namespace, not the project name: changing it changes every id in the sample,
+    # and the shipped example run cites those ids.
     return str(uuid.uuid5(uuid.NAMESPACE_URL, f"graphrag-community-explorer/{kind}/{key}"))
 
 

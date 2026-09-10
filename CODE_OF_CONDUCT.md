@@ -22,7 +22,7 @@ the person it is aimed at is present.
 ## If something goes wrong
 
 Report it to the maintainer through a
-[private security advisory](https://github.com/workdd/graphrag-community-explorer/security/advisories/new),
+[private security advisory](https://github.com/workdd/graphrag-inspector/security/advisories/new),
 which is the private channel this repository has. Say what happened and where; a link is enough.
 
 Reports are read by the maintainer and are not shared further. What follows depends on what

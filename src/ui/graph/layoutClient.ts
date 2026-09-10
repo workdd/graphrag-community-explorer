@@ -41,6 +41,8 @@ export async function requestLayout(profile: LayoutProfile, elements: cytoscape.
   return { ...computeLayout(job), where: "main" };
 }
 
+// A storage key, not the product name. Renaming it would strand every layout already cached in
+// somebody's browser, which is worse than an old string nobody sees.
 const DB = "graphrag-community-explorer";
 const STORE = "layouts";
 

@@ -1,7 +1,7 @@
 # Static build served by nginx. Mount an index folder at /usr/share/nginx/html/data/<name>
 # and open http://localhost:8080/?data=./data/<name>
-#   docker build -t graphrag-community-explorer .
-#   docker run --rm -p 8080:80 -v /path/to/output:/usr/share/nginx/html/data/output:ro graphrag-community-explorer
+#   docker build -t graphrag-inspector .
+#   docker run --rm -p 8080:80 -v /path/to/output:/usr/share/nginx/html/data/output:ro graphrag-inspector
 # Not yet verified on a machine with Docker; report problems in an issue.
 FROM node:22-alpine AS build
 WORKDIR /app

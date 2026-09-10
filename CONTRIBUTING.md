@@ -8,8 +8,8 @@ never does.
 ## Set up
 
 ```sh
-git clone https://github.com/workdd/graphrag-community-explorer.git
-cd graphrag-community-explorer
+git clone https://github.com/workdd/graphrag-inspector.git
+cd graphrag-inspector
 npm install
 npm run hooks        # pre-push check that refuses private data
 npm run dev          # http://127.0.0.1:5173
@@ -57,7 +57,7 @@ file, an environment file or an identifier from a private export; move the data 
 
 ## Reporting a problem
 
-A security problem goes to a [private advisory](https://github.com/workdd/graphrag-community-explorer/security/advisories/new)
+A security problem goes to a [private advisory](https://github.com/workdd/graphrag-inspector/security/advisories/new)
 rather than an issue; [SECURITY.md](SECURITY.md) says what is worth reporting.
 
 For anything else, open an issue with the template. Include the GraphRAG version that produced the index, the file names

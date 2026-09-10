@@ -272,7 +272,7 @@ export function Overview({ result, label, onReset, datasets, activeData, onOpenD
     <div className={`app no-rail${view === "ask" ? " no-inspector" : ""}`}>
       <header className="topbar">
         <Mark size={22} />
-        <span className="topbar-title">GraphRAG Community Explorer</span>
+        <span className="topbar-title">GraphRAG Inspector</span>
         <span className="topbar-dataset" title={dataset.source.files.join(", ")}>
           {label}: {dataset.source.files.join(", ")}
         </span>

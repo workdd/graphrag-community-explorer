@@ -54,7 +54,7 @@ export function LoadScreen({ state, onFiles, onSample, defaultData, onDefault, d
     <main className="load">
       <div className="load-inner">
         <div className="load-top"><Mark size={44} /><LangToggle /></div>
-        <h1>GraphRAG Community Explorer</h1>
+        <h1>GraphRAG Inspector</h1>
         <p className="lede">{t("Read a GraphRAG index the way it is organized: communities first, then the entities and relationships inside each one. Files are parsed in this tab and never uploaded.")}</p>
         <p className="lede-note">{t("The Ask tab is the exception: a question sends the evidence it selected to the model provider you configure.")}</p>
 

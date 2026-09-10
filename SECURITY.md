@@ -40,7 +40,7 @@ Real indexes belong in `local-data/`, which Git ignores and the build never copi
 
 ## Reporting a vulnerability
 
-Open a [security advisory](https://github.com/workdd/graphrag-community-explorer/security/advisories/new)
+Open a [security advisory](https://github.com/workdd/graphrag-inspector/security/advisories/new)
 rather than a public issue, and please include the version or commit, the browser, and what an
 attacker would gain. This is a client-side application with no accounts and no server-side state, so
 the interesting cases are the ones where data leaves the tab: a path that puts index content or a
