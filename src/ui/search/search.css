@@ -162,3 +162,14 @@
 .search .build-vectors .row { display: flex; align-items: center; gap: 10px; flex-wrap: wrap; margin: 0; }
 .search .build-vectors progress { width: 180px; height: 8px; }
 .search .build-vectors p { margin: 0; }
+
+/* Asking the whole set, and what each question reached. */
+.search details.eval > summary { font-size: 12px; color: var(--ink-2); cursor: pointer; margin: 10px 0 6px; }
+.search .eval .row { display: flex; align-items: center; gap: 10px; flex-wrap: wrap; margin: 8px 0; }
+.search .eval progress { width: 180px; height: 8px; }
+.search .eval-summary { max-width: 100ch; }
+.search .eval-table { margin-top: 8px; font-size: 12px; }
+.search .eval-table td.title { max-width: 46ch; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.search .eval-table tr.eval-uncited { background: #fdf6e6; }
+.search .eval-table tr.eval-empty { background: #fbeceb; }
+.search .eval-table tr.eval-failed { background: #fbeceb; color: var(--ink-2); }

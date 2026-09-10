@@ -349,6 +349,28 @@ const KO: Record<string, string> = {
   "Schema graph": "스키마 그래프",
   "Evidence graph": "근거 그래프",
   "Matrix of {from} by {to}, {pairs} filled cells": "{from} 과(와) {to} 의 행렬, 채워진 칸 {pairs}개",
+  // 질문 한 벌 돌리기
+  "A level is wider than the panel; scroll sideways for the rest of it.": "한 레벨이 패널보다 넓습니다. 옆으로 넘겨 나머지를 보십시오.",
+  "Ask the whole set ({n})": "질문 한 벌 돌리기 ({n})",
+  "{n} questions, about {calls} model calls. They are asked one at a time, and a question that fails does not stop the rest.":
+    "질문 {n}개, 모델 호출 약 {calls}회. 한 번에 하나씩 묻고, 하나가 실패해도 나머지는 계속합니다.",
+  "Ask them all": "전부 묻기",
+  "Asked {done} of {total}": "{total}개 중 {done}개 완료",
+  "Save the table as CSV": "표를 CSV 로 저장",
+  "Save every run as one trace": "모든 실행을 한 트레이스로 저장",
+  "{answered} answered with a citation, {uncited} cited nothing they were given, {empty} retrieved nothing, {failed} failed. {calls} model calls, {tokens} tokens, {seconds}s.":
+    "인용과 함께 답한 것 {answered}건, 받은 근거를 하나도 인용하지 않은 것 {uncited}건, 검색이 아무것에도 닿지 못한 것 {empty}건, 실패 {failed}건. 모델 호출 {calls}회, 토큰 {tokens}개, {seconds}초.",
+  "Outcome": "결과",
+  "Retrieved": "검색됨",
+  "Cited": "인용됨",
+  "Calls": "호출",
+  "Seconds": "초",
+  "answered": "인용과 함께 답함",
+  "cited nothing": "아무것도 인용 안 함",
+  "retrieved nothing": "검색이 닿지 못함",
+  "failed": "실패",
+  "Nothing here judges the wording. A question that retrieved nothing is the index's problem; one that was handed evidence and cited none of it is where an answer stops being checkable.":
+    "여기서 문장의 좋고 나쁨은 따지지 않습니다. 검색이 닿지 못한 질문은 색인의 문제이고, 근거를 받고도 하나도 인용하지 않은 답은 검증이 불가능해지는 지점입니다.",
   "Views": "화면",
   "Health": "상태",
   "Types": "스키마",

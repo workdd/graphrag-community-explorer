@@ -4,6 +4,9 @@ import { embedEntities, planEmbedding, type EmbedProgress } from "../../core/sea
 import { embed as embedCall, ProviderError } from "../../core/search/llm";
 import { readVectors, vectorKey, writeVectors } from "./vectorStore";
 import { fmt } from "../format";
+import { EvalPanel } from "./EvalPanel";
+import { testScenarios } from "../../core/search/scenarios";
+import type { EvalQuestion } from "../../core/search/evaluate";
 import type { Dataset, Partition } from "../../core/model";
 import { mismatches } from "../../core/search/fingerprint";
 import { DEFAULT_GLOBAL } from "../../core/search/global";
@@ -66,7 +69,7 @@ const store = (): Storage | null => {
 };
 
 export function SearchView(props: Props) {
-  const { t } = useT();
+  const { t, lang } = useT();
   const [provider, setProvider] = useState(() => readProvider(store()));
   const preset = useMemo(() => fromEnvironment(), []);
   const [showSettings, setShowSettings] = useState(() => !isConfigured(readProvider(store())));
@@ -186,6 +189,21 @@ export function SearchView(props: Props) {
     embeddings !== undefined &&
     provider.embedModel.trim() !== "" &&
     !sameEmbeddingModel(embeddings.model, provider.embedModel);
+
+  // The set this index can actually be asked: the questions derived from its own records, and the
+  // scenarios when it carries the entity types they are written against.
+  const questionSet = useMemo<EvalQuestion[]>(() => {
+    const out: EvalQuestion[] = examples.map((example, i) => ({
+      id: `Q${i + 1}`,
+      question: fill(t(example.template), example.vars),
+      method: example.method,
+      title: fill(t(example.template), example.vars).slice(0, 60),
+    }));
+    for (const scenario of testScenarios(props.dataset, lang)) {
+      out.push({ id: scenario.id, question: scenario.question, method: scenario.method, title: scenario.title });
+    }
+    return out.filter((q) => (q.method === "local" ? localReady : globalPlan.reports > 0));
+  }, [examples, props.dataset, lang, localReady, globalPlan.reports, t]);
 
   const save = (next: typeof provider) => {
     setProvider(next);
@@ -494,6 +512,45 @@ export function SearchView(props: Props) {
       />
       </div>
 
+
+      <EvalPanel
+        questions={questionSet}
+        ready={ready}
+        callsFor={(q) => (q.method === "global" ? globalPlan.calls : 2)}
+        run={(q) =>
+          q.method === "local" && embeddings
+            ? runLocal({
+                dataset: props.dataset,
+                partition: props.partition,
+                embeddings,
+                provider,
+                query: q.question,
+                options: DEFAULT_LOCAL,
+                responseLanguage: t("English"),
+              })
+            : runGlobal({
+                partition: props.partition,
+                provider,
+                query: q.question,
+                options: DEFAULT_GLOBAL,
+                responseLanguage: t("English"),
+              })
+        }
+        onSaveRuns={(rows, made) =>
+          downloadText(
+            "evaluation-trace.json",
+            traceJson(
+              newTrace(
+                t("Ask the whole set ({n})", { n: rows.length }),
+                props.label,
+                props.fingerprints,
+                made,
+                props.version,
+              ),
+            ),
+          )
+        }
+      />
 
       <details className="system" open>
         <summary>{t("How a question reaches an answer")}</summary>
