@@ -3,7 +3,7 @@ import { expect, test } from "@playwright/test";
 test("sample dataset: overview, graph, map and quality", async ({ page }) => {
   await page.goto("/");
   await page.getByRole("button", { name: "Open the sample dataset" }).click();
-  await page.getByRole("tab", { name: "Overview" }).click();
+  await page.getByRole("tab", { name: /^Health/ }).click();
   await expect(page.locator(".summary")).toContainText("189 entities and 233 relationships");
   await expect(page.locator(".ctable tbody tr")).toHaveCount(29);
   await expect(page.locator(".integrity summary")).toContainText("no problems");
@@ -26,7 +26,7 @@ test("sample dataset: overview, graph, map and quality", async ({ page }) => {
 test("entity inspector shows relationships and source text", async ({ page }) => {
   await page.goto("/");
   await page.getByRole("button", { name: "Open the sample dataset" }).click();
-  await page.getByRole("tab", { name: "Overview" }).click();
+  await page.getByRole("tab", { name: /^Health/ }).click();
   await page.locator(".ctable tbody tr", { hasText: "Payments" }).first().click();
   await page.locator(".inspector .member-btn").first().click();
   await expect(page.locator(".inspector h3", { hasText: "Relationships" })).toBeVisible();

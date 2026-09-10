@@ -14,6 +14,10 @@ import { LangToggle, Rich, useT } from "../i18n";
 import { fmt, pct } from "../format";
 import { CommunityTable } from "./CommunityTable";
 import { version as APP_VERSION } from "../../../package.json";
+import { countBySeverity, diagnose, type Destination } from "../../core/metrics/diagnosis";
+import { levelQuality } from "../../core/metrics/quality";
+import { Health } from "./Health";
+import { ViewTabs, type TabSpec } from "./ViewTabs";
 import { EntityFinder } from "./EntityFinder";
 import { Inspector } from "./Inspector";
 import { IntegrityPanel } from "./IntegrityPanel";
@@ -33,6 +37,12 @@ type View = "network" | "table" | "map" | "graph" | "quality" | "schema" | "form
 const VIEWS: View[] = ["network", "table", "map", "graph", "quality", "schema", "formation", "ask", "matrix"];
 /** The shape of the index comes first; every other view is reached by picking something in it. */
 const DEFAULT_VIEW: View = "schema";
+
+/** One panel is shown at a time, so every tab points at the same element. */
+const PANEL_ID = "view-panel";
+
+/** Shown until it has been read once, then never again in this browser. */
+const HINT_KEY = "gce.hint";
 type Backgrounds = "boxes" | "clouds";
 
 interface HashState {
@@ -130,6 +140,42 @@ export function Overview({ result, label, onReset, datasets, activeData, onOpenD
   const counts = useMemo(() => datasetCounts(dataset), [dataset]);
   const summary = useMemo(() => (realPartition ? summarizePartition(dataset, realPartition) : null), [dataset, realPartition]);
   const integrity = useMemo(() => (realPartition ? checkIntegrity(dataset, realPartition) : []), [dataset, realPartition]);
+  // What the numbers mean for a search. Kept here rather than inside the view so the tab can carry
+  // the count without opening it.
+  const findings = useMemo(
+    () =>
+      diagnose({
+        dataset,
+        partition: realPartition ?? null,
+        levels: realPartition ? levelQuality(dataset, realPartition) : [],
+        hasEmbeddings: result.embeddings !== undefined,
+      }),
+    [dataset, realPartition, result.embeddings],
+  );
+  const toFix = countBySeverity(findings, "fix");
+  // Said once, to somebody who has just opened an index and does not know where the point is.
+  const [hint, setHint] = useState(() => {
+    try {
+      return window.localStorage.getItem(HINT_KEY) !== "done";
+    } catch {
+      return true; // a browser told to block site data; showing it once a session is no worse
+    }
+  });
+  const dismissHint = () => {
+    setHint(false);
+    try {
+      window.localStorage.setItem(HINT_KEY, "done");
+    } catch {
+      // nothing to do: it comes back next time
+    }
+  };
+  const openFrom = (to: Destination) => {
+    if (to === "map") setView("map");
+    else if (to === "table") setView("table");
+    else if (to === "quality") setView("quality");
+    else if (to === "network") setView("network");
+    else setView("ask");
+  };
 
   const levels = realPartition ? levelsByDepth(realPartition) : [];
   const selected = selectedId && realPartition ? realPartition.communities.get(selectedId) ?? null : null;
@@ -263,28 +309,54 @@ export function Overview({ result, label, onReset, datasets, activeData, onOpenD
               </select>
             </label>
           )}
-          <div className="segmented" role="tablist">
-            <button role="tab" aria-selected={view === "network"} className={view === "network" ? "active" : ""} title={t("Every entity and relationship; communities are an overlay you turn on")} onClick={() => setView("network")}>{t("Network")}</button>
-            <button role="tab" aria-selected={view === "table"} className={view === "table" ? "active" : ""} onClick={() => setView("table")}>{t("Overview")}</button>
-            <button role="tab" aria-selected={view === "map"} className={view === "map" ? "active" : ""} disabled={!realPartition} title={realPartition ? undefined : t("Needs communities.parquet")} onClick={() => setView("map")}>{t("Communities")}</button>
-            <button role="tab" aria-selected={view === "quality"} className={view === "quality" ? "active" : ""} disabled={!realPartition} title={realPartition ? undefined : t("Needs communities.parquet")} onClick={() => setView("quality")}>{t("Quality")}</button>
-            <button role="tab" aria-selected={view === "schema"} className={view === "schema" ? "active" : ""} title={t("The tables behind the graph and the rows behind the selection")} onClick={() => setView("schema")}>{t("Schema")}</button>
-            <button role="tab" aria-selected={view === "matrix"} className={view === "matrix" ? "active" : ""} disabled={schema.edges.length === 0} title={t("Two entity types as a grid, which is the readable form of a dense block")} onClick={() => openMatrix(pair?.from ?? schema.edges[0].from, pair?.to ?? schema.edges[0].to)}>{t("Matrix")}</button>
-            <button role="tab" aria-selected={view === "formation"} className={view === "formation" ? "active" : ""} title={t("Run Leiden here and watch the communities form")} onClick={() => setView("formation")}>{t("Formation")}</button>
-            <button role="tab" aria-selected={view === "ask"} className={view === "ask" ? "active" : ""} title={t("Ask a question and follow the answer back to the records it cites")} onClick={() => setView("ask")}>{t("Ask")}</button>
-            <button
-              role="tab"
-              aria-selected={view === "graph"}
-              className={view === "graph" ? "active" : ""}
-              disabled={!selected && graphMode.kind !== "neighborhood"}
-              title={selected || graphMode.kind === "neighborhood" ? undefined : t("Select a community first")}
-              onClick={() => (selected || graphMode.kind === "neighborhood") && setView("graph")}
-            >
-              {t("Graph")}{seedTitle ? `: ${displayTitle(seedTitle)}` : selected ? `: ${selected.title}` : ""}
-            </button>
-          </div>
+          <ViewTabs
+            label={t("Views")}
+            panelId={PANEL_ID}
+            active={view}
+            groups={[
+              [
+                { id: "ask", label: t("Ask"), title: t("Ask a question and follow the answer back to the records it cites"), onSelect: () => setView("ask") },
+              ],
+              [
+                {
+                  id: "table",
+                  label: t("Health"),
+                  title: t("What this index will and will not answer, and the communities in it"),
+                  badge: toFix,
+                  badgeLabel: t("{n} things to fix", { n: toFix }),
+                  onSelect: () => setView("table"),
+                },
+                { id: "schema", label: t("Types"), title: t("The entity types, the relationships between them, and the tables behind both"), onSelect: () => setView("schema") },
+                { id: "network", label: t("Graph"), title: t("Every entity and relationship; communities are an overlay you turn on"), onSelect: () => setView("network") },
+                { id: "map", label: t("Communities"), title: realPartition ? undefined : t("Needs communities.parquet"), disabled: !realPartition, onSelect: () => setView("map") },
+                {
+                  id: "graph",
+                  label: `${t("Focus")}${seedTitle ? `: ${displayTitle(seedTitle)}` : selected ? `: ${selected.title}` : ""}`,
+                  title: selected || graphMode.kind === "neighborhood" ? undefined : t("Select a community first"),
+                  disabled: !selected && graphMode.kind !== "neighborhood",
+                  onSelect: () => (selected || graphMode.kind === "neighborhood") && setView("graph"),
+                },
+              ],
+              [
+                { id: "quality", label: t("Quality"), title: realPartition ? undefined : t("Needs communities.parquet"), disabled: !realPartition, onSelect: () => setView("quality") },
+                { id: "matrix", label: t("Matrix"), title: t("Two entity types as a grid, which is the readable form of a dense block"), disabled: schema.edges.length === 0, onSelect: () => openMatrix(pair?.from ?? schema.edges[0].from, pair?.to ?? schema.edges[0].to) },
+                { id: "formation", label: t("Formation"), title: t("Run Leiden here and watch the communities form"), onSelect: () => setView("formation") },
+              ],
+            ] as TabSpec[][]}
+          />
         </div>
 
+        {hint && result.exampleRun && view !== "ask" ? (
+          <p className="first-hint">
+            <span>
+              {t("New here? The Ask tab answers a question from this index and links every citation back to the record it came from. This one carries a recorded run, so no API key is needed.")}
+            </span>
+            <button className="btn small" onClick={() => { setView("ask"); dismissHint(); }}>{t("Show me")}</button>
+            <button className="btn small" onClick={dismissHint}>{t("Dismiss")}</button>
+          </p>
+        ) : null}
+
+        <div className="view-panel" role="tabpanel" id={PANEL_ID} aria-labelledby={`tab-${view}`} tabIndex={0}>
         <Suspense fallback={<div className="view-loading">{t("Loading view…")}</div>}>
         {view === "ask" ? (
           <SearchView
@@ -386,6 +458,8 @@ export function Overview({ result, label, onReset, datasets, activeData, onOpenD
               {counts.isolatedEntities > 0 && <Rich text=" **{isolated}** entities have no relationships." vars={{ isolated: fmt(counts.isolatedEntities) }} />}
             </p>
 
+            <Health findings={findings} onOpen={openFrom} />
+
             <IntegrityPanel notes={notes} findings={integrity} />
 
             {realPartition && summary ? (
@@ -396,6 +470,7 @@ export function Overview({ result, label, onReset, datasets, activeData, onOpenD
           </>
         )}
         </Suspense>
+        </div>
       </main>
 
       {view === "ask" ? null : (

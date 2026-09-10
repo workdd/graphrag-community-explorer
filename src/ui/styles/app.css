@@ -369,3 +369,42 @@
 .graph-hints b { font-weight: 600; color: var(--ink-2); margin-right: 3px; }
 /* An index can hold dozens of communities; the list scrolls rather than pushing the graph down. */
 .graph-legend.communities { max-height: 62px; overflow-y: auto; align-content: flex-start; }
+
+/* The view strip: one group per kind of task, so nine views do not read as one undifferentiated row. */
+.views { display: flex; flex-wrap: wrap; align-items: center; gap: 10px; }
+.view-group { display: inline-flex; border: 1px solid var(--rule); border-radius: var(--radius); overflow: hidden; background: var(--surface); }
+.view-group button { display: inline-flex; align-items: center; gap: 6px; padding: 5px 12px; border-right: 1px solid var(--rule); color: var(--ink-2); }
+.view-group button:last-child { border-right: 0; }
+.view-group button.active { background: var(--ink); color: var(--surface); }
+.view-group button:disabled { color: var(--ink-3); cursor: not-allowed; }
+.view-group button:focus-visible { outline: 2px solid var(--accent); outline-offset: -3px; }
+.tab-badge { min-width: 16px; padding: 0 4px; border-radius: 8px; background: #a3423c; color: #fff; font-size: 10px; font-weight: 700; line-height: 16px; text-align: center; }
+.view-group button.active .tab-badge { background: #e0817b; color: #2a0f0d; }
+
+/* The panel the strip controls. Transparent to layout, so a graph view still fills the height. */
+.view-panel:focus { outline: none; }
+.main.graph-mode > .view-panel { display: flex; flex-direction: column; flex: 1; min-height: 0; }
+
+/* What this index will and will not answer. */
+.health { margin: 18px 0 20px; }
+.health-head { display: flex; align-items: baseline; gap: 10px; margin-bottom: 8px; }
+.health-head h2 { margin: 0; font-size: 15px; }
+.health-count { font-size: 12px; color: var(--ink-3); }
+.health-count.warn { color: #a3423c; font-weight: 700; }
+.findings { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; gap: 8px; }
+.finding { border: 1px solid var(--rule); border-left-width: 4px; border-radius: var(--radius); background: var(--surface); padding: 10px 12px; }
+.finding.fix { border-left-color: #a3423c; }
+.finding.watch { border-left-color: #c8a95e; }
+.finding.ok { border-left-color: #6b8f5e; }
+.finding-head { display: flex; align-items: baseline; gap: 8px; flex-wrap: wrap; }
+.finding-head b { font-size: 13px; }
+.finding .affects { font-size: 11px; color: var(--ink-3); border: 1px solid var(--rule); border-radius: 10px; padding: 0 7px; }
+.finding p { margin: 5px 0 0; font-size: 12px; color: var(--ink-2); max-width: 92ch; }
+.finding p.fix { color: var(--ink-3); }
+.finding p.fix::before { content: "→ "; }
+.finding .btn.small { margin-top: 7px; }
+.health-fine { margin-top: 10px; }
+.health-fine > summary { font-size: 12px; color: var(--ink-2); cursor: pointer; }
+.health-fine .findings { margin-top: 8px; }
+.first-hint { display: flex; align-items: center; gap: 10px; flex-wrap: wrap; margin: 0 0 14px; padding: 9px 12px; border: 1px solid var(--rule); border-left: 4px solid var(--accent); border-radius: var(--radius); background: var(--surface); font-size: 12px; color: var(--ink-2); }
+.first-hint span { max-width: 88ch; }

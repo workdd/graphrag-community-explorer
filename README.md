@@ -11,7 +11,7 @@ uploaded.
 [![runs in the browser](https://img.shields.io/badge/backend-none-black)](#try-it)
 [![GraphRAG 0.3 to 2.x](https://img.shields.io/badge/GraphRAG-0.3%20to%202.x-black)](#what-it-reads)
 
-![Opening the sample index on its schema, drawing the whole graph with community clouds, then asking a question and following one citation to the record it names and to the evidence graph](docs/screenshots/ask.gif)
+![The sample index opened on the types it was counted from, then the Health view naming two things to fix, then the whole graph with community clouds, then a question answered with citations and one of them followed to the record it names and to the evidence graph](docs/screenshots/ask.gif)
 
 **[Open the demo](https://workdd.github.io/graphrag-community-explorer/) → Ask → See a saved run.**
 No API key needed: the sample ships with a recorded run, so the whole answer-to-evidence path is one
@@ -42,12 +42,12 @@ graphrag index  ──►  output/*.parquet  ──►  your application
 
 | When you need to | Open |
 | --- | --- |
-| Decide whether an index is worth building on, before shipping anything with it | **Overview** and **Quality**. Coverage per level, modularity, size distribution, isolated entities, and integrity problems named one by one. An index where a quarter of the entities belong to no community is one where global search will never see them, and it is better to learn that now. |
+| Decide whether an index is worth building on, before shipping anything with it | **Health**. It names what is wrong with the index rather than leaving you to read the numbers: entities no community claims, one community swallowing a level, communities global search cannot read, descriptions too thin to rank on. Each finding says what it costs a search and what to change upstream, and the tab carries the count so you see it without opening it. |
 | Work out why an answer was wrong or vague | **Ask**. Ask the same question and read the retrieval: what was ranked, what made it into the prompt, what the token budget cut, and what the model cited out of everything it was handed. |
 | Prove an answer to a reviewer, or to yourself | **Ask**. Every citation opens the record it names, with the exact text that went into the prompt and the source chunk behind it. Nothing is paraphrased on the way. |
 | Answer a security or privacy question about what leaves the machine | **Ask** → **Show the prompt sent to the model**. The exact messages, and a diagram of the run with the calls that left the browser marked in red. [SECURITY.md](SECURITY.md) has the rest. |
 | See whether a re-clustering run actually helped | **Quality**. Two community sets side by side with NMI, ARI and an overlap table, and modularity for each level of each. |
-| Pick up an index somebody else built | **Schema** first. The entity types, the relationships that actually occur between them, and the Parquet tables with their key and reference columns. Nothing declares this; it is counted from the rows. |
+| Pick up an index somebody else built | **Types** first. The entity types, the relationships that actually occur between them, and the Parquet tables with their key and reference columns. Nothing declares this; it is counted from the rows. |
 | Choose between local and global search for your kind of question | **Ask**. Run both on the same question and compare what each one retrieved and cited. |
 | Explain the system to someone who will not read the code | **Ask** → **How a question reaches an answer**. The run drawn as retrieval, context window, model calls and response, with the counts and milliseconds it actually spent. |
 
@@ -74,15 +74,15 @@ inspector, integrity checks, quality metrics, partition comparison, source-text 
 Ask tab (local and global search against your own provider) are in place; see
 [docs/ROADMAP.md](docs/ROADMAP.md) for what comes next.
 
-![The schema of the sample index: one node per entity type, one arrow per relationship that occurs between two types, with the Parquet tables and their key columns underneath](docs/screenshots/schema-sample.png)
+![Health of the sample index: the counts, then four findings, each naming what was measured, which search it affects and what to change](docs/screenshots/health-sample.png)
+
+![The types of the sample index: one node per entity type, one arrow per relationship that occurs between two types, with the Parquet tables and their key columns underneath](docs/screenshots/schema-sample.png)
 
 ![The whole sample index as one network with community clouds around the members, every cloud named, and the entity types and communities listed above the canvas](docs/screenshots/network-sample.png)
 
 ![Ask tab: a question about what a queue's removal would affect, answered with inline citations back to entities, relationships, reports and claims](docs/screenshots/ask-sample.png)
 
 ![The same answer read backwards: the cited records outlined in red in the evidence graph, the picked record open beside it with the text that went into the prompt, and the retrieved records listed with their scores](docs/screenshots/ask-evidence-sample.png)
-
-![Overview of the sample dataset: counts, integrity check, and a sortable community table with internal and boundary relationship counts](docs/screenshots/overview-sample.png)
 
 ![Communities view: one band per level, one circle per community sized by the entities it holds, curves joining each community to its parent, and the entities in no community as grey dots](docs/screenshots/communities-sample.png)
 
@@ -217,7 +217,7 @@ each take about half a second (`samples/generate_sample.py --scale 53 --edge-fac
 
 ## What you see
 
-The app opens on the **Schema**: one node per entity type, one arrow per relationship that occurs
+The app opens on **Types**: one node per entity type, one arrow per relationship that occurs
 between two types, both with counts, and under it the Parquet tables with their key and reference
 columns. Nothing declares this shape; it is counted from the rows. Picking a type or an arrow lists
 the records behind it and carries over into the network as a filter you can clear.
@@ -227,7 +227,7 @@ such as a permission block, is a hairball under any layout, and one that hangs e
 hubs is really a list of counts. The schema view measures both and sends you to the form that reads:
 a grid for a dense pair, counts per hub for a star, arrows for the rest.
 
-The **Network** draws the records themselves: every entity and relationship on one canvas, with node
+The **Graph** view draws the records themselves: every entity and relationship on one canvas, with node
 colour for the entity type and size for the degree. Communities are an overlay you add, as clouds
 around their members or as node colour, and they can be taken away again. Turning the overlay on
 takes you to the free layout, which keeps each community together already, so the hulls appear
@@ -283,8 +283,9 @@ index shipped. Resolution, seed and scope are yours to change; the loaded commun
 
 The rest, in short:
 
-- A one-paragraph summary with the counts that matter: entities, relationships, communities, levels,
-  coverage, isolated entities.
+- **Health**: a one-paragraph summary with the counts that matter, then the findings that follow from
+  them, worst first, each with the search it affects and the setting to change. What looks fine is
+  folded away rather than dropped, so the checks that passed are still on the record.
 - The hierarchy as a tree, with depth shown by indentation and tint, not by force layout.
 - A sortable table of communities with internal and boundary relationship counts.
 - The community report (summary, findings, rank), parent path, child communities and members.
@@ -312,6 +313,11 @@ The rest, in short:
   nodes. Layouts are deterministic and survive filtering.
 - PNG export of the graph and the map at 2x, CSV export of the community and quality tables, and a
   shareable view state in the URL (`#view=map&set=leiden&community=11`).
+
+The views are grouped by what you came to do: **Ask** on its own, then the four you look around with
+(**Health**, **Types**, **Graph**, **Communities**, and **Focus** once something is selected), then
+the three you take the index apart with (**Quality**, **Matrix**, **Formation**). The strip is one
+keyboard stop with arrow keys between the views, and each view names the panel it opens.
 
 The interface is available in English and Korean; the switch sits in the top bar and the choice is
 remembered in the browser.

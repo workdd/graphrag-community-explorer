@@ -3,7 +3,7 @@ import { expect, test } from "@playwright/test";
 // The app opens on the whole knowledge graph; communities are something you add to it.
 test("network view opens by default and arranges entity types in columns", async ({ page }) => {
   await page.goto("/?data=./samples/demo#view=network");
-  await expect(page.getByRole("tab", { name: "Network" })).toHaveAttribute("aria-selected", "true");
+  await expect(page.getByRole("tab", { name: "Graph", exact: true })).toHaveAttribute("aria-selected", "true");
   await expect(page.locator(".rail")).toHaveCount(0);
   // The schema is the frame: each type is one node until it is opened.
   await expect(page.locator(".graph-stats")).toContainText("types drawn", { timeout: 30_000 });
@@ -104,7 +104,7 @@ test("communities are named on the canvas and listed under it, at any zoom", asy
   // Reading a community from the list puts it in the inspector without leaving the graph.
   await listed.first().click();
   await expect(page.locator(".inspector h2")).not.toBeEmpty();
-  await expect(page.getByRole("tab", { name: "Network" })).toHaveAttribute("aria-selected", "true");
+  await expect(page.getByRole("tab", { name: "Graph", exact: true })).toHaveAttribute("aria-selected", "true");
 });
 
 // A community is mostly the links between its members, so a clickable edge makes the community

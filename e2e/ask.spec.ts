@@ -32,7 +32,7 @@ test("ask tab reports what it needs and never hides the network call", async ({ 
   // records, so the column goes to the graph rather than repeating a prompt about a selection that
   // is never made here.
   await expect(page.locator("aside.inspector")).toHaveCount(0);
-  await page.getByRole("tab", { name: "Overview", exact: true }).click();
+  await page.getByRole("tab", { name: /^Health/ }).click();
   await expect(page.locator("aside.inspector")).toHaveCount(1);
   await page.getByRole("tab", { name: "Ask", exact: true }).click();
   await expect(page.locator("aside.inspector")).toHaveCount(0);
@@ -149,7 +149,7 @@ test("the sample offers a saved run, so the tab reads without a provider", async
   await expect(page.locator(".search")).toContainText("Showing a saved run");
 
   // Leaving to read a community and coming back keeps the answer, the citations and the record.
-  await page.getByRole("tab", { name: "Overview", exact: true }).click();
+  await page.getByRole("tab", { name: /^Health/ }).click();
   await page.getByRole("tab", { name: "Ask", exact: true }).click();
   await expect(page.locator(".search .answer")).toContainText("Search events 7");
   await expect(page.locator(".search .record-pane h3")).toBeVisible();

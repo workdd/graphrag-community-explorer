@@ -28,6 +28,6 @@ test("the top bar finder lists records and opens the one that is picked", async 
   await page.getByPlaceholder("Find a record").fill("Payments");
   await expect(page.locator(".finder-hits li")).not.toHaveCount(0);
   await page.locator(".finder-hits li button").first().click();
-  await expect(page.getByRole("tab", { name: "Network" })).toHaveAttribute("aria-selected", "true");
+  await expect(page.getByRole("tab", { name: "Graph", exact: true })).toHaveAttribute("aria-selected", "true");
   await expect(page.locator(".inspector h2")).toContainText("Payments");
 });

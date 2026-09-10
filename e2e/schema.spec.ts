@@ -3,16 +3,16 @@ import { expect, test } from "@playwright/test";
 // The schema view shows the Parquet tables as relational tables and the rows local search would rank.
 test("schema view lists the tables and the rows behind a community", async ({ page }) => {
   await page.goto("/?data=./samples/demo");
-  await page.getByRole("tab", { name: "Schema" }).click();
+  await page.getByRole("tab", { name: "Types" }).click();
   await expect(page.locator(".tcard")).toHaveCount(7);
   await expect(page.locator(".tcard", { has: page.locator(".tcard-name", { hasText: /^entities$/ }) })).toContainText("189 rows");
   await expect(page.locator(".tcard.missing")).toHaveCount(0);
   await expect(page.locator(".schema-svg")).toBeVisible();
   await expect(page.locator(".ctx-table[data-kind=entities] tbody tr")).toHaveCount(15);
 
-  await page.getByRole("tab", { name: "Overview" }).click();
+  await page.getByRole("tab", { name: /^Health/ }).click();
   await page.locator(".ctable tbody tr", { hasText: "Payments" }).first().click();
-  await page.getByRole("tab", { name: "Schema" }).click();
+  await page.getByRole("tab", { name: "Types" }).click();
   await expect(page.locator(".schema-context h3")).toContainText("Rows behind Payments");
   await expect(page.locator(".ctx-table[data-kind=entities] tbody tr")).toHaveCount(9);
   await expect(page.locator(".ctx-table[data-kind=relationships] tr.group").first()).toContainText("in-network");

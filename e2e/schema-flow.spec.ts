@@ -11,7 +11,7 @@ test("a triple picked in the schema view carries through to the data and the Lei
   await expect(page.locator(".schema-values .value-title").first()).toBeVisible();
 
   await page.getByRole("button", { name: "Show these records in the graph" }).click();
-  await expect(page.getByRole("tab", { name: "Network" })).toHaveAttribute("aria-selected", "true");
+  await expect(page.getByRole("tab", { name: "Graph", exact: true })).toHaveAttribute("aria-selected", "true");
   await expect(page.locator(".chip.static")).toContainText("from the schema:");
   await expect(page.locator(".graph-stats")).toContainText("types drawn", { timeout: 30_000 });
 
@@ -23,7 +23,7 @@ test("a triple picked in the schema view carries through to the data and the Lei
   await expect(page.locator(".formation-members .value-title").first()).toBeVisible();
 
   // Clearing the schema selection puts the whole graph back.
-  await page.getByRole("tab", { name: "Network" }).click();
+  await page.getByRole("tab", { name: "Graph", exact: true }).click();
   await page.locator(".chip.static").click();
   await expect(page.locator(".chip.static")).toHaveCount(0);
 });

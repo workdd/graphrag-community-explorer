@@ -2,6 +2,17 @@
 
 ## Unreleased
 
+- **Health**: the quality numbers stated as named problems. Entities no community claims, one
+  community swallowing a level, communities global search cannot read, modularity that says the
+  grouping does not follow the graph, descriptions too thin to rank on, a hub the whole graph hangs
+  off, no source text, no vectors. Each says what it costs a search and what to change upstream, and
+  the tab carries the count so an index announces its own defects without being opened. Every
+  threshold is named in the source with the reason it is where it is.
+- The views are grouped by what you came to do, and renamed so they can be told apart: Overview is
+  Health, Schema is Types, Network is Graph, and the community graph is Focus. The strip is now one
+  keyboard stop with arrow keys between views, and each view names the panel it opens; before this
+  it claimed a tab pattern it did not implement.
+- A first visit is pointed once at the tab that answers something.
 - The Ask tab keeps its question, its answer and the record it had open when you leave it. Following
   an answer into a community and coming back no longer costs the question, or the money to ask it
   again. Another index gets its own state, and a reload starts clean.

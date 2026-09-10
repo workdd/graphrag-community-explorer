@@ -332,6 +332,91 @@ const KO: Record<string, string> = {
   "A run recorded earlier, to read without calling a model": "이전에 기록해 둔 실행입니다. 모델을 호출하지 않고 읽습니다",
   "This index carries a run recorded earlier, so the tab can be read before any provider is set up.":
     "이 색인에는 이전에 기록해 둔 실행이 함께 있어, 제공자를 설정하기 전에도 이 탭을 볼 수 있습니다.",
+  // 화면 이름과 안내
+  "Views": "화면",
+  "Health": "상태",
+  "Types": "스키마",
+  "Focus": "초점",
+  "{n} things to fix": "고칠 것 {n}건",
+  "What this index will and will not answer, and the communities in it": "이 색인이 무엇에 답하고 무엇에 답하지 못하는지, 그리고 그 안의 커뮤니티",
+  "The entity types, the relationships between them, and the tables behind both": "엔티티 유형과 그 사이의 관계, 그리고 그 둘의 바탕이 되는 테이블",
+  "New here? The Ask tab answers a question from this index and links every citation back to the record it came from. This one carries a recorded run, so no API key is needed.":
+    "처음이시라면 질문 탭부터 보십시오. 이 색인을 근거로 답하고, 모든 인용을 그 근거 레코드로 되돌려 연결합니다. 이 색인에는 기록해 둔 실행이 들어 있어 API 키가 필요 없습니다.",
+  "Show me": "보여주기",
+  "Dismiss": "닫기",
+
+  // 색인 진단
+  "What this index will and will not answer": "이 색인이 답할 수 있는 것과 없는 것",
+  "nothing to fix": "고칠 것 없음",
+  "{n} to fix": "고칠 것 {n}건",
+  "{n} to keep an eye on": "지켜볼 것 {n}건",
+  "Every check below passed. The numbers behind them are in the Quality view.": "아래 검사를 모두 통과했습니다. 근거가 된 수치는 품질 화면에 있습니다.",
+  "What looks fine ({n})": "괜찮은 항목 ({n})",
+  "global search": "Global 검색",
+  "local search": "Local 검색",
+  "both searches": "두 검색 모두",
+  "evidence": "근거 추적",
+  "{count} entities ({share}) belong to no community": "엔티티 {count}건({share})이 어느 커뮤니티에도 속하지 않습니다",
+  "Global search reads community summaries and nothing else, so these entities cannot appear in a global answer. Local search still reaches them.":
+    "Global 검색은 커뮤니티 요약만 읽으므로 이 엔티티들은 Global 답변에 등장할 수 없습니다. Local 검색으로는 여전히 조회됩니다.",
+  "Most of them have no relationship for the clustering to use. Check what extraction produced, or cluster every connected component instead of the largest one.":
+    "대개 군집화가 쓸 관계가 없는 엔티티들입니다. 추출 결과를 확인하거나, 가장 큰 성분만이 아니라 모든 연결 성분을 군집화하십시오.",
+  "See them under the bands": "밴드 아래에서 보기",
+  "{count} entities ({share}) have no relationship": "엔티티 {count}건({share})에 관계가 하나도 없습니다",
+  "An entity with no edge carries no neighbourhood, so local search retrieves it on its own and clustering has nothing to place it by.":
+    "간선이 없는 엔티티는 인접 관계를 갖지 않으므로 Local 검색이 그것만 단독으로 가져오고, 군집화는 배치 기준을 갖지 못합니다.",
+  "Extraction usually produced these from a passing mention. Shorter chunks, or a prompt tuned to this corpus, produce fewer of them.":
+    "대개 스쳐 지나가는 언급에서 추출된 것들입니다. 청크를 짧게 하거나 이 말뭉치에 맞춘 프롬프트를 쓰면 줄어듭니다.",
+  "Show them on the graph": "그래프에서 보기",
+  "One community holds {size} of the {covered} entities at L{level}": "L{level} 의 엔티티 {covered}건 중 {size}건을 커뮤니티 하나가 갖고 있습니다",
+  "A summary that stands for {share} of a level has to describe everything, so global search cites it whatever it was asked.":
+    "레벨의 {share}를 대표하는 요약은 모든 것을 서술해야 하므로, Global 검색은 무엇을 묻든 이 요약을 인용하게 됩니다.",
+  "Lower max_cluster_size, or raise the Leiden resolution, and cluster again. The Formation view runs it here first.":
+    "max_cluster_size 를 낮추거나 Leiden 해상도를 올려 다시 군집화하십시오. 형성 과정 화면에서 먼저 시험해 볼 수 있습니다.",
+  "Compare the levels": "레벨 비교하기",
+  "{count} of {total} communities have no summary": "커뮤니티 {total}개 중 {count}개에 요약이 없습니다",
+  "Global search reads summaries and nothing else, so a community without one is not read at all.":
+    "Global 검색은 요약만 읽으므로, 요약이 없는 커뮤니티는 아예 읽히지 않습니다.",
+  "tools/summarize_communities.py writes a summary file for a community set that has none.":
+    "요약이 없는 커뮤니티 집합에는 tools/summarize_communities.py 가 요약 파일을 만들어 줍니다.",
+  "Sort by report": "보고서 기준 정렬",
+  "Modularity is {reading}, and the highest is below {floor}": "모듈성이 {reading} 이며, 가장 높은 값도 {floor} 미만입니다",
+  "Modularity compares the relationships inside communities against a random rewiring. This low, the communities cut across the graph rather than following it, and their summaries group entities that are not related.":
+    "모듈성은 커뮤니티 내부 관계를 무작위 재배선과 대조한 값입니다. 이 정도로 낮으면 커뮤니티가 그래프를 따르지 않고 가로지르고 있으며, 그 요약은 서로 무관한 엔티티를 한데 묶습니다.",
+  "The graph may have too few relationships to cluster at all. Check the relationship count against the entity count before trusting any global answer.":
+    "관계 수가 군집화에 필요한 만큼도 되지 않을 수 있습니다. Global 답변을 신뢰하기 전에 엔티티 수 대비 관계 수를 확인하십시오.",
+  "See it per level": "레벨별로 보기",
+  "Modularity is {reading}": "모듈성이 {reading} 입니다",
+  "Above {floor} the communities follow the graph rather than cutting across it, so their summaries are about something.":
+    "{floor} 를 넘으면 커뮤니티가 그래프를 가로지르지 않고 따라가므로, 요약이 실제 내용을 담습니다.",
+  "{share} of entities have almost no description": "엔티티의 {share}에 설명이 거의 없습니다",
+  "Local search ranks by cosine between the question and the entity's title and description. An entity with a bare title ranks close to nothing in particular.":
+    "Local 검색은 질문과 엔티티의 제목·설명 사이 코사인으로 순위를 매깁니다. 제목만 있는 엔티티는 어떤 질문에도 특별히 가깝지 않습니다.",
+  "Description quality comes from the extraction and summarization prompts. graphrag prompt-tune writes ones fitted to the corpus.":
+    "설명의 품질은 추출·요약 프롬프트에서 나옵니다. graphrag prompt-tune 이 말뭉치에 맞춘 프롬프트를 만들어 줍니다.",
+  "Look at the entities": "엔티티 살펴보기",
+  "{share} of relationships carry no description": "관계의 {share}에 설명이 없습니다",
+  "The description is what a relationship contributes to a prompt. Without one the model is told that two entities are connected and nothing about how.":
+    "관계가 프롬프트에 기여하는 것은 설명입니다. 설명이 없으면 모델은 두 엔티티가 연결되어 있다는 사실만 받고 어떻게 연결되는지는 받지 못합니다.",
+  "Exports from a property graph often drop the description. Carry it across if the source has one.":
+    "속성 그래프에서 내보낼 때 설명이 누락되는 경우가 많습니다. 원천에 설명이 있으면 함께 옮기십시오.",
+  "{title} touches {share} of all relationships": "{title} 이(가) 전체 관계의 {share}에 닿아 있습니다",
+  "Clustering pulls everything towards a node like this, and a picture of it is a star rather than a graph. The views fold its spokes away; a global summary cannot.":
+    "이런 노드가 있으면 군집화가 모든 것을 그쪽으로 끌어당기고, 그림도 그래프가 아니라 별 모양이 됩니다. 화면은 뻗은 가지를 접어 두지만 Global 요약은 그럴 수 없습니다.",
+  "Open it": "열어 보기",
+  "This index shipped no source text": "이 색인에는 원문이 함께 오지 않았습니다",
+  "Without text_units.parquet a citation stops at the record. You can see which entity an answer used, but not the sentence it was drawn from.":
+    "text_units.parquet 이 없으면 인용이 레코드에서 멈춥니다. 답변이 어떤 엔티티를 썼는지는 보이지만, 그것이 어느 문장에서 나왔는지는 볼 수 없습니다.",
+  "Load text_units.parquet and documents.parquet alongside the index if the run wrote them.":
+    "색인 실행이 만들었다면 text_units.parquet 과 documents.parquet 을 함께 적재하십시오.",
+  "{count} source chunks are loaded": "원문 청크 {count}건이 적재되어 있습니다",
+  "A citation can be followed past the record to the text it came from.": "인용을 레코드 너머 원문까지 따라갈 수 있습니다.",
+  "No entity vectors, so local search is off": "엔티티 벡터가 없어 Local 검색이 꺼져 있습니다",
+  "GraphRAG writes entity embeddings to a vector store rather than to Parquet, and a browser cannot read one. Global search does not need them.":
+    "GraphRAG 는 엔티티 임베딩을 Parquet 이 아니라 벡터 저장소에 쓰는데, 브라우저는 그 형식을 읽지 못합니다. Global 검색에는 필요하지 않습니다.",
+  "tools/embed_index writes an embeddings.parquet sidecar next to the index.": "tools/embed_index 가 색인 옆에 embeddings.parquet 사이드카를 만들어 줍니다.",
+  "Open the Ask tab": "질문 탭 열기",
+
   "Ask about this index": "이 색인에 대해 질문하세요",
   "Showing a saved run from {tool} {version}, made on {when}.": "{tool} {version} 이 {when} 에 저장한 실행입니다.",
   "This trace was made from another index ({files}), so its citations are not linked.":

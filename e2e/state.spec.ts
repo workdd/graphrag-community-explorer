@@ -4,7 +4,7 @@ import { expect, test } from "@playwright/test";
 test("url keeps the dataset and the view; back button walks the trail", async ({ page }) => {
   await page.goto("/");
   await page.getByRole("button", { name: "Open the sample dataset" }).click();
-  await page.getByRole("tab", { name: "Overview" }).click();
+  await page.getByRole("tab", { name: /^Health/ }).click();
   await expect(page.locator(".summary")).toContainText("189 entities");
   expect(page.url()).toContain("data=./samples/demo");
   expect(page.url()).toContain("#view=table");
@@ -16,7 +16,7 @@ test("url keeps the dataset and the view; back button walks the trail", async ({
   expect(page.url()).toMatch(/#view=graph&community=\d+&entity=/);
 
   await page.reload();
-  await expect(page.getByRole("tab", { name: /Graph: Payments worker/ })).toHaveAttribute("aria-selected", "true");
+  await expect(page.getByRole("tab", { name: /Focus: Payments worker/ })).toHaveAttribute("aria-selected", "true");
   await expect(page.locator(".graph-stats")).toContainText("within 2 hops");
 
   // The paper's upper plane: the graph's communities as nodes inside their opened parents.
@@ -27,14 +27,14 @@ test("url keeps the dataset and the view; back button walks the trail", async ({
   await expect(page.locator(".inspector h2")).toHaveText("Payments");
 
   await page.goBack();
-  await expect(page.getByRole("tab", { name: /Graph: Payments worker/ })).toHaveAttribute("aria-selected", "true");
+  await expect(page.getByRole("tab", { name: /Focus: Payments worker/ })).toHaveAttribute("aria-selected", "true");
 });
 
 test("map opens a nested community inside its closed parents", async ({ page }) => {
   await page.goto("/?data=./samples/demo#view=map");
   await page.locator(".head-control select").selectOption("boxes");
   await expect(page.locator(".graph-stats")).toContainText("3 communities and 0 entities drawn", { timeout: 30_000 });
-  await page.getByRole("tab", { name: "Overview" }).click();
+  await page.getByRole("tab", { name: /^Health/ }).click();
   await page.locator(".ctable tbody tr", { hasText: "Checkout" }).first().click();
   await page.getByRole("tab", { name: "Communities" }).click();
   await expect(page.locator(".map-note")).toContainText("Checkout sits inside a closed community");
@@ -46,10 +46,10 @@ test("map opens a nested community inside its closed parents", async ({ page }) 
 
 test("entities and relationships alone still give an entity list and neighbourhoods", async ({ page }) => {
   await page.goto("/?data=./samples/minimal");
-  await page.getByRole("tab", { name: "Overview" }).click();
+  await page.getByRole("tab", { name: /^Health/ }).click();
   await expect(page.locator(".summary")).toContainText("No community set loaded");
   await expect(page.getByRole("tab", { name: "Communities" })).toBeDisabled();
-  await page.getByRole("tab", { name: "Network" }).click();
+  await page.getByRole("tab", { name: "Graph", exact: true }).click();
   await page.getByPlaceholder("Find an entity").fill("gateway");
   await page.getByRole("button", { name: "Find" }).click();
   await expect(page.locator(".inspector h2")).toContainText("gateway");
@@ -60,8 +60,8 @@ test("entities and relationships alone still give an entity list and neighbourho
 test("ids from another dataset in the link are ignored", async ({ page }) => {
   await page.goto("/?data=./samples/demo#view=graph&community=nope-999&entity=nope-1&open=zzz");
   // The unknown ids leave nothing to draw a community graph from, so the default view opens instead.
-  await expect(page.getByRole("tab", { name: "Schema" })).toHaveAttribute("aria-selected", "true");
-  await page.getByRole("tab", { name: "Overview" }).click();
+  await expect(page.getByRole("tab", { name: "Types" })).toHaveAttribute("aria-selected", "true");
+  await page.getByRole("tab", { name: /^Health/ }).click();
   await expect(page.locator(".summary")).toContainText("189 entities");
   expect(page.url()).not.toContain("nope");
 });

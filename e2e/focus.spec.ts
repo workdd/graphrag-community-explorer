@@ -7,7 +7,7 @@ test("a record picked in the top bar centres the graph and abstracts the rest", 
   await page.getByPlaceholder("Find a record").fill("Payments worker");
   await page.locator(".finder-hits li button").first().click();
 
-  await expect(page.getByRole("tab", { name: "Network" })).toHaveAttribute("aria-selected", "true");
+  await expect(page.getByRole("tab", { name: "Graph", exact: true })).toHaveAttribute("aria-selected", "true");
   await expect(page.locator(".chip.static")).toContainText("centred on", { timeout: 30_000 });
   await expect(page.locator(".graph-stats")).toContainText("neighbours over");
   await expect(page.locator(".control", { hasText: new RegExp("^Arrange") }).locator("select")).toHaveValue("focus");
