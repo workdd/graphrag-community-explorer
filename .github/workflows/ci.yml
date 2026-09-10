@@ -1,0 +1,54 @@
+name: ci
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+
+# A push that supersedes another one cancels it: the older answer is not worth the minutes.
+concurrency:
+  group: ci-${{ github.ref }}
+  cancel-in-progress: true
+
+permissions:
+  contents: read
+
+jobs:
+  verify:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+      - run: npm ci
+
+      # First, because a run that fails here must fail before anything is built or published.
+      - run: npm run check:sensitive
+
+      - run: npm run typecheck
+      - run: npm test
+      - run: npm run build
+
+      - name: Cache the browser Playwright downloads
+        uses: actions/cache@v4
+        with:
+          path: ~/.cache/ms-playwright
+          key: playwright-${{ runner.os }}-${{ hashFiles('package-lock.json') }}
+      - run: npx playwright install --with-deps chromium
+
+      - run: npm run e2e
+        env:
+          CI: "1"
+
+      # What the end-to-end run saw, when it saw something wrong.
+      - if: failure()
+        uses: actions/upload-artifact@v4
+        with:
+          name: e2e-failures
+          path: |
+            test-results/
+            playwright-report/
+          retention-days: 7
+          if-no-files-found: ignore
