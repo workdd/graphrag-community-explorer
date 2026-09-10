@@ -11,6 +11,7 @@ import { emptyContext, type SearchContext, type SearchMethod, type SearchRun, ty
 import { downloadText } from "../download";
 import { fill, Rich, useT } from "../i18n";
 import { citedShortIds, countUsage, sameSelection, type Selection } from "../../core/search/highlight";
+import { emptyAsk, indexKey, recall, remember } from "./askStore";
 import { Answer } from "./Answer";
 import { Pipeline } from "./Pipeline";
 import { SystemMap } from "./SystemMap";
@@ -65,19 +66,43 @@ export function SearchView(props: Props) {
   const [provider, setProvider] = useState(() => readProvider(store()));
   const preset = useMemo(() => fromEnvironment(), []);
   const [showSettings, setShowSettings] = useState(() => !isConfigured(readProvider(store())));
-  const [method, setMethod] = useState<SearchMethod>(props.embeddings ? "local" : "global");
-  const [question, setQuestion] = useState("");
+  // The tab is left and come back to constantly: an answer sends you to a community or an entity,
+  // and the way back should not cost the question again.
+  const key = useMemo(() => indexKey(props.label, props.fingerprints), [props.label, props.fingerprints]);
+  const start = useRef(recall(key) ?? emptyAsk(props.embeddings !== undefined));
+  const [method, setMethod] = useState<SearchMethod>(start.current.method);
+  const [question, setQuestion] = useState(start.current.question);
   const [busy, setBusy] = useState(false);
-  const [run, setRun] = useState<SearchRun | null>(null);
-  const [runQuery, setRunQuery] = useState("");
-  const [retrieval, setRetrieval] = useState<RetrievalObservation | null>(null);
-  useEffect(() => setRetrieval(null), [props.dataset, props.embeddings]);
-  const [imported, setImported] = useState<SearchTrace | null>(null);
-  const [notes, setNotes] = useState<string[]>([]);
+  const [run, setRun] = useState<SearchRun | null>(start.current.run);
+  const [runQuery, setRunQuery] = useState(start.current.runQuery);
+  const [retrieval, setRetrieval] = useState<RetrievalObservation | null>(start.current.retrieval);
+  const [imported, setImported] = useState<SearchTrace | null>(start.current.imported);
+  const [notes, setNotes] = useState<string[]>(start.current.notes);
   const abort = useRef<AbortController | null>(null);
-  const [selection, setSelection] = useState<Selection | null>(null);
-  const [pane, setPane] = useState<"graph" | "space">("graph");
+  const [selection, setSelection] = useState<Selection | null>(start.current.selection);
+  const [pane, setPane] = useState<"graph" | "space">(start.current.pane);
   const fileInput = useRef<HTMLInputElement>(null);
+
+  // Another index is another conversation. Its own remembered state, or a clean tab.
+  const settled = useRef(key);
+  useEffect(() => {
+    if (settled.current === key) return;
+    settled.current = key;
+    const next = recall(key) ?? emptyAsk(props.embeddings !== undefined);
+    setMethod(next.method);
+    setQuestion(next.question);
+    setRun(next.run);
+    setRunQuery(next.runQuery);
+    setRetrieval(next.retrieval);
+    setImported(next.imported);
+    setNotes(next.notes);
+    setSelection(next.selection);
+    setPane(next.pane);
+  }, [key, props.embeddings]);
+
+  useEffect(() => {
+    remember(key, { method, question, runQuery, run, imported, notes, selection, pane, retrieval });
+  }, [key, method, question, runQuery, run, imported, notes, selection, pane, retrieval]);
 
   const ready = isConfigured(provider);
   const stale = useMemo(

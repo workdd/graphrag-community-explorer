@@ -30,12 +30,16 @@ test("ask tab reports what it needs and never hides the network call", async ({ 
 
   // The community inspector belongs to the views that navigate communities. This tab reads its own
   // records, so the column goes to the graph rather than repeating a prompt about a selection that
-  // is never made here. Checked last: leaving the tab resets what was typed.
+  // is never made here.
   await expect(page.locator("aside.inspector")).toHaveCount(0);
   await page.getByRole("tab", { name: "Overview", exact: true }).click();
   await expect(page.locator("aside.inspector")).toHaveCount(1);
   await page.getByRole("tab", { name: "Ask", exact: true }).click();
   await expect(page.locator("aside.inspector")).toHaveCount(0);
+
+  // And the question is still there. Following an answer into the data and coming back should not
+  // cost the question, let alone the answer.
+  await expect(page.getByRole("textbox", { name: "Ask about this index" })).toHaveValue("what is this index about?");
 });
 
 test("ask tab refuses a trace it cannot read", async ({ page }) => {
@@ -143,4 +147,11 @@ test("the sample offers a saved run, so the tab reads without a provider", async
 
   // Nothing here called a model: the run was recorded, and the tab says so.
   await expect(page.locator(".search")).toContainText("Showing a saved run");
+
+  // Leaving to read a community and coming back keeps the answer, the citations and the record.
+  await page.getByRole("tab", { name: "Overview", exact: true }).click();
+  await page.getByRole("tab", { name: "Ask", exact: true }).click();
+  await expect(page.locator(".search .answer")).toContainText("Search events 7");
+  await expect(page.locator(".search .record-pane h3")).toBeVisible();
+  await expect(page.locator(".search .usage")).toContainText("cited");
 });

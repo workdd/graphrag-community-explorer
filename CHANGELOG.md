@@ -1,5 +1,11 @@
 # Changelog
 
+## Unreleased
+
+- The Ask tab keeps its question, its answer and the record it had open when you leave it. Following
+  an answer into a community and coming back no longer costs the question, or the money to ask it
+  again. Another index gets its own state, and a reload starts clean.
+
 ## 0.3.0 (2026-09-09)
 
 - A folder may carry an `example-run.json`, and the Ask tab offers it as one click. The shipped
