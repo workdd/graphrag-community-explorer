@@ -86,10 +86,9 @@ export function CommunityTable({ partition, metrics, selectedId, onSelect }: Pro
               <th
                 key={c.key}
                 className={c.numeric ? "num" : undefined}
-                onClick={() => header(c.key)}
                 aria-sort={sort.key === c.key ? (sort.dir === 1 ? "ascending" : "descending") : "none"}
               >
-                {t(c.label)}
+                <button className="sort-btn" onClick={() => header(c.key)}>{t(c.label)}</button>
               </th>
             ))}
           </tr>
@@ -98,7 +97,14 @@ export function CommunityTable({ partition, metrics, selectedId, onSelect }: Pro
           {rows.map((c) => {
             const m = metrics.get(c.id);
             return (
-              <tr key={c.id} className={c.id === selectedId ? "selected" : undefined} onClick={() => onSelect(c.id)}>
+              <tr
+                key={c.id}
+                className={c.id === selectedId ? "selected" : undefined}
+                onClick={() => onSelect(c.id)}
+                onKeyDown={(e) => { if (e.key === "Enter" || e.key === " ") { e.preventDefault(); onSelect(c.id); } }}
+                tabIndex={0}
+                aria-selected={c.id === selectedId}
+              >
                 <td className="title" title={c.title}>{c.title}</td>
                 <td><LevelTag partition={partition} level={c.level} /></td>
                 <td className="num">{fmt(c.entityIds.length)}</td>

@@ -135,8 +135,8 @@ export function QualityView({ dataset, partition, selectedId, onSelect }: Props)
           <thead>
             <tr>
               {columns.map((c) => (
-                <th key={c.key} className={c.numeric ? "num" : undefined} title={c.hint && t(c.hint)} onClick={() => header(c.key)} aria-sort={sort.key === c.key ? (sort.dir === 1 ? "ascending" : "descending") : "none"}>
-                  {t(c.label)}
+                <th key={c.key} className={c.numeric ? "num" : undefined} aria-sort={sort.key === c.key ? (sort.dir === 1 ? "ascending" : "descending") : "none"}>
+                  <button className="sort-btn" title={c.hint && t(c.hint)} onClick={() => header(c.key)}>{t(c.label)}</button>
                 </th>
               ))}
             </tr>
@@ -146,7 +146,14 @@ export function QualityView({ dataset, partition, selectedId, onSelect }: Props)
               const c = partition.communities.get(id)!;
               const q = quality.get(id)!;
               return (
-                <tr key={id} className={id === selectedId ? "selected" : undefined} onClick={() => onSelect(id)}>
+                <tr
+                  key={id}
+                  className={id === selectedId ? "selected" : undefined}
+                  onClick={() => onSelect(id)}
+                  onKeyDown={(e) => { if (e.key === "Enter" || e.key === " ") { e.preventDefault(); onSelect(id); } }}
+                  tabIndex={0}
+                  aria-selected={id === selectedId}
+                >
                   <td className="title" title={c.title}>{c.title}</td>
                   <td><LevelTag partition={partition} level={c.level} /></td>
                   <td className="num">{fmt(q.size)}</td>

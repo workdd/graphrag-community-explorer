@@ -129,7 +129,7 @@ export function SchemaGraphView({ dataset, onOpenType, onOpenTriple, onFocusEnti
 
   return (
     <div className="schema-graph">
-      <div className="schema-graph-canvas" ref={host} />
+      <div className="schema-graph-canvas" ref={host} role="img" aria-label={t("Schema graph")} />
       <aside className="schema-graph-side">
         {picked === null && (
           <>

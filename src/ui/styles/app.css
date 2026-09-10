@@ -71,25 +71,6 @@
   .rail, .inspector { border: 0; border-bottom: 1px solid var(--rule); max-height: none; }
 }
 
-/* Hierarchy tree */
-.tree { padding: 14px 12px; }
-.tree-meta { margin: 8px 2px 6px; color: var(--ink-2); font-size: var(--fs-0); }
-.tree ul { margin: 0; }
-.tree-row { display: flex; align-items: center; min-height: 28px; border-radius: 3px; }
-.tree-row:hover { background: var(--rule-2); }
-.tree-row.selected { background: var(--accent-soft); box-shadow: inset 3px 0 0 var(--accent); }
-.tree-row[data-depth="1"] .tree-title::before, .tree-row[data-depth="2"] .tree-title::before,
-.tree-row[data-depth="3"] .tree-title::before, .tree-row[data-depth="4"] .tree-title::before { content: ""; }
-.caret, .caret-spacer { width: 20px; flex: 0 0 20px; color: var(--ink-3); text-align: center; font-size: 11px; }
-.tree-label { flex: 1; min-width: 0; display: flex; align-items: center; gap: 8px; padding: 4px 6px 4px 0; text-align: left; }
-.tree-title { flex: 1; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
-.tree-size { color: var(--ink-2); font-size: var(--fs-0); }
-.rail-section { padding: 14px 14px 10px; border-bottom: 1px solid var(--rule-2); }
-.rail-section h2 { font-size: var(--fs-0); font-weight: 600; color: var(--ink-2); margin-bottom: 6px; }
-.rail-section dl { display: grid; grid-template-columns: auto 1fr; gap: 2px 10px; }
-.rail-section dt { color: var(--ink-2); }
-.rail-section dd { margin: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
-
 /* Overview */
 .summary { font-size: var(--fs-3); line-height: 1.45; max-width: 62ch; letter-spacing: -0.005em; }
 .summary b { font-weight: 700; }
@@ -104,10 +85,12 @@
 .table-head .field { width: 240px; margin-left: auto; }
 .ctable { width: 100%; border-collapse: collapse; background: var(--surface); border: 1px solid var(--rule); border-radius: var(--radius); }
 .ctable th, .ctable td { padding: 7px 10px; border-bottom: 1px solid var(--rule-2); text-align: left; vertical-align: middle; }
-.ctable th { font-weight: 600; color: var(--ink-2); white-space: nowrap; user-select: none; cursor: pointer; }
+.ctable th { padding: 0; font-weight: 600; color: var(--ink-2); white-space: nowrap; user-select: none; }
 .ctable th.num, .ctable td.num { text-align: right; }
 .ctable th[aria-sort="ascending"]::after { content: " ↑"; }
 .ctable th[aria-sort="descending"]::after { content: " ↓"; }
+.sort-btn { display: block; width: 100%; padding: 7px 10px; text-align: inherit; cursor: pointer; }
+.sort-btn:hover { background: var(--rule-2); }
 .ctable tbody tr { cursor: pointer; }
 .ctable tbody tr:hover { background: var(--rule-2); }
 .ctable tbody tr.selected { background: var(--accent-soft); box-shadow: inset 3px 0 0 var(--accent); }
