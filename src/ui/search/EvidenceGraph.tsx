@@ -147,7 +147,7 @@ export function EvidenceGraph({ context, cited, selection, onSelect }: Props) {
 
   return (
     <div className="graph-pane">
-      <div ref={host} className="canvas" />
+      <div ref={host} className="canvas" role="img" aria-label={t("Evidence graph")} />
       <div className="legend">
         <span><i className="dot cited" /> {t("Cited by the answer")}</span>
         <span><i className="dot plain" /> {t("Sent to the model")}</span>

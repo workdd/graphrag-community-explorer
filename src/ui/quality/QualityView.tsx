@@ -1,4 +1,5 @@
 import { useMemo, useState } from "react";
+import { onRowKeys, rowIsTabbable } from "../table/rowKeys";
 import { depthOfLevel, levelsByDepth } from "../../core/hierarchy";
 import { LevelTag, levelLabel } from "../level";
 import { comparePartitions } from "../../core/metrics/compare";
@@ -135,18 +136,26 @@ export function QualityView({ dataset, partition, selectedId, onSelect }: Props)
           <thead>
             <tr>
               {columns.map((c) => (
-                <th key={c.key} className={c.numeric ? "num" : undefined} title={c.hint && t(c.hint)} onClick={() => header(c.key)} aria-sort={sort.key === c.key ? (sort.dir === 1 ? "ascending" : "descending") : "none"}>
-                  {t(c.label)}
+                <th key={c.key} className={c.numeric ? "num" : undefined} aria-sort={sort.key === c.key ? (sort.dir === 1 ? "ascending" : "descending") : "none"}>
+                  <button className="sort-btn" title={c.hint && t(c.hint)} onClick={() => header(c.key)}>{t(c.label)}</button>
                 </th>
               ))}
             </tr>
           </thead>
           <tbody>
-            {rows.map((id) => {
+            {rows.map((id, index) => {
               const c = partition.communities.get(id)!;
               const q = quality.get(id)!;
               return (
-                <tr key={id} className={id === selectedId ? "selected" : undefined} onClick={() => onSelect(id)}>
+                <tr
+                  key={id}
+                  className={id === selectedId ? "selected" : undefined}
+                  onClick={() => onSelect(id)}
+                  onKeyDown={(event) => onRowKeys(event, () => onSelect(id))}
+                  tabIndex={rowIsTabbable(index, id, selectedId, rows) ? 0 : -1}
+                  // aria-selected is only defined inside a grid; aria-current says the same thing here.
+                  aria-current={id === selectedId ? "true" : undefined}
+                >
                   <td className="title" title={c.title}>{c.title}</td>
                   <td><LevelTag partition={partition} level={c.level} /></td>
                   <td className="num">{fmt(q.size)}</td>

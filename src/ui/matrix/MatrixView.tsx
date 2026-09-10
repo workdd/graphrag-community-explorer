@@ -195,6 +195,8 @@ export function MatrixView({ dataset, pair, onPair, onFocusEntity, onExplore }: 
         <canvas
           ref={canvas}
           className="matrix-canvas"
+          role="img"
+          aria-label={t("Matrix of {from} by {to}, {pairs} filled cells", { from: pair.from, to: pair.to, pairs: fmt(model.pairs) })}
           onMouseMove={(event) => setHover(at(event))}
           onMouseLeave={() => setHover(null)}
           onClick={(event) => {

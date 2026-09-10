@@ -1,4 +1,5 @@
 import { useMemo, useState } from "react";
+import { onRowKeys, rowIsTabbable } from "../table/rowKeys";
 import { depthOfLevel } from "../../core/hierarchy";
 import { LevelTag } from "../level";
 import type { CommunityMetrics } from "../../core/metrics/summary";
@@ -59,6 +60,8 @@ export function CommunityTable({ partition, metrics, selectedId, onSelect }: Pro
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [partition, metrics, sort, query]);
 
+  const ids = rows.map((c) => c.id);
+
   const header = (key: SortKey) =>
     setSort((prev) => ({ key, dir: prev.key === key ? (prev.dir === 1 ? -1 : 1) : key === "title" || key === "level" ? 1 : -1 }));
 
@@ -86,19 +89,26 @@ export function CommunityTable({ partition, metrics, selectedId, onSelect }: Pro
               <th
                 key={c.key}
                 className={c.numeric ? "num" : undefined}
-                onClick={() => header(c.key)}
                 aria-sort={sort.key === c.key ? (sort.dir === 1 ? "ascending" : "descending") : "none"}
               >
-                {t(c.label)}
+                <button className="sort-btn" onClick={() => header(c.key)}>{t(c.label)}</button>
               </th>
             ))}
           </tr>
         </thead>
         <tbody>
-          {rows.map((c) => {
+          {rows.map((c, index) => {
             const m = metrics.get(c.id);
             return (
-              <tr key={c.id} className={c.id === selectedId ? "selected" : undefined} onClick={() => onSelect(c.id)}>
+              <tr
+                key={c.id}
+                className={c.id === selectedId ? "selected" : undefined}
+                onClick={() => onSelect(c.id)}
+                onKeyDown={(event) => onRowKeys(event, () => onSelect(c.id))}
+                tabIndex={rowIsTabbable(index, c.id, selectedId, ids) ? 0 : -1}
+                // aria-selected is only defined inside a grid; aria-current says the same thing here.
+                aria-current={c.id === selectedId ? "true" : undefined}
+              >
                 <td className="title" title={c.title}>{c.title}</td>
                 <td><LevelTag partition={partition} level={c.level} /></td>
                 <td className="num">{fmt(c.entityIds.length)}</td>

@@ -333,6 +333,11 @@ const KO: Record<string, string> = {
   "This index carries a run recorded earlier, so the tab can be read before any provider is set up.":
     "이 색인에는 이전에 기록해 둔 실행이 함께 있어, 제공자를 설정하기 전에도 이 탭을 볼 수 있습니다.",
   // 화면 이름과 안내
+  // 그래프 캔버스의 이름 (스크린 리더용)
+  "Entity graph": "엔티티 그래프",
+  "Schema graph": "스키마 그래프",
+  "Evidence graph": "근거 그래프",
+  "Matrix of {from} by {to}, {pairs} filled cells": "{from} 과(와) {to} 의 행렬, 채워진 칸 {pairs}개",
   "Views": "화면",
   "Health": "상태",
   "Types": "스키마",

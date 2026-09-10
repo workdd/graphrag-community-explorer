@@ -1052,7 +1052,7 @@ export function NetworkView({ dataset, partition, focus, onFocus, selectedCommun
       )}
 
       <div className="graph-canvas-wrap" ref={wrap}>
-        <div className="graph-canvas" ref={host} />
+        <div className="graph-canvas" ref={host} role="img" aria-label={t("Entity graph")} />
         {!ready && <div className="view-loading">{t("Laying out {n} nodes…", { n: fmt(elements.filter((element) => element.group === "nodes").length) })}</div>}
       </div>
 
