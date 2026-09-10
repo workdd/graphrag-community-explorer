@@ -353,7 +353,15 @@
 .groups .bar i { display: block; height: 100%; border-radius: 2px; background: var(--depth-4); }
 
 /* Every community at once: a band per level, a circle per community */
+.bands-frame { position: relative; flex: 1; min-height: 0; display: flex; }
 .bands-scroll { flex: 1; min-height: 0; overflow: auto; border: 1px solid var(--rule); border-radius: var(--radius-lg); background: var(--surface); }
+/* A fade where the picture continues, and only there. */
+.bands-frame::before,
+.bands-frame::after { content: ""; position: absolute; top: 1px; bottom: 1px; width: 52px; pointer-events: none; opacity: 0; transition: opacity .15s ease; }
+.bands-frame::before { left: 1px; border-radius: var(--radius-lg) 0 0 var(--radius-lg); background: linear-gradient(to left, rgba(255, 255, 255, 0), var(--surface)); }
+.bands-frame::after { right: 1px; border-radius: 0 var(--radius-lg) var(--radius-lg) 0; background: linear-gradient(to right, rgba(255, 255, 255, 0), var(--surface)); }
+.bands-frame.more-left::before,
+.bands-frame.more-right::after { opacity: 1; }
 .bands { display: block; max-width: none; }
 .bands .mono { font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace; }
 .band-node { cursor: pointer; }

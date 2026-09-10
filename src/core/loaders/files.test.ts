@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 import { afterEach, vi } from "vitest";
-import { classifyFile, isExampleRun, readExampleRun } from "./files";
+import { classifyFile, currentNames, isExampleRun, manifestFiles, readExampleRun } from "./files";
 
 describe("classifyFile", () => {
   it("maps GraphRAG file names of every version to tables", () => {
@@ -77,5 +77,39 @@ describe("a saved run left in the index folder", () => {
   it("never stops the index from loading when the request itself fails", async () => {
     vi.stubGlobal("fetch", vi.fn().mockRejectedValue(new Error("offline")));
     await expect(readExampleRun("/data/demo")).resolves.toBeUndefined();
+  });
+});
+
+describe("guessing what a hosted folder holds", () => {
+  it("tries the names a current run writes, one per table", () => {
+    const names = currentNames();
+    expect(names).toContain("entities.parquet");
+    expect(names).toContain("community_reports.parquet");
+    // Never both generations at once: an index is one or the other.
+    expect(names.some((name) => name.startsWith("create_final_"))).toBe(false);
+    expect(new Set(names).size).toBe(names.length);
+  });
+
+  it("reads a manifest that lists extras as extras", () => {
+    expect(manifestFiles({ files: ["leiden_communities.parquet"] })).toEqual({
+      files: ["leiden_communities.parquet"],
+      complete: false,
+    });
+  });
+
+  it("takes a manifest that names the entities file as the whole folder", () => {
+    const listed = manifestFiles({ files: ["entities.parquet", "relationships.parquet"] });
+    expect(listed.complete).toBe(true);
+    expect(listed.files).toEqual(["entities.parquet", "relationships.parquet"]);
+  });
+
+  it("recognizes an older folder that describes itself the same way", () => {
+    expect(manifestFiles({ files: ["create_final_entities.parquet"] }).complete).toBe(true);
+  });
+
+  it("survives a manifest with nothing useful in it", () => {
+    expect(manifestFiles({})).toEqual({ files: [], complete: false });
+    expect(manifestFiles({ files: "not a list" } as { files?: unknown })).toEqual({ files: [], complete: false });
+    expect(manifestFiles({ files: [1, "entities.parquet"] } as { files?: unknown }).files).toEqual(["entities.parquet"]);
   });
 });

@@ -109,8 +109,8 @@ const KO: Record<string, string> = {
     "3D 로 보기",
   "Drag to turn":
     "끌어서 회전",
-  "{shown} of the spread is on screen; {hidden} is not.":
-    "분포의 {shown}가 화면에 있고 {hidden}는 없습니다.",
+  "These {axes} axes carry {shown} of what separates the records. The other {hidden} is in directions this picture cannot show.":
+    "이 {axes}개 축이 레코드를 갈라놓는 것의 {shown}를 담고 있습니다. 나머지 {hidden}는 이 그림이 보여줄 수 없는 방향에 있습니다.",
   "Distance on screen is not the cosine similarity the search used. Vectors are scaled to unit length and reduced with PCA, so records that overlap here can still be far apart, and the axes carry no business meaning.":
     "화면의 거리는 검색이 쓴 코사인 유사도가 아닙니다. 벡터를 단위 길이로 맞춘 뒤 PCA로 줄인 것이라, 여기서 겹쳐 보이는 레코드도 원래 공간에서는 멀 수 있고 축에는 업무적 의미가 없습니다.",
   "Zoom to the cited":

@@ -198,7 +198,7 @@ their schema type, weighted towards the kinds of record people ask impact questi
 
 Levels are shown from the root down: the root reads L0 and children count up, which is GraphRAG's
 own numbering. A file that numbers its roots highest (Apache AGE resource tiers) or starts at one is
-renumbered for display only, with the file's own number in the tooltip and a note under the tree.
+renumbered for display only, with the file's own number in the tooltip and a note beside the levels.
 
 Several folders can be offered at once. `npm run serve -- --data a --data b` and the dev server both
 publish `data/index.json`, and the app turns it into buttons on the load screen and a picker in the
@@ -284,7 +284,6 @@ The rest, in short:
 - **Health**: a one-paragraph summary with the counts that matter, then the findings that follow from
   them, worst first, each with the search it affects and the setting to change. What looks fine is
   folded away rather than dropped, so the checks that passed are still on the record.
-- The hierarchy as a tree, with depth shown by indentation and tint, not by force layout.
 - A sortable table of communities with internal and boundary relationship counts.
 - The community report (summary, findings, rank), parent path, child communities and members.
 - Integrity findings: duplicate ids, unresolved members or parents, children not nested in their

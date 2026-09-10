@@ -262,9 +262,10 @@ export function EmbeddingSpace({ dataset, embeddings, context, cited, selection,
           {t("Zoom to the cited")}
         </button>
         <span className="muted">
-          {t("{shown} of the spread is on screen; {hidden} is not.", {
-            shown: `${(shown * 100).toFixed(1)}%`,
-            hidden: `${((1 - shown) * 100).toFixed(1)}%`,
+          {t("These {axes} axes carry {shown} of what separates the records. The other {hidden} is in directions this picture cannot show.", {
+            axes: threeD ? 3 : 2,
+            shown: `${(shown * 100).toFixed(0)}%`,
+            hidden: `${((1 - shown) * 100).toFixed(0)}%`,
           })}
         </span>
       </div>

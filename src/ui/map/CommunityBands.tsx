@@ -1,4 +1,4 @@
-import { useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { bandLayout } from "../../core/graph/bands";
 import type { Dataset, Partition } from "../../core/model";
 import { DEPTH_FILL } from "../graph/style";
@@ -22,12 +22,34 @@ export function CommunityBands({ dataset, partition, selectedId, onSelect, onOpe
   const { t } = useT();
   const model = useMemo(() => bandLayout(partition, { bandHeight: BAND_HEIGHT }), [partition]);
   const [showLoose, setShowLoose] = useState(true);
+  const looseHeightKey = showLoose;
   // Records that no community claims. Leaving them out would make the picture look complete.
   const loose = useMemo(() => {
     const covered = new Set<string>();
     for (const community of partition.communities.values()) for (const id of community.entityIds) covered.add(id);
     return [...dataset.entities.values()].filter((entity) => !covered.has(entity.id));
   }, [dataset, partition]);
+  // A level wider than the panel scrolls sideways. Nothing said so, and the last community was
+  // simply cut in half, which reads as a drawing bug rather than as an invitation.
+  const scroller = useRef<HTMLDivElement>(null);
+  const [more, setMore] = useState({ left: false, right: false });
+  const measure = useCallback(() => {
+    const el = scroller.current;
+    if (!el) return;
+    setMore({
+      left: el.scrollLeft > 1,
+      right: Math.ceil(el.scrollLeft + el.clientWidth) < el.scrollWidth - 1,
+    });
+  }, []);
+  useEffect(() => {
+    const el = scroller.current;
+    if (!el) return;
+    measure();
+    const watch = new ResizeObserver(measure);
+    watch.observe(el);
+    return () => watch.disconnect();
+  }, [measure, model.width, looseHeightKey]);
+
   const looseRows = Math.ceil(Math.min(loose.length, 600) / 60);
   const looseHeight = showLoose && loose.length > 0 ? 34 + looseRows * 11 : 0;
   const colour = (depth: number) => STROKE[Math.min(depth, STROKE.length - 1)];
@@ -47,8 +69,12 @@ export function CommunityBands({ dataset, partition, selectedId, onSelect, onOpe
           {t("Show entities in no community")}
         </label>
         <span className="muted">{t("{n} entities are in no community", { n: fmt(loose.length) })}</span>
+        {more.left || more.right ? (
+          <span className="muted">{t("A level is wider than the panel; scroll sideways for the rest of it.")}</span>
+        ) : null}
       </div>
-      <div className="bands-scroll">
+      <div className={`bands-frame${more.left ? " more-left" : ""}${more.right ? " more-right" : ""}`}>
+      <div className="bands-scroll" ref={scroller} onScroll={measure}>
         <svg className="bands" viewBox={`0 0 ${model.width} ${model.height + looseHeight}`} width={model.width} height={model.height + looseHeight} role="img">
           {model.bands.map((band, index) => (
             <g key={band.level}>
@@ -120,6 +146,7 @@ export function CommunityBands({ dataset, partition, selectedId, onSelect, onOpe
             </g>
           )}
         </svg>
+      </div>
       </div>
     </section>
   );

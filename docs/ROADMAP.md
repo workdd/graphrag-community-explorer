@@ -15,7 +15,7 @@ are built. Apache AGE is one input adapter among several, not the center of the 
 
 | Milestone | Scope | Done when |
 | --- | --- | --- |
-| M0 Foundation (done) | Vite app, data contract, GraphRAG and AGE-export loaders, synthetic sample, integrity checks, overview, hierarchy tree, community table, inspector, CI, pre-push data check | Sample and a real GraphRAG index both load; counts match an independent script; CI is green |
+| M0 Foundation (done) | Vite app, data contract, GraphRAG and AGE-export loaders, synthetic sample, integrity checks, overview, community table, report panel, CI, pre-push data check | Sample and a real GraphRAG index both load; counts match an independent script; CI is green |
 | M1 Internal graph (done) | Community view with a Cytoscape fcose layout of the selected community: type colors, always-on labels without overlap, neighbour highlighting, relationship-type filter, boundary edges dimmed, "expand neighbouring community" | A 200-entity community renders in under two seconds with readable labels; smoke test in Playwright |
 | M2 Community map (done) | Whole dataset as nested compound containers (level 0 ⊃ level 1 ⊃ level 2) with expand/collapse, inter-community edges bundled by weight, layout in a worker and cached per dataset hash | 2,500 entities: collapsed map in one second, one expanded community in two; identical layout on reload |
 | M3 Quality and evidence (done) | Per-community conductance and density, size distributions, comparison of two partitions (NMI, ARI, crosstab), text units and documents behind entities and relationships | Metrics match reference implementations on the sample; evidence opens for every GraphRAG 2.x index |

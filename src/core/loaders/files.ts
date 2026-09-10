@@ -118,31 +118,73 @@ export async function loadFromFiles(files: File[]): Promise<LoadResult> {
   return assemble(loaded, example ? await example.text() : undefined);
 }
 
+/** The name a current GraphRAG run writes for each table. */
+export const currentNames = (): string[] => Object.values(CANONICAL_FILES).map((names) => names[0]);
+
+/** The create_final_* name of 0.3 to 0.5, for the tables that have one. */
+const legacyNameFor = (table: TableName): string | undefined => CANONICAL_FILES[table][1];
+
 /**
- * Loads a hosted folder. Directories cannot be listed over HTTP, so the canonical file names are
- * tried, plus anything listed in an optional manifest.json ({"files": ["leiden_communities.parquet"]}).
+ * What a folder holds, when it says so itself.
+ *
+ * A manifest that names the entities file is describing the whole folder, so the list is used as it
+ * stands and nothing is probed. One that does not is describing additions to the canonical names,
+ * which is what `{"files": ["leiden_communities.parquet"]}` has always meant.
+ */
+export function manifestFiles(json: { files?: unknown }): { files: string[]; complete: boolean } {
+  const files = Array.isArray(json.files) ? json.files.filter((f): f is string => typeof f === "string") : [];
+  const entities = CANONICAL_FILES.entities;
+  return { files, complete: files.some((name) => entities.includes(name.split("/").pop()!.toLowerCase())) };
+}
+
+/**
+ * Loads a hosted folder. Directories cannot be listed over HTTP, so the file names have to be
+ * guessed, and every guess that misses is a 404 in somebody's console. Three things keep that down:
+ * a manifest is believed when it describes the whole folder, the names a current run writes are
+ * tried first, and the create_final_* names of 0.3 to 0.5 are only tried for the tables that were
+ * not found under their current name. An index is one generation or the other, never both.
  */
 export async function loadFromUrl(base: string): Promise<LoadResult> {
   const root = base.replace(/\/+$/, "");
-  const names = new Set<string>([...Object.values(CANONICAL_FILES).flat(), EMBEDDINGS_FILE]);
-  try {
-    const manifest = await fetch(`${root}/manifest.json`);
-    if (manifest.ok && (manifest.headers.get("content-type") ?? "").includes("json")) {
-      const json = (await manifest.json()) as { files?: string[] };
-      (json.files ?? []).forEach((f) => names.add(f));
-    }
-  } catch {
-    // no manifest: canonical names only
-  }
-  const loaded = await Promise.all(
-    [...names].map(async (name): Promise<Loaded | null> => {
+  const get = async (name: string): Promise<Loaded | null> => {
+    try {
       const response = await fetch(`${root}/${name}`);
       // Dev servers answer unknown paths with index.html; treat that as missing.
       if (!response.ok || (response.headers.get("content-type") ?? "").includes("text/html")) return null;
       return { name, role: classifyFile(name), buffer: await response.arrayBuffer() };
-    }),
-  );
-  const present = loaded.filter((f): f is Loaded => f !== null);
+    } catch {
+      return null;
+    }
+  };
+
+  let extra: string[] = [];
+  let complete = false;
+  try {
+    const manifest = await fetch(`${root}/manifest.json`);
+    if (manifest.ok && (manifest.headers.get("content-type") ?? "").includes("json")) {
+      const listed = manifestFiles((await manifest.json()) as { files?: unknown });
+      extra = listed.files;
+      complete = listed.complete;
+    }
+  } catch {
+    // no manifest: the names have to be guessed
+  }
+
+  const first = complete ? extra : [...currentNames(), EMBEDDINGS_FILE, ...extra];
+  const present = (await Promise.all(first.map(get))).filter((f): f is Loaded => f !== null);
+
+  if (!complete) {
+    // Only the tables a current run would have written and this folder did not.
+    const found = new Set(present.map((f) => f.name));
+    const older = (Object.keys(CANONICAL_FILES) as TableName[])
+      .filter((table) => !found.has(CANONICAL_FILES[table][0]))
+      .map(legacyNameFor)
+      .filter((name): name is string => name !== undefined);
+    if (older.length > 0) {
+      present.push(...(await Promise.all(older.map(get))).filter((f): f is Loaded => f !== null));
+    }
+  }
+
   if (present.length === 0) throw new Error(`No Parquet files found under ${root}.`);
   return assemble(present, await readExampleRun(root));
 }

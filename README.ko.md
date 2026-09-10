@@ -177,7 +177,7 @@ EMBED_API_KEY=… python3 tools/embed_index/embed_index.py --index ~/graphrag/ou
 
 레벨은 루트에서 내려가는 순서로 표시합니다. 루트가 L0 이고 자식으로 갈수록 숫자가 커지는 GraphRAG 자신의
 번호 체계입니다. 루트에 가장 큰 번호를 매기는 파일(Apache AGE 자원 계층)이나 1부터 시작하는 파일은 표시용으로만
-번호를 다시 매기고, 파일 자체의 번호는 툴팁과 트리 아래 안내에 남겨 둡니다.
+번호를 다시 매기고, 파일 자체의 번호는 툴팁과 레벨 옆 안내에 남겨 둡니다.
 
 여러 폴더를 한 번에 제시할 수 있습니다. `npm run serve -- --data a --data b` 와 개발 서버는 모두
 `data/index.json` 을 발행하고, 앱은 이를 적재 화면의 버튼과 상단 선택기로 바꿉니다. 폴더의 `manifest.json`
