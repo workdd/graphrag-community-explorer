@@ -17,6 +17,43 @@ uploaded.
 No API key needed: the sample ships with a recorded run, so the whole answer-to-evidence path is one
 click away.
 
+## The problem this solves
+
+Indexing with GraphRAG is expensive. It reads every document with a model, extracts entities and
+relationships, resolves them, clusters them into communities and then writes a summary of each
+community. On a medium corpus that is thousands of model calls and a real bill.
+
+What comes back is a folder of Parquet files and a vector store. You can query it and read the
+answer. You cannot see what the index looks like, whether the communities mean anything, which
+records a question actually reached, or why the answer left something out. When an answer is wrong,
+the usual next step is to add print statements to a Python script and index again.
+
+```
+graphrag index  ──►  output/*.parquet  ──►  your application
+                            │                      │
+                            ▼                      │ the answer is wrong,
+                     this tool, in a browser  ◄─────┘ or nobody trusts it
+                            │
+   is the index worth building on?  ·  what did the question actually reach?
+   what did the model ignore?  ·  what exactly left my machine?
+```
+
+## What you would use it for
+
+| When you need to | Open |
+| --- | --- |
+| Decide whether an index is worth building on, before shipping anything with it | **Overview** and **Quality**. Coverage per level, modularity, size distribution, isolated entities, and integrity problems named one by one. An index where a quarter of the entities belong to no community is one where global search will never see them, and it is better to learn that now. |
+| Work out why an answer was wrong or vague | **Ask**. Ask the same question and read the retrieval: what was ranked, what made it into the prompt, what the token budget cut, and what the model cited out of everything it was handed. |
+| Prove an answer to a reviewer, or to yourself | **Ask**. Every citation opens the record it names, with the exact text that went into the prompt and the source chunk behind it. Nothing is paraphrased on the way. |
+| Answer a security or privacy question about what leaves the machine | **Ask** → **Show the prompt sent to the model**. The exact messages, and a diagram of the run with the calls that left the browser marked in red. [SECURITY.md](SECURITY.md) has the rest. |
+| See whether a re-clustering run actually helped | **Quality**. Two community sets side by side with NMI, ARI and an overlap table, and modularity for each level of each. |
+| Pick up an index somebody else built | **Schema** first. The entity types, the relationships that actually occur between them, and the Parquet tables with their key and reference columns. Nothing declares this; it is counted from the rows. |
+| Choose between local and global search for your kind of question | **Ask**. Run both on the same question and compare what each one retrieved and cited. |
+| Explain the system to someone who will not read the code | **Ask** → **How a question reaches an answer**. The run drawn as retrieval, context window, model calls and response, with the counts and milliseconds it actually spent. |
+
+It is a viewer and a debugger, not a serving layer. Point your application at `graphrag query`; come
+here when you need to see what that query is standing on.
+
 ## Why this and not a graph viewer
 
 A graph viewer draws your nodes. This draws the way GraphRAG actually organizes them, and then shows
