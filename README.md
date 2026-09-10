@@ -110,11 +110,8 @@ npm run build
 npm run serve -- --data ~/graphrag/output     # http://127.0.0.1:4180/?data=./data/output
 ```
 
-Once the package is on npm the same server runs without a checkout:
-
-```sh
-npx graphrag-community-explorer --data ~/graphrag/output
-```
+That server is also what `npm pack` puts in the tarball, so a built copy can be moved to a machine
+that has Node and nothing else. The package is not on a registry.
 
 A `Dockerfile` builds a static image served by nginx; mount an index folder under
 `/usr/share/nginx/html/data/<name>` and open `?data=./data/<name>`. It has not been exercised on a

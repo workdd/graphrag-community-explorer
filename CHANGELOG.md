@@ -53,7 +53,7 @@
 - Neighbourhood exploration: 1 to 3 hops around any entity, drawn inside its communities.
 - GraphRAG 0.3 `create_final_*` sample and smoke test; stress set generator (`--scale`).
 - Offline tools for Apache AGE export, Leiden runs and partition comparison.
-- npm `bin` (`npx graphrag-community-explorer --data <folder>`), Dockerfile, release notes.
+- npm `bin` that serves a built copy next to an index folder, Dockerfile, release notes.
 
 ## 0.1.0 (2026-09-08)
 

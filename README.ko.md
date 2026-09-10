@@ -94,11 +94,8 @@ npm run build
 npm run serve -- --data ~/graphrag/output     # http://127.0.0.1:4180/?data=./data/output
 ```
 
-npm 에 배포된 뒤에는 내려받지 않고 같은 서버를 띄울 수 있습니다.
-
-```sh
-npx graphrag-community-explorer --data ~/graphrag/output
-```
+이 서버는 `npm pack` 이 만드는 tarball 에도 그대로 들어가므로, Node 만 있는 컴퓨터로 빌드한 사본을 옮겨
+띄울 수 있습니다. 레지스트리에 배포하지는 않습니다.
 
 `Dockerfile` 은 nginx 가 서빙하는 정적 이미지를 만듭니다. 색인 폴더를
 `/usr/share/nginx/html/data/<이름>` 에 마운트하고 `?data=./data/<이름>` 으로 엽니다. Docker 가 설치된
